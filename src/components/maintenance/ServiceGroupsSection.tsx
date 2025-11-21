@@ -1,25 +1,252 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronUp, Package, AlertCircle, Wrench, CircleDot } from 'lucide-react';
-import { getVendors, createVendor } from '@/utils/vendorStorage';
-import { Vendor } from '@/types/vendor';
-import { createLogger } from '@/utils/logger';
-import { toast } from 'react-toastify';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useFormContext, Controller } from 'react-hook-form';
+import { Plus, Trash2, Wrench, DollarSign, FileText, CheckSquare, ChevronDown, ChevronUp, Upload, Package, Store, IndianRupee, X, Check, Truck } from 'lucide-react';
+import { getVendors as getVendorsOld } from '../../utils/storage';
+import { getVendors, createVendorFromName, Vendor } from '../../utils/vendorStorage';
+import { supabase } from '../../utils/supabaseClient';
+import Button from '../ui/Button';
+import Input from '../ui/Input';
+import Select from '../ui/Select';
+import { createLogger } from '../../utils/logger';
+import { getCurrentUserId, getUserActiveOrganization } from '../../utils/supaHelpers';
+import PartReplacement from './PartReplacement';
 
 const logger = createLogger('ServiceGroupsSection');
 
-interface ServiceTask {
-  id: string;
-  description: string;
-  quantity: number;
-  unit_cost: number;
-  total_cost: number;
-}
+/**
+ * Converts task names to task IDs by querying maintenance_tasks_catalog
+ * This allows the UI to use human-readable names while the database uses UUIDs
+ */
+const convertTaskNamesToIds = async (taskNames: string[]): Promise<string[]> => {
+  if (!Array.isArray(taskNames) || taskNames.length === 0) {
+    return [];
+  }
+
+  try {
+    // Get current user and their organization
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      logger.error('No user ID found in convertTaskNamesToIds');
+      return [];
+    }
+
+    const organizationId = await getUserActiveOrganization(userId);
+    if (!organizationId) {
+      logger.error('No organization found for user in convertTaskNamesToIds');
+      return [];
+    }
+
+    // Query the catalog to get UUIDs for the task names
+    const { data, error } = await supabase
+      .from('maintenance_tasks_catalog')
+      .select('id, task_name')
+      .in('task_name', taskNames)
+      .eq('active', true)
+      .eq('organization_id', organizationId);
+
+    if (error) {
+      logger.error('Error fetching task IDs:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      logger.warn('No matching tasks found in catalog for:', taskNames);
+      return [];
+    }
+
+    // Create a map of task names to IDs
+    const nameToIdMap = new Map(
+      data.map(task => [task.task_name, task.id])
+    );
+
+    // Convert names to IDs, maintaining order
+    const taskIds = taskNames
+      .map(name => nameToIdMap.get(name))
+      .filter((id): id is string => id !== undefined);
+
+    logger.debug('Converted task names to IDs:', {
+      input: taskNames,
+      output: taskIds,
+      mapping: Object.fromEntries(nameToIdMap)
+    });
+
+    return taskIds;
+  } catch (error) {
+    logger.error('Error in convertTaskNamesToIds:', error);
+    return [];
+  }
+};
+
+// ===== CONSTANTS =====
+// UPDATED: Split tasks into Purchase (buying parts) vs Labor (installation/service)
+const MAINTENANCE_TASKS = [
+  // ===== PURCHASE TASKS (When buying parts) =====
+  'Engine Oil Purchase',
+  'Oil Filter Purchase',
+  'Air Filter Purchase',
+  'Fuel Filter Purchase',
+  'Battery Purchase',
+  'Tyre Purchase',
+  'Brake Pad Purchase',
+  'Brake Shoe Purchase',
+  'Brake Disc Purchase',
+  'Brake Drum Purchase',
+  'Brake Oil Purchase',
+  'Clutch Plate Purchase',
+  'Clutch Assembly Purchase',
+  'Coolant Purchase',
+  'Radiator Hose Purchase',
+  'Water Pump Purchase',
+  'Thermostat Purchase',
+  'Alternator Purchase',
+  'Starter Motor Purchase',
+  'Shock Absorber Purchase',
+  'Spring Purchase',
+  'Ball Joint Purchase',
+  'Tie Rod End Purchase',
+  'Wheel Bearing Purchase',
+  'Spark Plug Purchase',
+  'Glow Plug Purchase',
+  'Timing Belt Purchase',
+  'Drive Belt Purchase',
+  'Windshield Wiper Purchase',
+  'Light Bulb Purchase',
+  'Fuse Purchase',
+  'Parts Purchase', // Generic option
+
+  // ===== LABOR/SERVICE TASKS (When getting work done) =====
+  'Engine Oil Change',
+  'Oil Filter Replacement',
+  'Air Filter Cleaning',
+  'Air Filter Replacement',
+  'Fuel Filter Replacement',
+  'Battery Installation',
+  'Battery Charging',
+  'Battery Terminal Cleaning',
+  'Tyre Installation',
+  'Tyre Rotation',
+  'Tyre Puncture Repair',
+  'Tyre Pressure Check',
+  'Wheel Alignment',
+  'Wheel Balancing',
+  'Brake Pad Replacement',
+  'Brake Shoe Replacement',
+  'Brake Disc Resurfacing',
+  'Brake Drum Turning',
+  'Brake Fluid Replacement',
+  'Brake Bleeding',
+  'Brake Adjustment',
+  'Handbrake Adjustment',
+  'Clutch Plate Replacement',
+  'Clutch Assembly Replacement',
+  'Clutch Adjustment',
+  'Clutch Cable Replacement',
+  'Coolant Flush/Radiator Flush',
+  'Coolant Top-up',
+  'Radiator Cleaning',
+  'Radiator Hose Replacement',
+  'Thermostat Replacement',
+  'Water Pump Replacement',
+  'Tappet Adjustment',
+  'Engine Tune-up',
+  'Injector Cleaning',
+  'Belt Tensioning',
+  'Belt Replacement',
+  'Transmission Oil Change',
+  'Differential Oil Change',
+  'Shock Absorber Replacement',
+  'Spring Replacement',
+  'Ball Joint Replacement',
+  'Tie Rod End Replacement',
+  'Wheel Bearing Service',
+  'Wheel Bearing Replacement',
+  'Steering Adjustment',
+  'Power Steering Fluid Check',
+  'Alternator Check',
+  'Alternator Replacement',
+  'Starter Motor Service',
+  'Starter Motor Replacement',
+  'Wiring Repairs',
+  'Light Bulb Replacement',
+  'Fuse Replacement',
+  'Windshield Wiper Replacement',
+  'AC Service/Gas Filling',
+  'AC Compressor Replacement',
+  'Underbody Wash',
+  'Chassis Greasing',
+  'Engine Decarbonization',
+  'DPF Cleaning',
+  'EGR Valve Cleaning',
+  'General Service',
+  'Periodic Maintenance',
+  'Repair Work', // Generic option
+];
+
+// ===== MAPPING OF PURCHASE TASKS TO PART TYPES =====
+const TASK_TO_PART_MAPPING: Record<string, string> = {
+  'Engine Oil Purchase': 'Engine Oil',
+  'Oil Filter Purchase': 'Oil Filter',
+  'Air Filter Purchase': 'Air Filter',
+  'Fuel Filter Purchase': 'Fuel Filter',
+  'Battery Purchase': 'Battery',
+  'Tyre Purchase': 'Tyre',
+  'Brake Pad Purchase': 'Brake Pad',
+  'Brake Shoe Purchase': 'Brake Shoe',
+  'Brake Disc Purchase': 'Brake Disc',
+  'Brake Drum Purchase': 'Brake Drum',
+  'Brake Oil Purchase': 'Brake Oil',
+  'Clutch Plate Purchase': 'Clutch Plate',
+  'Coolant Purchase': 'Coolant',
+  'Radiator Hose Purchase': 'Radiator Hose',
+  'Water Pump Purchase': 'Water Pump',
+  'Thermostat Purchase': 'Thermostat',
+  'Alternator Purchase': 'Alternator',
+  'Starter Motor Purchase': 'Starter Motor',
+  'Shock Absorber Purchase': 'Shock Absorber',
+  'Spring Purchase': 'Leaf Spring',
+  'Ball Joint Purchase': 'Ball Joint',
+  'Tie Rod End Purchase': 'Tie Rod End',
+  'Wheel Bearing Purchase': 'Wheel Bearing',
+  'Spark Plug Purchase': 'Spark Plug',
+  'Glow Plug Purchase': 'Glow Plug',
+  'Belt Purchase': 'Drive Belt',
+  'Windshield Wiper Purchase': 'Windshield Wiper',
+  'Light Bulb Purchase': 'Light Bulb',
+  'Fuse Purchase': 'Fuse',
+};
 
 interface ServiceGroup {
   id: string;
-  vendor_id: string;
-  tasks: ServiceTask[];
-  total_cost: number;
+  serviceType: 'purchase' | 'labor' | 'both' | '';
+  vendor: string;
+  tasks: string[];
+  cost: number;
+  notes?: string;
+  bills?: File[];
+  
+  // Parts tracking
+  batteryData?: {
+    serialNumber: string;
+    brand: string;
+  };
+  tyreData?: {
+    positions: string[];
+    brand: string;
+    serialNumbers: string;
+  };
+  partsData?: Array<{
+    partType: string;
+    partName: string;
+    brand: string;
+    serialNumber?: string;
+    quantity: number;
+    warrantyPeriod?: string;
+    warrantyDocument?: File;
+  }>;
+  
+  // Warranty uploads
+  batteryWarrantyFiles?: File[];
+  tyreWarrantyFiles?: File[];
 }
 
 interface ServiceGroupsSectionProps {
@@ -29,447 +256,874 @@ interface ServiceGroupsSectionProps {
   numberOfTyres?: number;
 }
 
-// Export function to convert service groups to database format
-export const convertServiceGroupsToDatabase = async (serviceGroups: ServiceGroup[]): Promise<ServiceGroup[]> => {
-  // This function converts service groups to the format expected by the database
-  // Currently just returns the groups as-is since they're already in the right format
-  return serviceGroups.map(group => ({
-    ...group,
-    // Ensure vendor_id is set
-    vendor_id: group.vendor_id || '',
-    // Ensure tasks array exists
-    tasks: (group.tasks || []).map(task => ({
-      ...task,
-      // Ensure all task fields are present
-      id: task.id || crypto.randomUUID(),
-      description: task.description || '',
-      quantity: task.quantity || 1,
-      unit_cost: task.unit_cost || 0,
-      total_cost: task.total_cost || (task.quantity || 1) * (task.unit_cost || 0)
-    })),
-    // Recalculate total cost
-    total_cost: group.total_cost || (group.tasks || []).reduce((sum, task) => sum + (task.total_cost || 0), 0)
-  }));
-};
+// ===== HELPER COMPONENTS =====
 
-// Common service templates based on vehicle type and tire count
-const getServiceTemplates = (vehicleType?: string, numberOfTyres?: number) => {
-  const templates: { [key: string]: ServiceTask[] } = {
-    general: [
-      { id: '1', description: 'Engine Oil Change', quantity: 1, unit_cost: 2000, total_cost: 2000 },
-      { id: '2', description: 'Oil Filter Replacement', quantity: 1, unit_cost: 500, total_cost: 500 },
-      { id: '3', description: 'Air Filter Cleaning/Replacement', quantity: 1, unit_cost: 800, total_cost: 800 },
-      { id: '4', description: 'Coolant Top-up/Replacement', quantity: 1, unit_cost: 1200, total_cost: 1200 },
-    ],
-    tyres: [
-      { 
-        id: 't1', 
-        description: 'Tyre Rotation/Alignment', 
-        quantity: numberOfTyres || 4, 
-        unit_cost: 200, 
-        total_cost: (numberOfTyres || 4) * 200 
-      },
-      { 
-        id: 't2', 
-        description: 'Tyre Pressure Check & Inflation', 
-        quantity: numberOfTyres || 4, 
-        unit_cost: 50, 
-        total_cost: (numberOfTyres || 4) * 50 
-      },
-      { 
-        id: 't3', 
-        description: 'Tyre Replacement', 
-        quantity: 1, 
-        unit_cost: 8000, 
-        total_cost: 8000 
-      },
-      { 
-        id: 't4', 
-        description: 'Wheel Balancing', 
-        quantity: numberOfTyres || 4, 
-        unit_cost: 150, 
-        total_cost: (numberOfTyres || 4) * 150 
-      },
-    ],
-    brakes: [
-      { id: 'b1', description: 'Brake Pad Inspection/Replacement', quantity: 4, unit_cost: 1500, total_cost: 6000 },
-      { id: 'b2', description: 'Brake Fluid Check/Top-up', quantity: 1, unit_cost: 800, total_cost: 800 },
-      { id: 'b3', description: 'Brake Line Inspection', quantity: 1, unit_cost: 500, total_cost: 500 },
-    ],
-    electrical: [
-      { id: 'e1', description: 'Battery Check/Replacement', quantity: 1, unit_cost: 5000, total_cost: 5000 },
-      { id: 'e2', description: 'Alternator Inspection', quantity: 1, unit_cost: 1000, total_cost: 1000 },
-      { id: 'e3', description: 'Starter Motor Check', quantity: 1, unit_cost: 1200, total_cost: 1200 },
-      { id: 'e4', description: 'Lights & Indicators Check', quantity: 1, unit_cost: 500, total_cost: 500 },
-    ],
+// Inline Searchable Dropdown with Add functionality
+const InlineSearchableDropdown = ({
+  label,
+  options,
+  value,
+  onChange,
+  onAddNew,
+  placeholder = "Select or type to search...",
+  required = false,
+  icon: Icon,
+  multiSelect = false
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [customOptions, setCustomOptions] = useState([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const optionRefs = useRef([]);
+
+  // Get recently used tasks from localStorage
+  const recentTasks = useMemo(() => {
+    try {
+      const recent = JSON.parse(localStorage.getItem('recentMaintenanceTasks') || '[]');
+      return recent.slice(0, 3); // Top 3 recent tasks
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const allOptions = useMemo(() => {
+    const combined = [...options, ...customOptions];
+    // Put recent tasks at top if not searching
+    if (!searchTerm && recentTasks.length > 0) {
+      const recent = recentTasks.filter(task => combined.includes(task));
+      const remaining = combined.filter(opt => !recentTasks.includes(opt));
+      return [...recent, ...remaining];
+    }
+    return combined;
+  }, [options, customOptions, recentTasks, searchTerm]);
+
+  const filteredOptions = useMemo(() => {
+    if (!searchTerm) return allOptions;
+    return allOptions.filter(opt =>
+      opt.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm, allOptions]);
+
+  const selectedValues = useMemo(() => {
+    if (!multiSelect) return value ? [value] : [];
+    return Array.isArray(value) ? value : [];
+  }, [value, multiSelect]);
+
+  const displayText = useMemo(() => {
+    if (selectedValues.length === 0) return '';
+    if (multiSelect) {
+      return selectedValues.length === 1 
+        ? selectedValues[0]
+        : `${selectedValues.length} selected`;
+    }
+    return selectedValues[0];
+  }, [selectedValues, multiSelect]);
+
+  // Save to recent tasks
+  const saveToRecent = (task) => {
+    try {
+      const recent = JSON.parse(localStorage.getItem('recentMaintenanceTasks') || '[]');
+      const updated = [task, ...recent.filter(t => t !== task)].slice(0, 10);
+      localStorage.setItem('recentMaintenanceTasks', JSON.stringify(updated));
+    } catch (error) {
+      logger.warn('Could not save recent task:', error);
+    }
   };
 
-  // Adjust templates based on vehicle type
-  if (vehicleType === 'truck' || vehicleType === 'trailer') {
-    templates.heavy = [
-      { id: 'h1', description: 'Differential Oil Change', quantity: 1, unit_cost: 3000, total_cost: 3000 },
-      { id: 'h2', description: 'Transmission Fluid Check', quantity: 1, unit_cost: 2500, total_cost: 2500 },
-      { id: 'h3', description: 'Clutch Adjustment/Replacement', quantity: 1, unit_cost: 8000, total_cost: 8000 },
-      { id: 'h4', description: 'Suspension Check', quantity: 1, unit_cost: 2000, total_cost: 2000 },
-    ];
-  }
+  const handleSelect = (option) => {
+    saveToRecent(option);
+    if (multiSelect) {
+      const newValue = selectedValues.includes(option)
+        ? selectedValues.filter(v => v !== option)
+        : [...selectedValues, option];
+      onChange(newValue);
+    } else {
+      onChange(option);
+      setIsOpen(false);
+      setSearchTerm('');
+    }
+  };
 
-  return templates;
+  // Keyboard navigation
+  const handleKeyDown = (e) => {
+    if (!isOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') {
+        e.preventDefault();
+        setIsOpen(true);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex((prev) =>
+          prev < filteredOptions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (filteredOptions[highlightedIndex]) {
+          handleSelect(filteredOptions[highlightedIndex]);
+          if (!multiSelect) {
+            setIsOpen(false);
+          }
+        } else if (showAddButton) {
+          handleAddNew();
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsOpen(false);
+        setSearchTerm('');
+        break;
+      case 'Tab':
+        if (!multiSelect) {
+          setIsOpen(false);
+        }
+        break;
+    }
+  };
+
+  // Reset highlighted index when options change
+  useEffect(() => {
+    setHighlightedIndex(0);
+  }, [filteredOptions]);
+
+  // Scroll highlighted option into view
+  useEffect(() => {
+    if (isOpen && optionRefs.current[highlightedIndex]) {
+      optionRefs.current[highlightedIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    }
+  }, [highlightedIndex, isOpen]);
+
+  const handleAddNew = () => {
+    if (searchTerm && !allOptions.includes(searchTerm)) {
+      setCustomOptions([...customOptions, searchTerm]);
+      if (onAddNew) onAddNew(searchTerm);
+      handleSelect(searchTerm);
+      setSearchTerm('');
+    }
+  };
+
+  const showAddButton = searchTerm && filteredOptions.length === 0;
+
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      
+      <div className="relative">
+        {Icon && (
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <Icon className="h-4 w-4" />
+          </div>
+        )}
+        
+        <input
+          ref={inputRef}
+          type="text"
+          value={isOpen ? searchTerm : displayText}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all`}
+          aria-label={label}
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
+        />
+        
+        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+      </div>
+
+      {isOpen && (
+        <div
+          ref={dropdownRef}
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto"
+        >
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((option, idx) => {
+              const isSelected = selectedValues.includes(option);
+              const isHighlighted = idx === highlightedIndex;
+              const isRecent = !searchTerm && recentTasks.includes(option);
+
+              return (
+                <div
+                  key={idx}
+                  ref={(el) => (optionRefs.current[idx] = el)}
+                  onClick={() => handleSelect(option)}
+                  className={`px-3 py-2 cursor-pointer flex items-center justify-between transition-colors ${
+                    isHighlighted ? 'bg-blue-100 border-l-4 border-blue-500' : 'hover:bg-green-50'
+                  } ${
+                    isSelected ? 'bg-green-100 font-medium' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2 flex-1">
+                    {isRecent && (
+                      <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                        RECENT
+                      </span>
+                    )}
+                    <span className={`text-sm ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+                      {option}
+                    </span>
+                  </div>
+                  {isSelected && (
+                    <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                  )}
+                </div>
+              );
+            })
+          ) : showAddButton ? (
+            <div
+              ref={(el) => (optionRefs.current[0] = el)}
+              onClick={handleAddNew}
+              className={`px-3 py-2 cursor-pointer flex items-center gap-2 text-green-600 ${
+                highlightedIndex === 0 ? 'bg-blue-100 border-l-4 border-blue-500' : 'hover:bg-green-50'
+              }`}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-sm font-medium">Add "{searchTerm}"</span>
+            </div>
+          ) : (
+            <div className="px-3 py-2 text-sm text-gray-500">
+              Type to search...
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Selected Tasks Display with colorful tags
+const SelectedTasksTags = ({ tasks, onRemove }) => {
+  if (!tasks || tasks.length === 0) return null;
+
+  const COLORS = [
+    'bg-blue-100 text-blue-700 border-blue-300',
+    'bg-purple-100 text-purple-700 border-purple-300',
+    'bg-pink-100 text-pink-700 border-pink-300',
+    'bg-green-100 text-green-700 border-green-300',
+    'bg-yellow-100 text-yellow-700 border-yellow-300',
+    'bg-red-100 text-red-700 border-red-300',
+    'bg-indigo-100 text-indigo-700 border-indigo-300',
+  ];
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {tasks.map((task, idx) => (
+        <div
+          key={idx}
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${COLORS[idx % COLORS.length]}`}
+        >
+          <span>{task}</span>
+          <button
+            type="button"
+            onClick={() => onRemove(task)}
+            className="hover:opacity-70"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Service Group Component
+const ServiceGroup = ({
+  groupData,
+  onChange,
+  onRemove,
+  index,
+  canRemove,
+  vehicleType,
+  numberOfTyres,
+  vendors,
+  loadingVendors,
+  setVendors
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // AUTO-CREATE PARTS BASED ON PURCHASE TASKS
+  useEffect(() => {
+    if (groupData.serviceType === 'purchase' || groupData.serviceType === 'both') {
+      const purchaseTasks = groupData.tasks.filter(task => task.includes('Purchase'));
+      const existingPartTypes = (groupData.parts || []).map(p => p.partType);
+
+      // Create parts for purchase tasks that don't have corresponding parts yet
+      const newParts: any[] = [];
+      purchaseTasks.forEach(task => {
+        const partType = TASK_TO_PART_MAPPING[task];
+        if (partType && !existingPartTypes.includes(partType)) {
+          newParts.push({
+            id: `part-${Date.now()}-${Math.random()}`,
+            partType: partType,
+            quantity: 1,
+            partName: '',
+            brand: '',
+            serialNumber: '',
+            warrantyPeriod: '',
+            warrantyDocument: null,
+            tyrePositions: []
+          });
+        }
+      });
+
+      if (newParts.length > 0) {
+        onChange({
+          ...groupData,
+          parts: [...(groupData.parts || []), ...newParts],
+        });
+      }
+    }
+  }, [groupData.tasks, groupData.serviceType]);
+
+  const handleTaskRemove = (taskToRemove) => {
+    const newTasks = (groupData.tasks || []).filter(task => task !== taskToRemove);
+    onChange({ ...groupData, tasks: newTasks });
+  };
+
+  const handlePartChange = (partIndex, updatedPart) => {
+    const newParts = [...(groupData.parts || [])];
+    newParts[partIndex] = updatedPart;
+    onChange({ ...groupData, parts: newParts });
+  };
+
+  const addPart = () => {
+    const newParts = [...(groupData.parts || []), {
+      id: Date.now(),
+      partType: '',
+      partName: '',
+      brand: '',
+      serialNumber: '',
+      quantity: 1,
+      warrantyPeriod: '',
+      warrantyDocument: null,
+      tyrePositions: []
+    }];
+    onChange({ ...groupData, parts: newParts });
+  };
+
+  const removePart = (partIndex) => {
+    const newParts = (groupData.parts || []).filter((_, idx) => idx !== partIndex);
+    onChange({ ...groupData, parts: newParts });
+  };
+
+  // Helper text based on service type
+  const getServiceTypeHelp = (type) => {
+    switch(type) {
+      case 'purchase':
+        return '💡 You bought parts here. Add them below.';
+      case 'labor':
+        return '💡 You got service/repairs done here. Parts bought elsewhere.';
+      case 'both':
+        return '💡 You bought parts AND got them installed here.';
+      default:
+        return '';
+    }
+  };
+
+  // Filter tasks based on service type
+  const getFilteredTasks = (serviceType: string) => {
+    if (serviceType === 'purchase') {
+      // Show only purchase tasks (tasks ending with "Purchase")
+      return MAINTENANCE_TASKS.filter(task => task.includes('Purchase'));
+    }
+    if (serviceType === 'labor') {
+      // Show only labor/service tasks (tasks NOT ending with "Purchase")
+      return MAINTENANCE_TASKS.filter(task => !task.includes('Purchase'));
+    }
+    // For 'both' or empty, show all tasks
+    return MAINTENANCE_TASKS;
+  };
+
+  return (
+    <div className="bg-white border-2 border-gray-200 rounded-xl overflow-visible shadow-sm">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+        <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+          <Wrench className="h-5 w-5 text-green-600" />
+          Shop/Mechanic {index + 1}
+        </h3>
+        {canRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium flex items-center gap-1"
+          >
+            <Trash2 className="h-4 w-4" />
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="p-4">
+        {/* Quick Entry Fields - Always Visible */}
+        <div className="border-2 border-green-200 rounded-lg p-4 bg-green-50 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-sm font-semibold text-green-900">Quick Entry</span>
+          </div>
+
+          <div className="space-y-3">
+            {/* Service Type Selector - Button Version */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                What did you do here? <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...groupData, serviceType: 'purchase' })}
+                  className={`px-4 py-3 rounded-lg font-medium text-sm transition-all border-2 ${
+                    groupData.serviceType === 'purchase'
+                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-md'
+                      : 'bg-white text-indigo-700 border-indigo-300 hover:bg-indigo-50'
+                  }`}
+                >
+                  Bought Parts Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...groupData, serviceType: 'labor' })}
+                  className={`px-4 py-3 rounded-lg font-medium text-sm transition-all border-2 ${
+                    groupData.serviceType === 'labor'
+                      ? 'bg-purple-500 text-white border-purple-600 shadow-md'
+                      : 'bg-white text-purple-700 border-purple-300 hover:bg-purple-50'
+                  }`}
+                >
+                  Got Service/Repair Done
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...groupData, serviceType: 'both' })}
+                  className={`px-4 py-3 rounded-lg font-medium text-sm transition-all border-2 ${
+                    groupData.serviceType === 'both'
+                      ? 'bg-teal-600 text-white border-teal-700 shadow-md'
+                      : 'bg-white text-teal-700 border-teal-300 hover:bg-teal-50'
+                  }`}
+                >
+                  Bought Parts + Got Them Installed
+                </button>
+              </div>
+              {/* Hint text removed per user request - service types are self-explanatory */}
+            </div>
+
+            <InlineSearchableDropdown
+              label="Shop/Mechanic Name"
+              options={vendors.map(v => v.vendor_name)}
+              value={groupData.vendor}
+              onChange={(val) => onChange({ ...groupData, vendor: val })}
+              onAddNew={async (newVendorName) => {
+                try {
+                  logger.debug('Creating new vendor:', newVendorName);
+                  const newVendor = await createVendorFromName(newVendorName);
+                  if (newVendor) {
+                    // Add to local state
+                    setVendors(prev => [...prev, newVendor]);
+                    // Set as selected
+                    onChange({ ...groupData, vendor: newVendor.vendor_name });
+                    logger.debug('Vendor created and saved to database:', newVendor);
+                  }
+                } catch (error) {
+                  logger.error('Error creating vendor:', error);
+                  // Still add to local state even if DB save fails
+                  setVendors(prev => [...prev, {
+                    id: `temp-${Date.now()}`,
+                    vendor_name: newVendorName,
+                    organization_id: ''
+                  }]);
+                  onChange({ ...groupData, vendor: newVendorName });
+                }
+              }}
+              icon={Store}
+              required
+              placeholder={loadingVendors ? "Loading vendors..." : "Select or add new..."}
+            />
+
+            <div>
+              <InlineSearchableDropdown
+                label="What work was done?"
+                options={getFilteredTasks(groupData.serviceType)}
+                value={groupData.tasks}
+                onChange={(val) => onChange({ ...groupData, tasks: val })}
+                onAddNew={(newTask) => logger.debug('New task added:', newTask)}
+                icon={Wrench}
+                required
+                multiSelect
+                placeholder="Select work done or type new..."
+              />
+              <SelectedTasksTags
+                tasks={groupData.tasks}
+                onRemove={handleTaskRemove}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cost <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={groupData.cost || ''}
+                  onChange={(e) => onChange({ ...groupData, cost: parseFloat(e.target.value) || 0 })}
+                  placeholder="0.00"
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Expandable Detailed Section */}
+        <div className="border-2 border-yellow-300 bg-yellow-50 rounded-lg p-3">
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <div className="flex items-center gap-2">
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4 text-yellow-700" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-yellow-700" />
+              )}
+              <span className="text-sm font-semibold text-yellow-900">
+                Add More Details (Bills, Notes, Parts)
+              </span>
+            </div>
+          </button>
+
+          {isExpanded && (
+            <div className="mt-4 space-y-4 pl-6 border-l-3 border-yellow-400">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Upload Bills/Receipts
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) => onChange({ ...groupData, bills: Array.from(e.target.files) })}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <Upload className="h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Part Replacements */}
+              {(groupData.serviceType === 'purchase' || groupData.serviceType === 'both') && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Package className="h-4 w-4" />
+                    Parts You Bought Here
+                  </h4>
+
+                  <div className="space-y-3">
+                    {(groupData.parts || []).map((part, partIndex) => (
+                      <PartReplacement
+                        key={part.id || partIndex}
+                        partData={part}
+                        onChange={(updated) => handlePartChange(partIndex, updated)}
+                        onRemove={() => removePart(partIndex)}
+                        vehicleType={vehicleType}
+                        numberOfTyres={numberOfTyres}
+                      />
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={addPart}
+                      className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-green-400 hover:text-green-600 hover:bg-green-50 flex items-center justify-center gap-2 font-medium"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Another Part
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {groupData.serviceType === 'labor' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-700">
+                    💡 Since this is labor only, you don't need to add parts here. Add parts in the group where you bought them.
+                  </p>
+                </div>
+              )}
+
+              {/* Extra Notes - MOVED TO END AND MADE SMALLER (70% reduction) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Extra Notes
+                </label>
+                <textarea
+                  value={groupData.notes || ''}
+                  onChange={(e) => onChange({ ...groupData, notes: e.target.value })}
+                  rows={1}
+                  placeholder="Any additional information..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                  style={{ minHeight: '36px', resize: 'vertical' }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
   serviceGroups,
   onChange,
   vehicleType,
-  numberOfTyres
+  numberOfTyres,
 }) => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [showTemplates, setShowTemplates] = useState<{ [groupId: string]: boolean }>({});
+  const [loadingVendors, setLoadingVendors] = useState(true);
 
+  // Fetch vendors from database
   useEffect(() => {
-    loadVendors();
-  }, []);
+    const fetchVendors = async () => {
+      try {
+        const vendorData = await getVendors();
+        setVendors(vendorData);
+        logger.debug(`Loaded ${vendorData.length} vendors from database`);
+      } catch (error) {
+        logger.error('Error fetching vendors:', error);
+        setVendors([]);
+      } finally {
+        setLoadingVendors(false);
+      }
+    };
 
-  const loadVendors = async () => {
-    try {
-      const vendorList = await getVendors();
-      setVendors(vendorList);
-    } catch (error) {
-      logger.error('Error loading vendors:', error);
-      toast.error('Failed to load vendors');
-    }
-  };
+    fetchVendors();
+  }, []);
 
   const addServiceGroup = () => {
     const newGroup: ServiceGroup = {
-      id: `group_${Date.now()}`,
-      vendor_id: '',
+      id: Date.now().toString(),
+      serviceType: '',
+      vendor: '',
       tasks: [],
-      total_cost: 0
+      cost: 0,
+      notes: '',
+      bills: []
     };
     onChange([...serviceGroups, newGroup]);
-    setExpandedGroups(new Set([...expandedGroups, newGroup.id]));
   };
 
-  const removeServiceGroup = (groupId: string) => {
-    onChange(serviceGroups.filter(g => g.id !== groupId));
+  const removeServiceGroup = (id: string) => {
+    onChange(serviceGroups.filter(group => group.id !== id));
   };
 
-  const updateServiceGroup = (groupId: string, updates: Partial<ServiceGroup>) => {
-    onChange(serviceGroups.map(g => 
-      g.id === groupId ? { ...g, ...updates } : g
-    ));
+  const updateServiceGroup = (index: number, updatedGroup: ServiceGroup) => {
+    const newGroups = [...serviceGroups];
+    newGroups[index] = updatedGroup;
+    onChange(newGroups);
   };
 
-  const addTaskToGroup = (groupId: string, task?: ServiceTask) => {
-    const group = serviceGroups.find(g => g.id === groupId);
-    if (!group) return;
-
-    const newTask: ServiceTask = task || {
-      id: `task_${Date.now()}`,
-      description: '',
-      quantity: 1,
-      unit_cost: 0,
-      total_cost: 0
-    };
-
-    const updatedTasks = [...group.tasks, newTask];
-    const totalCost = updatedTasks.reduce((sum, t) => sum + (t.total_cost || 0), 0);
-    
-    updateServiceGroup(groupId, { tasks: updatedTasks, total_cost: totalCost });
-  };
-
-  const updateTask = (groupId: string, taskId: string, updates: Partial<ServiceTask>) => {
-    const group = serviceGroups.find(g => g.id === groupId);
-    if (!group) return;
-
-    const updatedTasks = group.tasks.map(t => {
-      if (t.id === taskId) {
-        const quantity = updates.quantity ?? t.quantity ?? 1;
-        const unit_cost = updates.unit_cost ?? t.unit_cost ?? 0;
-        const total_cost = quantity * unit_cost;
-        return { ...t, ...updates, total_cost };
-      }
-      return t;
-    });
-
-    const totalCost = updatedTasks.reduce((sum, t) => sum + (t.total_cost || 0), 0);
-    updateServiceGroup(groupId, { tasks: updatedTasks, total_cost: totalCost });
-  };
-
-  const removeTask = (groupId: string, taskId: string) => {
-    const group = serviceGroups.find(g => g.id === groupId);
-    if (!group) return;
-
-    const updatedTasks = group.tasks.filter(t => t.id !== taskId);
-    const totalCost = updatedTasks.reduce((sum, t) => sum + (t.total_cost || 0), 0);
-    
-    updateServiceGroup(groupId, { tasks: updatedTasks, total_cost: totalCost });
-  };
-
-  const toggleGroupExpansion = (groupId: string) => {
-    const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(groupId)) {
-      newExpanded.delete(groupId);
-    } else {
-      newExpanded.add(groupId);
-    }
-    setExpandedGroups(newExpanded);
-  };
-
-  const applyTemplate = (groupId: string, templateKey: string) => {
-    const templates = getServiceTemplates(vehicleType, numberOfTyres);
-    const templateTasks = templates[templateKey] || [];
-    
-    templateTasks.forEach(task => {
-      addTaskToGroup(groupId, { ...task, id: `task_${Date.now()}_${Math.random()}` });
-    });
-    
-    setShowTemplates({ ...showTemplates, [groupId]: false });
-  };
-
-  const totalMaintenanceCost = serviceGroups.reduce((sum, g) => sum + (g.total_cost || 0), 0);
+  const totalCost = serviceGroups.reduce((sum, group) => sum + (group.cost || 0), 0);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Package className="h-5 w-5 text-gray-600" />
-          Service Groups
-          {numberOfTyres && (
-            <span className="text-sm font-normal text-gray-600 flex items-center gap-1">
-              <CircleDot className="h-4 w-4" />
-              Vehicle has {numberOfTyres} tyres
-            </span>
-          )}
-        </h3>
-        <button
-          type="button"
-          onClick={addServiceGroup}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Add Service Group
-        </button>
+    <div className="maintenance-form-section">
+      <div className="maintenance-form-section-header">
+        <div className="icon">
+          <Wrench className="h-5 w-5" />
+        </div>
+        <h3 className="section-title">Service Groups</h3>
       </div>
 
-      {serviceGroups.length === 0 ? (
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-          <Package className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600 mb-3">No service groups added yet</p>
-          <button
+      <div className="space-y-4">
+        {serviceGroups.map((group, index) => (
+          <ServiceGroup
+            key={group.id}
+            groupData={group}
+            onChange={(updated) => updateServiceGroup(index, updated)}
+            onRemove={() => removeServiceGroup(group.id)}
+            index={index}
+            canRemove={serviceGroups.length > 1}
+            vehicleType={vehicleType}
+            numberOfTyres={numberOfTyres}
+            vendors={vendors}
+            loadingVendors={loadingVendors}
+            setVendors={setVendors}
+          />
+        ))}
+
+        <button
             type="button"
             onClick={addServiceGroup}
-            className="text-blue-600 hover:text-blue-700 font-medium"
-          >
-            Add your first service group
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {serviceGroups.map((group, index) => (
-            <div key={group.id} className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1">
-                  <button
-                    type="button"
-                    onClick={() => toggleGroupExpansion(group.id)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    {expandedGroups.has(group.id) ? 
-                      <ChevronUp className="h-5 w-5" /> : 
-                      <ChevronDown className="h-5 w-5" />
-                    }
-                  </button>
-                  
-                  <span className="font-medium text-gray-900">Group {index + 1}</span>
-                  
-                  <select
-                    value={group.vendor_id}
-                    onChange={(e) => updateServiceGroup(group.id, { vendor_id: e.target.value })}
-                    className="flex-1 max-w-xs px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  >
-                    <option value="">Select Vendor</option>
-                    {vendors.map(vendor => (
-                      <option key={vendor.id} value={vendor.id}>
-                        {vendor.vendor_name}
-                      </option>
-                    ))}
-                  </select>
-                  
-                  <span className="text-sm font-medium text-gray-700">
-                    Total: ₹{(group.total_cost || 0).toLocaleString()}
-                  </span>
-                </div>
-                
-                <button
-                  type="button"
-                  onClick={() => removeServiceGroup(group.id)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <Trash2 className="h-5 w-5" />
-                </button>
-              </div>
+          className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-green-500 hover:text-green-600 hover:bg-green-50 flex items-center justify-center gap-2 font-semibold text-lg"
+        >
+          <Plus className="h-5 w-5" />
+          Add Another Shop/Mechanic
+        </button>
 
-              {expandedGroups.has(group.id) && (
-                <div className="p-4 space-y-3">
-                  {/* Quick Templates */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-gray-600">Quick add:</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowTemplates({ ...showTemplates, [group.id]: !showTemplates[group.id] })}
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      Service Templates
-                    </button>
-                  </div>
-
-                  {showTemplates[group.id] && (
-                    <div className="bg-blue-50 rounded-lg p-3 space-y-2">
-                      <p className="text-sm font-medium text-gray-700 mb-2">Select template to add common services:</p>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => applyTemplate(group.id, 'general')}
-                          className="px-3 py-1.5 text-sm bg-white hover:bg-gray-50 border border-gray-300 rounded-lg"
-                        >
-                          General Service
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyTemplate(group.id, 'tyres')}
-                          className="px-3 py-1.5 text-sm bg-white hover:bg-gray-50 border border-gray-300 rounded-lg flex items-center gap-1"
-                        >
-                          <CircleDot className="h-3 w-3" />
-                          Tyre Services ({numberOfTyres || 4} tyres)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyTemplate(group.id, 'brakes')}
-                          className="px-3 py-1.5 text-sm bg-white hover:bg-gray-50 border border-gray-300 rounded-lg"
-                        >
-                          Brake Service
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyTemplate(group.id, 'electrical')}
-                          className="px-3 py-1.5 text-sm bg-white hover:bg-gray-50 border border-gray-300 rounded-lg"
-                        >
-                          Electrical
-                        </button>
-                        {(vehicleType === 'truck' || vehicleType === 'trailer') && (
-                          <button
-                            type="button"
-                            onClick={() => applyTemplate(group.id, 'heavy')}
-                            className="px-3 py-1.5 text-sm bg-white hover:bg-gray-50 border border-gray-300 rounded-lg"
-                          >
-                            Heavy Vehicle
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Task List */}
-                  <div className="space-y-2">
-                    {group.tasks.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-2">
-                        No tasks added. Use templates or add manually.
-                      </p>
-                    ) : (
-                      group.tasks.map((task, taskIndex) => (
-                        <div key={task.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                          <span className="text-sm text-gray-600 w-8">{taskIndex + 1}.</span>
-                          
-                          <input
-                            type="text"
-                            value={task.description}
-                            onChange={(e) => updateTask(group.id, task.id, { description: e.target.value })}
-                            placeholder="Service description"
-                            className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
-                            required
-                          />
-                          
-                          <input
-                            type="number"
-                            value={task.quantity}
-                            onChange={(e) => updateTask(group.id, task.id, { quantity: parseInt(e.target.value) || 0 })}
-                            placeholder="Qty"
-                            className="w-16 px-2 py-1 text-sm border border-gray-300 rounded text-center"
-                            min="1"
-                            required
-                          />
-                          
-                          <input
-                            type="number"
-                            value={task.unit_cost}
-                            onChange={(e) => updateTask(group.id, task.id, { unit_cost: parseFloat(e.target.value) || 0 })}
-                            placeholder="Unit cost"
-                            className="w-24 px-2 py-1 text-sm border border-gray-300 rounded"
-                            min="0"
-                            step="0.01"
-                            required
-                          />
-                          
-                          <span className="text-sm font-medium text-gray-700 w-20 text-right">
-                            ₹{(task.total_cost || 0).toLocaleString()}
-                          </span>
-                          
-                          <button
-                            type="button"
-                            onClick={() => removeTask(group.id, task.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => addTaskToGroup(group.id)}
-                    className="w-full py-2 text-sm text-blue-600 hover:text-blue-700 font-medium border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
-                  >
-                    <Plus className="h-4 w-4 inline mr-1" />
-                    Add Task
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Total Summary */}
-      {serviceGroups.length > 0 && (
-        <div className="bg-blue-50 rounded-lg p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Wrench className="h-5 w-5 text-blue-600" />
-            <span className="font-medium text-gray-900">Total Maintenance Cost:</span>
+        {serviceGroups.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <Wrench className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p className="card-title">No service groups added yet</p>
+            <p className="card-subtitle">Click "Add Another Shop/Mechanic" to get started</p>
           </div>
-          <span className="text-xl font-bold text-blue-600">
-            ₹{(totalMaintenanceCost || 0).toLocaleString()}
-          </span>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Tyre Information Alert */}
-      {numberOfTyres && numberOfTyres > 6 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-          <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-amber-800">
-            <p className="font-medium">Heavy Vehicle Detected</p>
-            <p>This vehicle has {numberOfTyres} tyres. Consider adding tyre-specific maintenance tasks for proper tracking.</p>
+      {/* Total Cost Summary */}
+      {serviceGroups.length > 0 && (
+        <div className="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Total Amount</h3>
+              <p className="text-sm text-gray-600">{serviceGroups.length} shop(s)/mechanic(s)</p>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-green-600 flex items-center gap-1">
+                <IndianRupee className="h-7 w-7" />
+                {totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
+};
+
+/**
+ * Converts vendor name to vendor UUID by looking up in the database
+ */
+const convertVendorNameToId = async (vendorName: string): Promise<string> => {
+  if (!vendorName) return '';
+
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      logger.error('[convertVendorNameToId] No user ID found');
+      return '';
+    }
+
+    const organizationId = await getUserActiveOrganization(userId);
+    if (!organizationId) {
+      logger.error('[convertVendorNameToId] No organization found');
+      return '';
+    }
+
+    // Query vendors table to find vendor by name
+    const { data, error } = await supabase
+      .from('maintenance_vendors')
+      .select('id')
+      .eq('vendor_name', vendorName)
+      .eq('organization_id', organizationId)
+      .eq('active', true)
+      .single();
+
+    if (error || !data) {
+      logger.warn(`[convertVendorNameToId] Could not find vendor ID for name: "${vendorName}"`, error);
+      return '';
+    }
+
+    logger.debug(`[convertVendorNameToId] Converted vendor name "${vendorName}" to ID: ${data.id}`);
+    return data.id;
+  } catch (error) {
+    logger.error('[convertVendorNameToId] Error:', error);
+    return '';
+  }
+};
+
+/**
+ * Converts service groups with task names to service groups with task IDs
+ * Call this function before submitting the form
+ */
+export const convertServiceGroupsToDatabase = async (
+  serviceGroups: any[]
+): Promise<any[]> => {
+  if (!Array.isArray(serviceGroups) || serviceGroups.length === 0) {
+    return [];
+  }
+
+  logger.debug('Converting service groups for database...', serviceGroups);
+
+  const convertedGroups = await Promise.all(
+    serviceGroups.map(async (group, index) => {
+      logger.debug(`[Group ${index}] Input group:`, group);
+      logger.debug(`[Group ${index}] Vendor name:`, group.vendor);
+      logger.debug(`[Group ${index}] Tasks:`, group.tasks);
+
+      // Convert task names to IDs
+      const taskIds = await convertTaskNamesToIds(group.tasks || []);
+      logger.debug(`[Group ${index}] Converted task IDs:`, taskIds);
+
+      // Convert vendor name to vendor UUID
+      const vendorId = await convertVendorNameToId(group.vendor);
+      logger.debug(`[Group ${index}] Converted vendor ID:`, vendorId);
+
+      const converted: any = {
+        vendor_id: vendorId, // Now contains vendor UUID
+        tasks: taskIds, // Now contains UUIDs
+        service_cost: group.cost || 0, // ✅ FIX: Map 'cost' to 'service_cost' for database
+        service_type: group.serviceType || '',
+        notes: group.notes || '',
+        bill_url: group.bill_url || [],
+        battery_warranty_url: group.battery_warranty_url || [],
+        tyre_warranty_url: group.tyre_warranty_url || [],
+        parts_data: group.parts || [], // ✅ FIX: Map 'parts' to 'parts_data' for database
+        // Pass File objects for upload
+        bill_file: group.bill_file || [],
+        battery_warranty_file: group.battery_warranty_file || [],
+        tyre_warranty_file: group.tyre_warranty_file || [],
+      };
+
+      // Map battery data to JSONB if present
+      if (group.batteryData && group.batteryData.serialNumber) {
+        converted.battery_data = {
+          serialNumber: group.batteryData.serialNumber,
+          brand: group.batteryData.brand || '',
+        };
+        logger.debug(`[Group ${index}] Added battery_data JSONB:`, converted.battery_data);
+      }
+
+      // Map tyre data to JSONB if present
+      if (group.tyreData && group.tyreData.positions && group.tyreData.positions.length > 0) {
+        converted.tyre_data = {
+          positions: group.tyreData.positions,
+          brand: group.tyreData.brand || '',
+          serialNumbers: group.tyreData.serialNumbers || '',
+        };
+        logger.debug(`[Group ${index}] Added tyre_data JSONB:`, converted.tyre_data);
+      }
+
+      logger.debug(`[Group ${index}] FINAL CONVERTED - vendor_id="${converted.vendor_id}"`, converted);
+
+      if (!converted.vendor_id) {
+        logger.error(`[Group ${index}] ⚠️ WARNING: vendor_id is EMPTY! Original vendor was:`, group.vendor);
+      }
+
+      return converted;
+    })
+  );
+
+  logger.debug('Service groups converted for database:', convertedGroups);
+
+  return convertedGroups;
 };
 
 export default ServiceGroupsSection;

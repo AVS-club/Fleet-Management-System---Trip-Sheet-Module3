@@ -93,11 +93,16 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
     }
 
     const sanitizedTripData = { ...tripData } as any;
+    
+    // Extract GPS screenshots before saving trip
+    const gpsScreenshots = sanitizedTripData.gps_screenshots || [];
+    delete sanitizedTripData.gps_screenshots;
+    
+    // Remove station field as it's no longer in the database
+    delete sanitizedTripData.station;
+    
     if (sanitizedTripData.fuel_station_id === '') {
       sanitizedTripData.fuel_station_id = null;
-    }
-    if (sanitizedTripData.station === '') {
-      sanitizedTripData.station = null;
     }
     if (sanitizedTripData.vehicle_id === '') {
       sanitizedTripData.vehicle_id = null;
@@ -111,7 +116,6 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
 
     const payload = withOwner({
       ...sanitizedTripData,
-      station: sanitizedTripData.station ?? null,
       fuel_station_id: sanitizedTripData.fuel_station_id ?? null,
       fuel_expense: sanitizedTripData.fuel_expense || sanitizedTripData.fuel_cost || 0,
       fuel_cost: sanitizedTripData.fuel_cost || sanitizedTripData.fuel_expense || 0,
@@ -130,6 +134,11 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       throw error;
     }
 
+    // Handle GPS screenshots if provided
+    if (data && gpsScreenshots.length > 0) {
+      await handleGPSScreenshots(data.id, gpsScreenshots);
+    }
+
     return data;
   } catch (error) {
     handleSupabaseError('create trip', error);
@@ -137,11 +146,76 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
   }
 };
 
+// Helper function to handle GPS screenshots
+const handleGPSScreenshots = async (tripId: string, screenshots: any[]) => {
+  if (!screenshots || screenshots.length === 0) return;
+
+  for (const screenshot of screenshots) {
+    // Skip if already saved (has an id)
+    if (screenshot.id) continue;
+
+    // If screenshot has a file, it needs to be uploaded
+    if (screenshot.file) {
+      try {
+        const fileExt = screenshot.file.name.split('.').pop();
+        const fileName = `${tripId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `gps-screenshots/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('trip-documents')
+          .upload(filePath, screenshot.file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Error uploading GPS screenshot:', uploadError);
+          continue;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('trip-documents')
+          .getPublicUrl(filePath);
+
+        // Save to database
+        await supabase
+          .from('trip_gps_screenshots')
+          .insert({
+            trip_id: tripId,
+            image_url: publicUrl,
+            caption: screenshot.caption || ''
+          });
+      } catch (error) {
+        console.error('Error saving GPS screenshot:', error);
+      }
+    } else if (screenshot.image_url && !screenshot.id) {
+      // If screenshot has URL but no id, save to database
+      await supabase
+        .from('trip_gps_screenshots')
+        .insert({
+          trip_id: tripId,
+          image_url: screenshot.image_url,
+          caption: screenshot.caption || ''
+        });
+    }
+  }
+};
+
 export const updateTrip = async (id: string, updates: Partial<Trip>): Promise<Trip | null> => {
   try {
+    const updateData = { ...updates } as any;
+    
+    // Extract GPS screenshots before updating trip
+    const gpsScreenshots = updateData.gps_screenshots || [];
+    delete updateData.gps_screenshots;
+    
+    // Remove station field as it's no longer in the database
+    delete updateData.station;
+    
     const { data, error } = await supabase
       .from('trips')
-      .update(updates)
+      .update(updateData)
       .eq('id', id)
       .select('*')
       .single();
@@ -149,6 +223,11 @@ export const updateTrip = async (id: string, updates: Partial<Trip>): Promise<Tr
     if (error) {
       handleSupabaseError('update trip', error);
       throw error;
+    }
+
+    // Handle GPS screenshots if provided
+    if (data && gpsScreenshots.length > 0) {
+      await handleGPSScreenshots(id, gpsScreenshots);
     }
 
     return data;

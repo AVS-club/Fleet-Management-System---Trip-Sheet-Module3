@@ -59,6 +59,8 @@ export interface Trip {
   unloading_expense?: number;
   driver_expense?: number;
   road_rto_expense?: number;
+  toll_expense?: number;
+  breakdown_expense?: number;
   miscellaneous_expense?: number;
   total_road_expenses: number;
   remarks?: string;
@@ -87,7 +89,7 @@ export interface TripFormData extends Omit<
   id?: string; // Allow id for editing
   trip_serial_number?: string; // Allow trip serial number for form
   material_type_ids?: string[]; // Material type IDs
-  station?: string; // Station field
+  gps_screenshots?: any[]; // GPS screenshots array
   trip_start_time?: string; // Trip start time
   trip_end_time?: string; // Trip end time
   trip_duration?: number; // Trip duration in hours
@@ -106,7 +108,6 @@ export interface RouteAnalysis {
   standard_distance: number;
   deviation: number;
   estimated_time: string;
-  estimated_toll?: number;
   waypoints: Array<{
     lat: number;
     lng: number;

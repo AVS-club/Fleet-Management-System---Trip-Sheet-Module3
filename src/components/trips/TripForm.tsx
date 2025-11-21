@@ -20,6 +20,7 @@ import SearchableDestinationInput from './SearchableDestinationInput';
 import MaterialSelector from './MaterialSelector';
 import CollapsibleRouteAnalysis from './CollapsibleRouteAnalysis';
 import RefuelingForm from './RefuelingForm';
+import GPSScreenshotUpload, { GPSScreenshot } from './GPSScreenshotUpload';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import { CascadePreviewModal } from './CascadePreviewModal';
 import FuelDetailsPrompt from './FuelDetailsPrompt';
@@ -46,6 +47,7 @@ import { toast, ToastId } from 'react-toastify';
 // Import the new warehouse rules system
 import { autoAssignWarehouse } from '../../utils/vehicleWarehouseRules';
 import { createLogger } from '../../utils/logger';
+import { calculateTripTotalExpense } from '../../utils/tripCalculations';
 
 const logger = createLogger('TripForm');
 
@@ -117,6 +119,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const [fuelBillUploadStatus, setFuelBillUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [gpsScreenshots, setGpsScreenshots] = useState<GPSScreenshot[]>([]);
   const [vehicleInputValue, setVehicleInputValue] = useState('');
   const [driverInputValue, setDriverInputValue] = useState('');
 
@@ -372,6 +375,38 @@ const TripForm: React.FC<TripFormProps> = ({
     destinationsInitializedRef.current = true;
   }, [initialDestinationsList, destinations]);
 
+  // Load GPS screenshots when editing a trip
+  useEffect(() => {
+    const loadGpsScreenshots = async () => {
+      if (initialData?.id) {
+        try {
+          const { data: screenshots, error } = await supabase
+            .from('trip_gps_screenshots')
+            .select('*')
+            .eq('trip_id', initialData.id)
+            .order('created_at', { ascending: true });
+
+          if (error) {
+            console.error('Error loading GPS screenshots:', error);
+            return;
+          }
+
+          if (screenshots && screenshots.length > 0) {
+            setGpsScreenshots(screenshots.map(s => ({
+              id: s.id,
+              image_url: s.image_url,
+              caption: s.caption
+            })));
+          }
+        } catch (error) {
+          console.error('Error loading GPS screenshots:', error);
+        }
+      }
+    };
+
+    loadGpsScreenshots();
+  }, [initialData?.id]);
+
   // Add a ref to track vehicle changes
   const vehicleJustChanged = useRef(false);
 
@@ -489,14 +524,6 @@ const TripForm: React.FC<TripFormProps> = ({
         setRouteAnalysis(analysis);
         
         if (analysis) {
-          // Auto-fill toll expense if available
-          if (analysis.estimated_toll) {
-            const tollAmount = watchedValues.is_return_trip 
-              ? analysis.estimated_toll * 2  // Double toll for return trip
-              : analysis.estimated_toll;
-            setValue('toll_expense', tollAmount);
-          }
-          
           // Calculate route deviation
           const actualDistance = endKm - startKm;
           const standardDistance = analysis.total_distance;
@@ -582,14 +609,6 @@ const TripForm: React.FC<TripFormProps> = ({
           const analysis = await analyzeRoute(selectedWarehouseId, selectedDestinationObjects.map(d => d.id));
           if (!abortController.signal.aborted) {
             setRouteAnalysis(analysis);
-            
-            // Auto-fill toll expense when route is analyzed
-            if (analysis?.estimated_toll) {
-              const tollAmount = watchedValues.is_return_trip 
-                ? analysis.estimated_toll * 2  // Double toll for return trip
-                : analysis.estimated_toll;
-              setValue('toll_expense', tollAmount);
-            }
           }
         } catch (error) {
           if (error.name !== 'AbortError') {
@@ -1035,8 +1054,16 @@ const TripForm: React.FC<TripFormProps> = ({
       trip_duration: data.trip_duration || 1,
       gross_weight: data.gross_weight || 0,
       // Map breakdown_expense properly
-      breakdown_expense: data.breakdown_expense || 0
+      breakdown_expense: data.breakdown_expense || 0,
+      // Add GPS screenshots
+      gps_screenshots: gpsScreenshots
     };
+
+    // Calculate and add total_expense
+    submitData.total_expense = calculateTripTotalExpense({
+      ...submitData,
+      total_fuel_cost: submitData.total_fuel_cost || 0
+    } as Trip);
 
     // Remove fields that don't exist in database schema
     delete submitData.destination_names;
@@ -1191,6 +1218,12 @@ const TripForm: React.FC<TripFormProps> = ({
         fuel_rate_per_liter: 0
       };
 
+      // Calculate and add total_expense
+      submitData.total_expense = calculateTripTotalExpense({
+        ...submitData,
+        total_fuel_cost: 0
+      } as Trip);
+
       // Remove fields that don't exist in database schema
       delete submitData.destination_names;
       delete submitData.destination_display;
@@ -1230,6 +1263,12 @@ const TripForm: React.FC<TripFormProps> = ({
         fuel_quantity: 0,
         fuel_rate_per_liter: 0
       };
+
+      // Calculate and add total_expense
+      submitData.total_expense = calculateTripTotalExpense({
+        ...submitData,
+        total_fuel_cost: 0
+      } as Trip);
 
       // Remove fields that don't exist in database schema
       delete submitData.destination_names;
@@ -2013,11 +2052,6 @@ const TripForm: React.FC<TripFormProps> = ({
                     <div>
                       <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">
                         FASTag / Toll (₹)
-                        {routeAnalysis?.estimated_toll && (
-                          <span className="text-[11px] text-gray-500 ml-1">
-                            (Est: ₹{watchedValues.is_return_trip ? routeAnalysis.estimated_toll * 2 : routeAnalysis.estimated_toll})
-                          </span>
-                        )}
                       </label>
                       <Input
                         value={field.value >= 0 ? field.value : 0}
@@ -2095,22 +2129,14 @@ const TripForm: React.FC<TripFormProps> = ({
         defaultExpanded={false}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-sm"
       >
-        <div className="p-4 space-y-3">
-          {/* Station - Single Line */}
-          <div className="flex items-center gap-3">
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap min-w-[80px]">
-              Station:
-            </label>
-            <div className="flex-1 relative">
-              <Fuel className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-              <input
-                type="text"
-                className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 focus:ring-1 focus:ring-primary-500"
-                placeholder="Fuel station name (optional)"
-                {...register('station')}
-              />
-            </div>
-          </div>
+        <div className="p-4 space-y-4">
+          {/* GPS Screenshots Upload */}
+          <GPSScreenshotUpload
+            tripId={initialData?.id}
+            screenshots={gpsScreenshots}
+            onChange={setGpsScreenshots}
+            disabled={isSubmitting}
+          />
 
           {/* Remarks - Expandable Textarea */}
           <div>
