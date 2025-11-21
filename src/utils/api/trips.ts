@@ -148,11 +148,21 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
 
 // Helper function to handle GPS screenshots
 const handleGPSScreenshots = async (tripId: string, screenshots: any[]) => {
-  if (!screenshots || screenshots.length === 0) return;
+  console.log('🖼️ handleGPSScreenshots called with:', { tripId, screenshotsCount: screenshots?.length });
+  
+  if (!screenshots || screenshots.length === 0) {
+    console.log('⚠️ No screenshots to process');
+    return;
+  }
 
   for (const screenshot of screenshots) {
+    console.log('📸 Processing screenshot:', { hasId: !!screenshot.id, hasFile: !!screenshot.file, hasUrl: !!screenshot.image_url });
+    
     // Skip if already saved (has an id)
-    if (screenshot.id) continue;
+    if (screenshot.id) {
+      console.log('✅ Screenshot already saved, skipping');
+      continue;
+    }
 
     // If screenshot has a file, it needs to be uploaded
     if (screenshot.file) {
@@ -160,6 +170,8 @@ const handleGPSScreenshots = async (tripId: string, screenshots: any[]) => {
         const fileExt = screenshot.file.name.split('.').pop();
         const fileName = `${tripId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `gps-screenshots/${fileName}`;
+
+        console.log('📤 Uploading to storage:', filePath);
 
         const { error: uploadError } = await supabase.storage
           .from('trip-documents')
@@ -169,7 +181,7 @@ const handleGPSScreenshots = async (tripId: string, screenshots: any[]) => {
           });
 
         if (uploadError) {
-          console.error('Error uploading GPS screenshot:', uploadError);
+          console.error('❌ Error uploading GPS screenshot:', uploadError);
           continue;
         }
 
@@ -178,36 +190,58 @@ const handleGPSScreenshots = async (tripId: string, screenshots: any[]) => {
           .from('trip-documents')
           .getPublicUrl(filePath);
 
+        console.log('✅ Upload successful, saving to database:', publicUrl);
+
         // Save to database
-        await supabase
+        const { data, error: dbError } = await supabase
           .from('trip_gps_screenshots')
           .insert({
             trip_id: tripId,
             image_url: publicUrl,
             caption: screenshot.caption || ''
-          });
+          })
+          .select()
+          .single();
+
+        if (dbError) {
+          console.error('❌ Error saving to database:', dbError);
+        } else {
+          console.log('✅ Saved to database:', data);
+        }
       } catch (error) {
-        console.error('Error saving GPS screenshot:', error);
+        console.error('❌ Error saving GPS screenshot:', error);
       }
     } else if (screenshot.image_url && !screenshot.id) {
+      console.log('💾 Saving URL to database:', screenshot.image_url);
       // If screenshot has URL but no id, save to database
-      await supabase
+      const { error } = await supabase
         .from('trip_gps_screenshots')
         .insert({
           trip_id: tripId,
           image_url: screenshot.image_url,
           caption: screenshot.caption || ''
         });
+      
+      if (error) {
+        console.error('❌ Error saving screenshot URL:', error);
+      } else {
+        console.log('✅ Screenshot URL saved');
+      }
     }
   }
+  
+  console.log('🎉 Finished processing all screenshots');
 };
 
 export const updateTrip = async (id: string, updates: Partial<Trip>): Promise<Trip | null> => {
   try {
+    console.log('🔄 updateTrip called with:', { id, hasGpsScreenshots: !!updates.gps_screenshots });
+    
     const updateData = { ...updates } as any;
     
     // Extract GPS screenshots before updating trip
     const gpsScreenshots = updateData.gps_screenshots || [];
+    console.log('📸 GPS Screenshots found:', gpsScreenshots.length, gpsScreenshots);
     delete updateData.gps_screenshots;
     
     // Remove station field as it's no longer in the database
@@ -225,13 +259,19 @@ export const updateTrip = async (id: string, updates: Partial<Trip>): Promise<Tr
       throw error;
     }
 
+    console.log('✅ Trip updated, now handling screenshots...');
+
     // Handle GPS screenshots if provided
     if (data && gpsScreenshots.length > 0) {
+      console.log('🖼️ Calling handleGPSScreenshots...');
       await handleGPSScreenshots(id, gpsScreenshots);
+    } else {
+      console.log('⚠️ No screenshots to handle');
     }
 
     return data;
   } catch (error) {
+    console.error('❌ Error in updateTrip:', error);
     handleSupabaseError('update trip', error);
     throw error;
   }
