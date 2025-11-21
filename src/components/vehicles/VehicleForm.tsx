@@ -345,11 +345,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       logger.info('Fetching RC details for:', regNumber);
       
       // Use proxy server to avoid IP whitelisting issues
-      // In production, uses Netlify Functions; in development, uses local proxy
-      const isProduction = import.meta.env.PROD;
-      const proxyUrl = isProduction 
-        ? '/api/fetch-rc-details'  // Netlify Function endpoint
-        : (import.meta.env.VITE_RC_PROXY_URL || 'http://localhost:3001/api/fetch-rc-details');
+      // Uses environment variable if set, otherwise falls back to local proxy
+      const proxyUrl = import.meta.env.VITE_RC_PROXY_URL || 'http://localhost:3001/api/fetch-rc-details';
       
       const response = await fetch(proxyUrl, {
         method: 'POST',

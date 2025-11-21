@@ -206,11 +206,8 @@ const DriverForm: React.FC<DriverFormProps> = ({
       logger.info("Fetching driver details:", { licenseNumber, dob: dob_formatted });
 
       // Use proxy server to avoid IP whitelisting issues
-      // In production, uses Netlify Functions; in development, uses local proxy
-      const isProduction = import.meta.env.PROD;
-      const proxyUrl = isProduction 
-        ? '/api/fetch-dl-details'  // Netlify Function endpoint
-        : (import.meta.env.VITE_DL_PROXY_URL || 'http://localhost:3001/api/fetch-dl-details');
+      // Uses environment variable if set, otherwise falls back to local proxy
+      const proxyUrl = import.meta.env.VITE_DL_PROXY_URL || 'http://localhost:3001/api/fetch-dl-details';
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
