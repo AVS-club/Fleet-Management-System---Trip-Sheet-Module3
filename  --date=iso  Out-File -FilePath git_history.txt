@@ -1,0 +1,78 @@
+2025-11-21 11:46:28 +0530|Major updates: AI alerts optimization, maintenance improvements, KPI fixes, proxy servers, and UI enhancements
+2025-11-19 13:02:43 +0530|Enhanced Mileage Chart with tag-based grouping and improved UI
+2025-11-19 01:32:39 +0530|feat: improve TNC acceptance UX and fix KPI cards functionality
+2025-11-18 10:03:53 +0530|Add Terms and Conditions (TNC) acceptance system - Add mandatory TNC acceptance modal for first-time users - Create tnc_acceptances database table with metadata tracking - Integrate TNC check in ProtectedRoute to block access until accepted - Add TNC page and links in login, registration, and company settings - Store acceptance with IP, user agent, and other metadata
+2025-11-17 21:24:54 +0530|temporary demo changes
+2025-11-16 20:38:19 +0530|WIP on claude/fix-maintenance-service-groups-conversion-011CUzfKnmRBADgnYh3FcQsv: 232feeb Merge remote changes - keeping local comprehensive maintenance updates
+2025-11-16 20:38:19 +0530|index on claude/fix-maintenance-service-groups-conversion-011CUzfKnmRBADgnYh3FcQsv: 232feeb Merge remote changes - keeping local comprehensive maintenance updates
+2025-11-16 20:35:22 +0530|Merge remote changes - keeping local comprehensive maintenance updates
+2025-11-16 20:33:23 +0530|Comprehensive maintenance system improvements and cleanup
+2025-11-15 17:02:34 +0000|Add automatic KPI refresh every 30 minutes
+2025-11-14 20:56:02 +0000|Add comprehensive reporting system with SQL queries and new report types
+2025-11-13 07:25:46 +0000|Fix service groups insert and add warranty document display for parts
+2025-11-13 05:03:34 +0000|Add manual total_cost calculation after disabling triggers
+2025-11-12 19:00:14 +0000|Add .select() to maintenance service groups insert to properly capture errors
+2025-11-12 18:53:03 +0000|Add comprehensive debugging for maintenance_task_id stripping issue
+2025-11-12 18:01:16 +0000|Add detailed error logging for service groups insert debugging
+2025-11-12 16:58:35 +0000|Add database migration for missing maintenance_service_tasks columns
+2025-11-12 16:35:59 +0000|Fix parts_data sanitization - handle snake_case field name from UI
+2025-11-12 12:40:17 +0000|Fix service groups 400 error - sanitize parts_data before database insertion
+2025-11-12 12:13:39 +0000|Add Part Details display section to maintenance task view page
+2025-11-12 11:49:08 +0000|Remove battery/tyre console logs - consolidate to general parts system
+2025-11-12 11:43:44 +0000|Fix parts data not being saved - map group.parts to parts_data
+2025-11-12 11:38:42 +0000|Fix odometer upload and file upload issues
+2025-11-12 11:33:24 +0000|Fix maintenance task creation and file upload issues
+2025-11-12 16:21:15 +0530|Merge: Revert backward compatibility after successful migration
+2025-11-12 09:52:27 +0000|Revert backward compatibility - migration was applied successfully
+2025-11-12 15:18:12 +0530|Merge feature branch: Fix odometer upload and add cost/service_cost backward compatibility
+2025-11-12 15:17:14 +0530|Fix maintenance task creation and file upload issues
+2025-11-12 09:44:29 +0000|Add backward compatibility for cost/service_cost column
+2025-11-12 09:41:01 +0000|Fix odometer image upload - use dedicated upload function
+2025-11-12 14:29:50 +0530|Fix nullish coalescing operator syntax error in MaintenanceTaskList
+2025-11-12 14:26:42 +0530|Merge branch 'claude/fix-maintenance-service-groups-conversion' - Add maintenance upload documentation and display sections
+2025-11-12 14:22:17 +0530|Remove accidental tatus file
+2025-11-12 14:21:45 +0530|Update Claude settings permissions for git operations
+2025-11-12 08:14:17 +0000|Add maintenance upload system documentation and storage policy cleanup script
+2025-11-12 08:10:36 +0000|Add missing display sections for odometer photo and supporting documents
+2025-11-12 14:09:35 +0530|Merge pull request #117 from AVS-club/claude/fix-maintenance-service-groups-conversion-011CUzfKnmRBADgnYh3FcQsv
+2025-11-12 14:04:03 +0530|Merge branch 'main' into claude/fix-maintenance-service-groups-conversion-011CUzfKnmRBADgnYh3FcQsv
+2025-11-12 13:05:06 +0530|Update frontend to use total_cost column after database migration
+2025-11-12 12:48:46 +0530|Fix driver save errors: convert empty strings to null for UUID fields and improve error handling for duplicate license numbers
+2025-11-12 06:44:29 +0000|Merge branch 'claude/fix-maintenance-service-groups-conversion-011CUzfKnmRBADgnYh3FcQsv' of http://127.0.0.1:25479/git/AVS-club/Fleet-Management-System---Trip-Sheet-Module3 into claude/fix-maintenance-service-groups-conversion-011CUzfKnmRBADgnYh3FcQsv
+2025-11-12 06:44:09 +0000|Add total_cost to maintenance_tasks and rename cost to service_cost
+2025-11-11 12:14:05 +0000|feat: Add enhanced dashboard components with anomaly detection
+2025-11-11 17:39:22 +0530|Dashboard files: Claude_11/11/2025
+2025-11-11 17:13:45 +0530|Fix maintenance task creation - replace actual_cost with cost column
+2025-11-11 14:13:04 +0530|Merge pull request #116 from AVS-club/claude/fix-maintenance-service-groups-conversion-011CUzfKnmRBADgnYh3FcQsv
+2025-11-11 14:11:02 +0530|Merge branch 'main' into claude/fix-maintenance-service-groups-conversion-011CUzfKnmRBADgnYh3FcQsv
+2025-11-11 08:09:17 +0000|Deployment verification: Add timestamp comment to confirm latest changes
+2025-11-11 13:30:31 +0530|Update trip components and remove obsolete migration files
+2025-11-11 07:31:38 +0000|Fix: Convert partsData camelCase to parts_data snake_case for database
+2025-11-11 07:00:15 +0000|Fix: Remove references to deleted actual_cost and estimated_cost columns
+2025-11-11 06:32:04 +0000|Fix: Use correct storage bucket for maintenance photos
+2025-11-10 19:22:15 +0000|Remove estimated_cost and actual_cost from UI
+2025-11-10 18:50:33 +0000|Add debug panel to view all raw maintenance task data
+2025-11-10 18:36:16 +0000|Fix: Add photo display in maintenance task view mode
+2025-11-10 18:34:56 +0000|Fix: Display vendor and task names instead of UUIDs in view mode
+2025-11-10 18:26:15 +0000|Fix: Add missing organization_id to maintenance_service_tasks
+2025-11-10 23:52:19 +0530|Fix maintenance service groups not saving - vendor and task conversion issues
+2025-11-10 09:58:41 +0000|Add n8n email reminder automation system
+2025-11-09 18:11:35 +0530|Update maintenance components and storage utilities
+2025-11-09 16:55:32 +0530|Update maintenance features, storage setup, and database migrations
+2025-11-06 23:18:24 +0530|Update trip components, AI alerts, reporting dashboard, and add migrations
+2025-11-05 22:26:48 +0530|Polish AI tab maintenance UI and vehicle mobile document viewing tweaks
+2025-11-05 16:50:22 +0530|Minor update to VehiclePage mobile/doc integration
+2025-11-05 16:36:33 +0530|Finalize AI maintenance card polish; sync feed/vehicle pages; add diagnostics SQL/scripts
+2025-11-04 23:42:27 +0530|Improve maintenance card UI in AI tab with colored compartments and better readability
+2025-11-03 17:37:30 +0530|Dashboard: fix fetchMetrics initialization order in CompleteFixedReportingDashboard; TripForm: revert gross_weight reminder and restore required validation
+2025-11-01 16:06:40 +0530|Update local configuration files
+2025-11-01 14:42:08 +0530|feat: Add driver document columns, KPI components, and Supabase migrations
+2025-11-01 14:39:47 +0530|fix: Resolve build error - fix useKPICards import path and add missing refetch functions
+2025-11-01 14:27:32 +0530|feat: Enhance AI Alerts & Feed page with optimized layout and detailed cards
+2025-11-01 14:21:21 +0530|feat: Add Date of Birth field and unify header styling on DriverPage - Add Date of Birth field to Personal Information section - Unify header styling to match DriversPage with white box header - Update edit mode header to match consistent styling
+2025-10-29 15:11:00 +0530|Remove mock data fallback for KPI cards and events
+2025-10-29 15:05:22 +0530|Fix KPI display issue: Always show mock KPI data when database is empty
+2025-10-29 14:19:26 +0530|feat: Add debugging and improvements for driver management
+2025-10-29 12:01:18 +0530|debug: Add logging for primary vehicle assignment debugging
+2025-10-29 11:40:38 +0530|fix: Improve date field handling in driver form
+2025-10-29 11:28:17 +0530|fix: Resolv

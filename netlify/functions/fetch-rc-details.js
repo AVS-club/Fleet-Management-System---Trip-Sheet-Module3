@@ -1,5 +1,4 @@
 // Netlify Function for RC Details API
-const fetch = require('node-fetch');
 
 exports.handler = async (event, context) => {
   // Handle CORS
@@ -43,7 +42,7 @@ exports.handler = async (event, context) => {
     // Clean the registration number
     const cleanedNumber = registration_number.replace(/\s+/g, '').toUpperCase();
     
-    // Call the API
+    // Call the API using native fetch (available in Netlify Functions runtime)
     const response = await fetch('https://prod.apiclub.in/api/v1/rc_info', {
       method: 'POST',
       headers: {
@@ -132,6 +131,7 @@ exports.handler = async (event, context) => {
       };
     }
   } catch (error) {
+    console.error('Error in fetch-rc-details function:', error);
     return {
       statusCode: 500,
       headers,

@@ -1,5 +1,4 @@
 // Netlify Function for DL Details API
-const fetch = require('node-fetch');
 
 exports.handler = async (event, context) => {
   // Handle CORS
@@ -52,7 +51,7 @@ exports.handler = async (event, context) => {
     formData.append('dl_no', normalizedDL);
     formData.append('dob', dob);
 
-    // Call the API
+    // Call the API using native fetch
     const response = await fetch('https://prod.apiclub.in/api/v1/fetch_dl', {
       method: 'POST',
       headers: {
@@ -133,6 +132,7 @@ exports.handler = async (event, context) => {
       };
     }
   } catch (error) {
+    console.error('Error in fetch-dl-details function:', error);
     return {
       statusCode: 500,
       headers,

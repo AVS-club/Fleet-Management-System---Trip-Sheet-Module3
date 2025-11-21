@@ -1,5 +1,4 @@
 // Netlify Function for Challan Info API
-const fetch = require('node-fetch');
 
 exports.handler = async (event, context) => {
   // Handle CORS
@@ -56,14 +55,14 @@ exports.handler = async (event, context) => {
     formData.append('chassis', cleanChassis);
     formData.append('engine_no', cleanEngineNo);
 
-    // Call the API
+    // Call the API using native fetch
     const response = await fetch('https://prod.apiclub.in/api/v1/challan_info_v2', {
       method: 'POST',
       headers: {
         'accept': 'application/json',
         'content-type': 'application/x-www-form-urlencoded',
         'x-api-key': process.env.APICLUB_KEY || 'apclb_xZ7S4F2ngB8TUpH6vKNbGvL83a446d50',
-        'X-Request-Id': crypto.randomUUID(),
+        'X-Request-Id': Math.random().toString(36).substring(7),
         'X-Environment': 'production'
       },
       body: formData.toString()
@@ -137,6 +136,7 @@ exports.handler = async (event, context) => {
       };
     }
   } catch (error) {
+    console.error('Error in fetch-challan-info function:', error);
     return {
       statusCode: 500,
       headers,
