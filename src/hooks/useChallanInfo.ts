@@ -44,7 +44,11 @@ export const useChallanInfo = () => {
     setLoading(true);
     try {
       // Use proxy server to avoid IP whitelisting issues
-      const proxyUrl = import.meta.env.VITE_CHALLAN_PROXY_URL || 'http://localhost:3001/api/fetch-challan-info';
+      // In production, uses Netlify Functions; in development, uses local proxy
+      const isProduction = import.meta.env.PROD;
+      const proxyUrl = isProduction 
+        ? '/api/fetch-challan-info'  // Netlify Function endpoint
+        : (import.meta.env.VITE_CHALLAN_PROXY_URL || 'http://localhost:3001/api/fetch-challan-info');
       
       const response = await fetch(proxyUrl, {
         method: 'POST',

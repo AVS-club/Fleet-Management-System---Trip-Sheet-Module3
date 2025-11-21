@@ -75,4 +75,103 @@
 2025-10-29 14:19:26 +0530|feat: Add debugging and improvements for driver management
 2025-10-29 12:01:18 +0530|debug: Add logging for primary vehicle assignment debugging
 2025-10-29 11:40:38 +0530|fix: Improve date field handling in driver form
-2025-10-29 11:28:17 +0530|fix: Resolv
+2025-10-29 11:28:17 +0530|fix: Resolve driver update errors and vehicle assignment issues
+2025-10-29 11:22:55 +0530|fix: Resolve database schema mismatch for driver phone field
+2025-10-29 11:15:02 +0530|fix: Remove invalid value prop from file input in DriverForm
+2025-10-29 09:48:08 +0530|fix: Add missing edit, share, and download buttons to DriverPage
+2025-10-27 23:20:23 +0530|feat: Add gross weight notification popup and enhance fuel details prompt
+2025-10-27 19:48:23 +0530|feat: Restore EnhancedFeedCard for social media-style AI Alerts
+2025-10-27 19:39:21 +0530|fix: Make all colors 50% softer for professional appearance
+2025-10-27 19:30:34 +0530|fix: Soften hero gradient and status ring colors
+2025-10-27 18:53:16 +0530|feat: Restore modern Driver Detail Page UI
+2025-10-26 19:02:21 +0530|Merge pull request #115 from AVS-club/refactor/code-cleanup-and-modularization
+2025-10-26 18:01:55 +0530|Fix: Update drivers API to fetch contact_number field
+2025-10-26 17:55:43 +0530|Fix: Update driver display code to use contact_number field
+2025-10-26 17:44:02 +0530|Revert "Fix MessageSquare import error and improve driver page functionality"
+2025-10-26 17:41:03 +0530|Fix MessageSquare import error and improve driver page functionality
+2025-10-25 19:01:59 +0530|Code Cleanup & Optimization - 2025-01-23
+2025-10-25 18:48:47 +0530|Add driver stats migration and cleanup unused files
+2025-10-25 18:48:10 +0530|UI Improvements & Driver Rating System - 2025-01-23
+2025-10-24 09:58:40 +0530|AI Alerts Nomenclature Standardization & YouTube Integration - 2025-01-23
+2025-10-23 13:46:49 +0530|Backup - 2025-01-23: Fixed temporal dead zone errors and applied dark mode improvements
+2025-10-22 22:30:13 +0530|Refactor: Major code cleanup and modularization
+2025-10-18 10:16:28 +0530|Implement auto-refresh after vehicle updates
+2025-10-18 08:37:33 +0530|Remove draft mode and staged files indicator banners from VehicleForm
+2025-10-17 10:24:34 +0530|Fix VehicleForm document upload/deletion issues
+2025-10-17 00:02:06 +0530|Fix MultiDocumentViewer Loading Issue - Second Document Stuck on Loading
+2025-10-16 23:41:18 +0530|Improve MultiDocumentViewer with cleaner, more efficient design
+2025-10-16 23:26:21 +0530|Fix 404 Error When Viewing Fitness Documents
+2025-10-16 22:56:04 +0530|Fix View Button & Multiple Files Display Issues
+2025-10-16 22:46:16 +0530|Fix DocumentUploader handleFileSelect - files not uploading
+2025-10-16 22:36:46 +0530|Fix 'Upload is not defined' error in VehicleForm
+2025-10-16 22:26:50 +0530|Complete line-by-line fix for document management system
+2025-10-16 22:11:50 +0530|Revert debugging changes
+2025-10-16 22:10:03 +0530|Add debugging for MultiDocumentViewer issue
+2025-10-16 21:57:45 +0530|Implement comprehensive duplicate upload prevention and mobile-responsive document viewer
+2025-10-16 21:30:37 +0530|Fix syntax error in VehicleForm.tsx
+2025-10-16 20:28:20 +0530|Implement staged upload system for document management
+2025-10-16 15:17:33 +0530|Revert "Fix MultiDocumentViewer signed URL handling and download issues"
+2025-10-16 15:17:27 +0530|Revert "Fix multiple document viewing issue"
+2025-10-16 15:03:26 +0530|Fix multiple document viewing issue
+2025-10-16 14:59:57 +0530|Implement draft state management for document uploads/deletions
+2025-10-16 14:27:39 +0530|Fix MultiDocumentViewer signed URL handling and download issues
+2025-10-16 14:22:12 +0530|Fix document viewer issues and improve mobile experience
+2025-10-16 13:56:48 +0530|Fix insurance document display issue
+2025-10-13 16:49:56 +0530|Add vehicle search functionality with smart search logic
+2025-10-13 16:42:28 +0530|Fix file deletion and preserve original file names
+2025-10-13 16:36:02 +0530|Fix document display issues and enhance error handling
+2025-10-13 11:32:21 +0530|feat: Enhanced document management and maintenance form integration
+2025-10-11 17:55:38 +0530|fix: Remove VehicleTagSelector import and usage from VehicleForm
+2025-10-11 17:38:42 +0530|revert: Remove vehicle tags implementation files
+2025-10-11 16:36:31 +0530|URGENT FIX: Remove vehicle_tags from update payload
+2025-10-11 16:27:10 +0530|feat: Complete vehicle tags system implementation
+2025-10-10 15:00:48 +0530|feat: Implement Vehicle Trip Management Interface improvements
+2025-10-10 14:25:55 +0530|feat: Update MaintenanceTaskPage header styling and remove duplicate header from MaintenanceTaskForm
+2025-10-10 12:13:33 +0530|fix: Replace deleted components in MaintenanceTaskForm
+2025-10-10 12:09:43 +0530|fix: Remove deleted CSS import from PartsHealthAnalyticsPage
+2025-10-10 12:07:31 +0530|cleanup: Remove refactored maintenance form files
+2025-10-08 23:16:02 +0530|feat: Implement mobile-first Parts Health UI redesign
+2025-10-08 13:39:54 +0530|Fix language default to English and add organization loading delay
+2025-10-08 11:48:11 +0530|Fix YouTube API error handling for production deployment
+2025-10-08 00:27:28 +0530|feat: Implement Tag-Based Analytics System
+2025-10-07 21:48:58 +0530|feat: Add dynamic YouTube Shorts integration with video toggle
+2025-10-07 10:35:25 +0530|fix: Resolve TaskDistributionChart undefined map error
+2025-10-07 08:49:58 +0530|feat: Enhanced maintenance components and parts analytics with new features
+2025-10-06 23:15:12 +0530|Add cleanup scripts and remove unnecessary files
+2025-10-06 20:49:19 +0530|Merge remote changes and reorganize migrations
+2025-10-06 20:43:59 +0530|feat: Complete Vehicle Tags System Implementation
+2025-10-06 12:06:54 +0530|Deleted vite.config.ts.timestamp-1759732603859-46da8d5815c598.mjs
+2025-10-06 12:06:49 +0530|Added vite.config.ts.timestamp-1759732603859-46da8d5815c598.mjs
+2025-10-06 12:06:36 +0530|Added 20241201_parts_health_analytics.sql
+2025-10-06 12:06:31 +0530|Updated package-lock.json
+2025-10-06 01:03:33 +0530|Fix syntax errors in MaintenanceTaskPage.tsx
+2025-10-06 00:49:34 +0530|Fix Parts Health Dashboard date validation and property references
+2025-10-06 00:45:19 +0530|Fix syntax error in MaintenancePage navigate function
+2025-10-06 00:41:42 +0530|Fix Parts Health Dashboard to read parts_replaced field
+2025-10-06 00:38:49 +0530|Reduce React Query cache time for faster updates
+2025-10-06 00:34:27 +0530|Fix Total Tasks KPI to show all tasks instead of filtered
+2025-10-06 00:30:40 +0530|Fix React child object error in partsAnalytics
+2025-10-06 00:18:09 +0530|Improve Maintenance Dashboard UI and KPI Labels
+2025-10-06 00:08:37 +0530|Fix React child object error in MaintenanceTaskList
+2025-10-06 00:04:15 +0530|Fix Parts Health Analytics and Maintenance Issues
+2025-10-05 22:11:15 +0530|Simplify dashboard layout
+2025-10-05 18:18:52 +0530|Set English as default language for all users
+2025-10-05 18:11:09 +0530|Add vehicle loading issue fixes and AVS AI button mobile implementation
+2025-10-04 19:43:37 +0530|Remove TABLE button and table view from maintenance dashboard
+2025-10-04 19:39:42 +0530|fix: Add missing LoadingScreen imports to fix 'LoadingScreen is not defined' error
+2025-10-04 19:35:57 +0530|fix: Replace plain 'Loading...' text with beautiful LoadingScreen component
+2025-10-04 19:24:22 +0530|chore: Remove unused MaintenanceDashboardFilters.tsx file
+2025-10-04 19:11:07 +0530|feat: Enhanced Parts Health & Analytics Dashboard
+2025-10-04 12:05:04 +0530|feat: Enhanced Mobile Interface Improvements
+2025-10-04 11:28:57 +0530|feat: Additional Mobile Dashboard UI Improvements
+2025-10-04 11:14:39 +0530|feat: Mobile Dashboard UI Optimizations
+2025-10-04 10:34:21 +0530|fix: Move all hooks before conditional returns in NotificationsPage
+2025-10-04 10:32:15 +0530|fix: Resolve React hooks order violation in NotificationsPage
+2025-10-04 10:29:27 +0530|feat: Enhanced Hero Feed with Video Reels and AI Summaries
+2025-10-04 10:14:12 +0530|feat: Implement Hero Feed with Media Support
+2025-10-03 22:00:25 +0530|feat: Add comprehensive reports system with PDF/Excel export
+2025-10-03 20:57:46 +0530|fix: Center tagline alignment underneath Auto Vital Solution
+2025-10-03 20:10:54 +0530|Fix language switcher emoji and trip metrics translation typos
+2025-10-03 14:44:20 +0530|feat: Add comprehensive error handling and debugging to PNL Reports page
+2025-10-03 14:39:23 +0530|fix: Resolve PNL Reports page loading error
+2025-10-03 14:34:27 +0530|feat: Enhanced PNL Reports page with interactive charts, advanced filtering, and improved UX

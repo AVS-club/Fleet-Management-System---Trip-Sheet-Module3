@@ -507,7 +507,11 @@ export const useDocumentSummary = (isOpen: boolean) => {
       setRefreshProgress(prev => ({ ...prev, [vehicle.id!]: 'processing' }));
 
       // Use proxy server to avoid IP whitelisting issues
-      const proxyUrl = import.meta.env.VITE_RC_PROXY_URL || 'http://localhost:3001/api/fetch-rc-details';
+      // In production, uses Netlify Functions; in development, uses local proxy
+      const isProduction = import.meta.env.PROD;
+      const proxyUrl = isProduction 
+        ? '/api/fetch-rc-details'  // Netlify Function endpoint
+        : (import.meta.env.VITE_RC_PROXY_URL || 'http://localhost:3001/api/fetch-rc-details');
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
