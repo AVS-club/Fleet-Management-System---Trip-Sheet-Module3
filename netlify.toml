@@ -22,19 +22,28 @@
 
 # Redirects for API calls to Netlify Functions
 [[redirects]]
+  from = "/api/hello"
+  to = "/.netlify/functions/hello"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/fetch-rc-details"
   to = "/.netlify/functions/fetch-rc-details"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/fetch-dl-details"
   to = "/.netlify/functions/fetch-dl-details"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/fetch-challan-info"
   to = "/.netlify/functions/fetch-challan-info"
   status = 200
+  force = true
 
 # Environment variables (these will be set in Netlify dashboard)
 [context.production.environment]
