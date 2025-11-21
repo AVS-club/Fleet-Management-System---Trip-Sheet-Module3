@@ -1,1 +1,4 @@
-/*  /index.html  200
+/api/hello /.netlify/functions/hello 200
+/api/fetch-rc-details /.netlify/functions/fetch-rc-details 200
+/api/fetch-dl-details /.netlify/functions/fetch-dl-details 200
+/api/fetch-challan-info /.netlify/functions/fetch-challan-info 200

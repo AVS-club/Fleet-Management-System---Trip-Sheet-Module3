@@ -1,12 +1,16 @@
 # Netlify configuration file
 
 [build]
-  # Directory with the serverless functions
-  functions = "netlify/functions"
-  # Build command (if needed)
+  # Build command
   command = "npm run build"
   # Directory to publish
   publish = "dist"
+  # Directory with the serverless functions
+  functions = "netlify/functions"
+
+[functions]
+  # Specify that functions are in the netlify/functions directory
+  directory = "netlify/functions"
 
 [build.environment]
   # Node version for building

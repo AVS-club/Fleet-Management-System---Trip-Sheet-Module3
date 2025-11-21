@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MaintenanceTask, Vehicle } from '@/types';
 import { format, parseISO } from 'date-fns';
-import { Eye, Edit, Calendar, Truck, IndianRupee, Clock, Wrench, AlertTriangle, CheckCircle, FileText, FileImage, File, X, ZoomIn } from 'lucide-react';
+import { Eye, Edit, Calendar, Truck, IndianRupee, Clock, Wrench, AlertTriangle, CheckCircle, FileText, FileImage, File, X, ZoomIn, CircleDot } from 'lucide-react';
 import VehicleTagBadges from '../vehicles/VehicleTagBadges';
 
 interface MaintenanceCardProps {
@@ -115,8 +115,29 @@ const MaintenanceCard: React.FC<MaintenanceCardProps> = ({
               </h3>
             </div>
             {vehicle && (
-              <div className="flex flex-wrap gap-1">
-                <VehicleTagBadges vehicle={vehicle} />
+              <div className="space-y-1">
+                <div className="flex flex-wrap gap-1">
+                  <VehicleTagBadges vehicle={vehicle} />
+                </div>
+                {/* Tire Information */}
+                {(vehicle.number_of_tyres || vehicle.tyre_size) && (
+                  <div className="flex items-center gap-3 text-xs text-gray-600">
+                    <CircleDot className="h-3.5 w-3.5 text-gray-500" />
+                    {vehicle.number_of_tyres && (
+                      <span>
+                        <span className="font-medium">{vehicle.number_of_tyres}</span> tyres
+                      </span>
+                    )}
+                    {vehicle.number_of_tyres && vehicle.tyre_size && (
+                      <span className="text-gray-400">•</span>
+                    )}
+                    {vehicle.tyre_size && (
+                      <span>
+                        Size: <span className="font-medium">{vehicle.tyre_size}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -158,6 +179,22 @@ const MaintenanceCard: React.FC<MaintenanceCardProps> = ({
               <span className="font-medium text-green-900">Resolution: </span>
               {task.resolution_summary}
             </p>
+          </div>
+        )}
+
+        {/* Tire-related Services Indicator */}
+        {task.service_groups && task.service_groups.some(group => 
+          group.tasks?.some((task: any) => 
+            task.description?.toLowerCase().includes('tyre') || 
+            task.description?.toLowerCase().includes('tire') ||
+            task.description?.toLowerCase().includes('wheel')
+          )
+        ) && (
+          <div className="bg-blue-50 border border-blue-200 p-2 rounded-lg flex items-center gap-2">
+            <CircleDot className="h-4 w-4 text-blue-600" />
+            <span className="text-sm text-blue-800 font-medium">
+              Includes tire/wheel services
+            </span>
           </div>
         )}
 
