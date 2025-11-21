@@ -120,9 +120,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
       email: "",
       status: "active",
       ...initialData,
-      // Ensure DOB is preserved in edit mode
-      dob: initialData?.dob || "",
-      other_documents: initialData.other_documents
+      other_documents: initialData?.other_documents
         ? initialData.other_documents // ⚠️ Confirm field refactor here
         : [], // ⚠️ Confirm field refactor here
       medical_doc_file: initialData.medical_doc_url ? [] : initialData.medical_doc_file,

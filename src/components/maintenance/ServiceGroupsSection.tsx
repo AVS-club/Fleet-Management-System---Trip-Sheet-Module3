@@ -29,6 +29,29 @@ interface ServiceGroupsSectionProps {
   numberOfTyres?: number;
 }
 
+// Export function to convert service groups to database format
+export const convertServiceGroupsToDatabase = async (serviceGroups: ServiceGroup[]): Promise<ServiceGroup[]> => {
+  // This function converts service groups to the format expected by the database
+  // Currently just returns the groups as-is since they're already in the right format
+  return serviceGroups.map(group => ({
+    ...group,
+    // Ensure vendor_id is set
+    vendor_id: group.vendor_id || '',
+    // Ensure tasks array exists
+    tasks: (group.tasks || []).map(task => ({
+      ...task,
+      // Ensure all task fields are present
+      id: task.id || crypto.randomUUID(),
+      description: task.description || '',
+      quantity: task.quantity || 1,
+      unit_cost: task.unit_cost || 0,
+      total_cost: task.total_cost || (task.quantity || 1) * (task.unit_cost || 0)
+    })),
+    // Recalculate total cost
+    total_cost: group.total_cost || (group.tasks || []).reduce((sum, task) => sum + (task.total_cost || 0), 0)
+  }));
+};
+
 // Common service templates based on vehicle type and tire count
 const getServiceTemplates = (vehicleType?: string, numberOfTyres?: number) => {
   const templates: { [key: string]: ServiceTask[] } = {
@@ -152,7 +175,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
     };
 
     const updatedTasks = [...group.tasks, newTask];
-    const totalCost = updatedTasks.reduce((sum, t) => sum + t.total_cost, 0);
+    const totalCost = updatedTasks.reduce((sum, t) => sum + (t.total_cost || 0), 0);
     
     updateServiceGroup(groupId, { tasks: updatedTasks, total_cost: totalCost });
   };
@@ -163,15 +186,15 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
 
     const updatedTasks = group.tasks.map(t => {
       if (t.id === taskId) {
-        const quantity = updates.quantity ?? t.quantity;
-        const unit_cost = updates.unit_cost ?? t.unit_cost;
+        const quantity = updates.quantity ?? t.quantity ?? 1;
+        const unit_cost = updates.unit_cost ?? t.unit_cost ?? 0;
         const total_cost = quantity * unit_cost;
         return { ...t, ...updates, total_cost };
       }
       return t;
     });
 
-    const totalCost = updatedTasks.reduce((sum, t) => sum + t.total_cost, 0);
+    const totalCost = updatedTasks.reduce((sum, t) => sum + (t.total_cost || 0), 0);
     updateServiceGroup(groupId, { tasks: updatedTasks, total_cost: totalCost });
   };
 
@@ -180,7 +203,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
     if (!group) return;
 
     const updatedTasks = group.tasks.filter(t => t.id !== taskId);
-    const totalCost = updatedTasks.reduce((sum, t) => sum + t.total_cost, 0);
+    const totalCost = updatedTasks.reduce((sum, t) => sum + (t.total_cost || 0), 0);
     
     updateServiceGroup(groupId, { tasks: updatedTasks, total_cost: totalCost });
   };
@@ -206,7 +229,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
     setShowTemplates({ ...showTemplates, [groupId]: false });
   };
 
-  const totalMaintenanceCost = serviceGroups.reduce((sum, g) => sum + g.total_cost, 0);
+  const totalMaintenanceCost = serviceGroups.reduce((sum, g) => sum + (g.total_cost || 0), 0);
 
   return (
     <div className="space-y-4">
@@ -277,7 +300,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
                   </select>
                   
                   <span className="text-sm font-medium text-gray-700">
-                    Total: ₹{group.total_cost.toLocaleString()}
+                    Total: ₹{(group.total_cost || 0).toLocaleString()}
                   </span>
                 </div>
                 
@@ -392,7 +415,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
                           />
                           
                           <span className="text-sm font-medium text-gray-700 w-20 text-right">
-                            ₹{task.total_cost.toLocaleString()}
+                            ₹{(task.total_cost || 0).toLocaleString()}
                           </span>
                           
                           <button
@@ -430,7 +453,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
             <span className="font-medium text-gray-900">Total Maintenance Cost:</span>
           </div>
           <span className="text-xl font-bold text-blue-600">
-            ₹{totalMaintenanceCost.toLocaleString()}
+            ₹{(totalMaintenanceCost || 0).toLocaleString()}
           </span>
         </div>
       )}

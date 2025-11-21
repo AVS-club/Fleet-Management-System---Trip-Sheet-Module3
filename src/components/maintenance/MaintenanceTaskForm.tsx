@@ -10,10 +10,9 @@ import GarageSelector from "./GarageSelector";
 import VehicleSelector from "./VehicleSelector";
 import TaskTypeSelector from "./TaskTypeSelector";
 import PriorityButtonSelector from "./PriorityButtonSelector";
-// ServiceGroupsSection removed - using inline service groups
+import ServiceGroupsSection from "./ServiceGroupsSection";
 import ComplaintResolutionSection from "./ComplaintResolutionSection";
 import NextServiceReminderSection from "./NextServiceReminderSection";
-import ServiceGroupsSection, { convertServiceGroupsToDatabase } from "./ServiceGroupsSection";
 import {
   Gauge,
   Calendar,
