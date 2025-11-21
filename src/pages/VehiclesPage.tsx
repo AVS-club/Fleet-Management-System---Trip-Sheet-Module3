@@ -58,10 +58,11 @@ const logger = createLogger('VehiclesPage');
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const searchParams = new URLSearchParams(window.location.search);
   const [vehicles, setVehicles] = useState<VehicleWithStats[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [isAddingVehicle, setIsAddingVehicle] = useState(false);
+  const [isAddingVehicle, setIsAddingVehicle] = useState(searchParams.get('action') === 'new');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showArchived] = useState(false);
@@ -80,6 +81,14 @@ const VehiclesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
   const [shouldSearch, setShouldSearch] = useState(false);
+
+  // Handle URL parameter changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'new') {
+      setIsAddingVehicle(true);
+    }
+  }, [window.location.search]);
 
   // Create a drivers lookup map for efficient driver assignment display
   const driversById = useMemo(() => {

@@ -80,7 +80,8 @@ const DriversPage: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAddingDriver, setIsAddingDriver] = useState(false);
+  const searchParams = new URLSearchParams(window.location.search);
+  const [isAddingDriver, setIsAddingDriver] = useState(searchParams.get('action') === 'new');
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);

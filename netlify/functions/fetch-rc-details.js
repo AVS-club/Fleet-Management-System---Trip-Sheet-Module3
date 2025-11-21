@@ -110,13 +110,17 @@ exports.handler = async (event, context) => {
         })
       };
     } else if (data.code === 403) {
+      console.log('IP Whitelisting Error:', data);
+      // Return a more detailed error for debugging
       return {
         statusCode: 403,
         headers,
         body: JSON.stringify({
           success: false,
-          message: 'API key issue or IP not whitelisted',
-          error: data.message
+          message: 'API key issue or IP not whitelisted. Netlify Functions use dynamic IPs that cannot be whitelisted.',
+          error: data.message,
+          details: 'Please use the local proxy server for development or contact API provider for a solution.',
+          yourIP: data.message?.match(/Your IP is ([\d.]+)/)?.[1] || 'Unknown'
         })
       };
     } else {
