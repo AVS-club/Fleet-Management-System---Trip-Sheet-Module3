@@ -1,12 +1,15 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { format, parseISO } from 'date-fns';
-import { ArrowUpDown, ArrowUp, ArrowDown, Download, Eye, Edit2, IndianRupee, Copy } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Download, Eye, Edit2, IndianRupee, Copy, CheckCircle, Shield } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { NumberFormatter } from '@/utils/numberFormatter';
 import { getDestinationByAnyId } from '@/utils/storage';
 import { createLogger } from '../../utils/logger';
+import { getTripTotalExpenseDisplay } from '../../utils/tripCalculations';
+import { toggleExpenseVerification } from '../../utils/tripVerification';
+import { supabase } from '../../utils/supabaseClient';
 
 const logger = createLogger('TripTable');
 
@@ -19,6 +22,7 @@ interface TripTableProps {
   onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
   onEditTrip?: (trip: Trip) => void;
   highlightTripId?: string | null;
+  onTripUpdate?: (updatedTrip: Trip) => void;
 }
 
 type SortField = 'serial' | 'date' | 'vehicle' | 'driver' | 'distance' | 'expense' | 'mileage';
@@ -115,29 +119,33 @@ const TripTable: React.FC<TripTableProps> = ({
   onSelectTrip,
   onPnlClick,
   onEditTrip,
-  highlightTripId
+  highlightTripId,
+  onTripUpdate
 }) => {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [destinationCache, setDestinationCache] = useState<Map<string, string>>(new Map());
+  const [verifyingTripId, setVerifyingTripId] = useState<string | null>(null);
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
     select: 40,
-    serial: 140,
-    date: 100,
-    vehicle: 120,
-    driver: 150,
-    start_km: 90,
-    end_km: 90,
-    distance: 90,
-    mileage: 90,
-    fuel: 80,
-    expense: 100,
-    destinations: 200,
-    warehouse: 120,
-    deviation: 90,
-    actions: 100
+    serial: 120,  // Reduced from 140
+    date: 75,  // Reduced from 100 since we're showing yy instead of yyyy
+    vehicle: 110,  // Reduced from 120
+    driver: 130,  // Reduced from 150
+    start_km: 80,  // Reduced from 90
+    end_km: 80,  // Reduced from 90
+    distance: 80,  // Reduced from 90
+    mileage: 80,  // Reduced from 90
+    fuel: 60,  // Reduced from 80
+    fuel_cost: 80,  // New column for fuel cost
+    unloading: 80,  // New column for unloading expense
+    total_expense: 90,  // Renamed from expense
+    destinations: 150,  // Reduced from 200
+    warehouse: 100,  // Reduced from 120
+    deviation: 80,  // Reduced from 90
+    actions: 80  // Reduced from 100
   });
 
   // Create lookup maps
@@ -201,6 +209,54 @@ const TripTable: React.FC<TripTableProps> = ({
     fetchDestinations();
   }, [uniqueDestinationIds]);
 
+  // Handle expense verification toggle
+  const handleVerificationToggle = async (e: React.MouseEvent, trip: Trip) => {
+    e.stopPropagation();
+    
+    if (verifyingTripId) return; // Prevent double-clicks
+    
+    setVerifyingTripId(trip.id);
+    
+    try {
+      // Get current user email
+      const { data: { user } } = await supabase.auth.getUser();
+      const userEmail = user?.email;
+      
+      const result = await toggleExpenseVerification(
+        trip.id,
+        trip.expense_verified || false,
+        userEmail
+      );
+      
+      if (result.success) {
+        const newStatus = !trip.expense_verified;
+        toast.success(
+          newStatus 
+            ? '✓ Expense verified successfully' 
+            : 'Expense verification removed'
+        );
+        
+        // Update the trip in parent component if callback provided
+        if (onTripUpdate) {
+          const updatedTrip = {
+            ...trip,
+            expense_verified: newStatus,
+            expense_verified_by: newStatus ? userEmail : undefined,
+            expense_verified_at: newStatus ? new Date().toISOString() : undefined,
+          };
+          onTripUpdate(updatedTrip);
+        }
+      } else {
+        toast.error(result.error || 'Failed to update verification status');
+      }
+    } catch (error) {
+      logger.error('Error toggling verification:', error);
+      toast.error('An error occurred while updating verification status');
+    } finally {
+      setVerifyingTripId(null);
+    }
+  };
+
   // Sort trips
   const sortedTrips = useMemo(() => {
     const sorted = [...trips].sort((a, b) => {
@@ -228,8 +284,8 @@ const TripTable: React.FC<TripTableProps> = ({
           bVal = b.total_distance || 0;
           break;
         case 'expense':
-          aVal = a.total_expenses || 0;
-          bVal = b.total_expenses || 0;
+          aVal = getTripTotalExpenseDisplay(a);
+          bVal = getTripTotalExpenseDisplay(b);
           break;
         case 'mileage':
           aVal = a.calculated_kmpl || 0;
@@ -309,7 +365,9 @@ const TripTable: React.FC<TripTableProps> = ({
         'Driver': driver?.name,
         'Distance': trip.end_km && trip.start_km ? trip.end_km - trip.start_km : trip.total_distance,
         'Fuel': trip.fuel_quantity,
-        'Expenses': trip.total_expenses,
+        'Fuel Cost': trip.total_fuel_cost,
+        'Unloading': trip.unloading_expense,
+        'Total Expenses': getTripTotalExpenseDisplay(trip),
         'Mileage': trip.calculated_kmpl
       };
     });
@@ -359,7 +417,7 @@ const TripTable: React.FC<TripTableProps> = ({
           'Distance': trip.end_km && trip.start_km ? trip.end_km - trip.start_km : trip.total_distance,
           'Fuel (L)': trip.fuel_quantity,
           'Fuel Cost': trip.total_fuel_cost,
-          'Total Expenses': trip.total_expenses,
+          'Total Expenses': getTripTotalExpenseDisplay(trip),
           'Mileage (km/L)': trip.calculated_kmpl,
           'Destinations': destinationNames,
           'Warehouse': warehouse?.name,
@@ -531,14 +589,24 @@ const TripTable: React.FC<TripTableProps> = ({
                 Fuel (L)
               </th>
 
-              {/* Expense */}
+              {/* Fuel Expense */}
+              <th className="px-2 py-2 text-right font-medium text-gray-700" style={{ width: columnWidths.fuel_cost }}>
+                Fuel Expense
+              </th>
+
+              {/* Unloading Expense */}
+              <th className="px-2 py-2 text-right font-medium text-gray-700" style={{ width: columnWidths.unloading }}>
+                Unloading Expense
+              </th>
+
+              {/* Total Expenses */}
               <th 
                 className="px-2 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
-                style={{ width: columnWidths.expense }}
+                style={{ width: columnWidths.total_expense }}
                 onClick={() => handleSort('expense')}
               >
                 <div className="flex items-center justify-end gap-1">
-                  Expenses
+                  Total Expenses
                   <SortIcon field="expense" />
                 </div>
               </th>
@@ -605,7 +673,7 @@ const TripTable: React.FC<TripTableProps> = ({
                   </td>
 
                   <td className="px-2 py-1.5">
-                    {trip.trip_start_date ? format(parseISO(trip.trip_start_date), 'dd/MM/yyyy') : '-'}
+                    {trip.trip_start_date ? format(parseISO(trip.trip_start_date), 'dd/MM/yy') : '-'}
                   </td>
 
                   <td className="px-2 py-1.5 font-medium">
@@ -640,7 +708,44 @@ const TripTable: React.FC<TripTableProps> = ({
                   </td>
 
                   <td className="px-2 py-1.5 text-right font-mono">
-                    {trip.total_expenses ? NumberFormatter.currency(trip.total_expenses, false) : '-'}
+                    {trip.total_fuel_cost ? NumberFormatter.currency(trip.total_fuel_cost, false) : '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5 text-right font-mono">
+                    {trip.unloading_expense ? NumberFormatter.currency(trip.unloading_expense, false) : '-'}
+                  </td>
+
+                  <td 
+                    className="px-2 py-1.5 text-right font-mono relative group"
+                    title={
+                      trip.expense_verified 
+                        ? `Verified ${trip.expense_verified_at ? 'on ' + format(parseISO(trip.expense_verified_at), 'dd/MM/yy HH:mm') : ''}${trip.expense_verified_by ? ' by ' + trip.expense_verified_by.split('@')[0] : ''}`
+                        : 'Click to verify expense amount'
+                    }
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={(e) => handleVerificationToggle(e, trip)}
+                        disabled={verifyingTripId === trip.id}
+                        className={`
+                          flex-shrink-0 transition-all
+                          ${trip.expense_verified 
+                            ? 'text-green-600 hover:text-green-700' 
+                            : 'text-gray-300 hover:text-blue-500'
+                          }
+                          ${verifyingTripId === trip.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
+                        `}
+                      >
+                        {trip.expense_verified ? (
+                          <CheckCircle className="h-3.5 w-3.5" />
+                        ) : (
+                          <Shield className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                      <span className={trip.expense_verified ? 'text-green-700 font-semibold' : ''}>
+                        {NumberFormatter.currency(getTripTotalExpenseDisplay(trip), false)}
+                      </span>
+                    </div>
                   </td>
 
                   <td className="px-2 py-1.5">
@@ -717,7 +822,7 @@ const TripTable: React.FC<TripTableProps> = ({
         <div className="flex items-center gap-4">
           <span>Total Distance: <strong>{NumberFormatter.display(sortedTrips.reduce((sum, t) => sum + (t.total_distance || 0), 0), 2)} km</strong></span>
           <span>Total Fuel: <strong>{NumberFormatter.display(sortedTrips.reduce((sum, t) => sum + (t.fuel_quantity || 0), 0), 2)} L</strong></span>
-          <span>Total Expenses: <strong>{NumberFormatter.currency(sortedTrips.reduce((sum, t) => sum + (t.total_expenses || 0), 0), false)}</strong></span>
+          <span>Total Expenses: <strong>{NumberFormatter.currency(sortedTrips.reduce((sum, t) => sum + getTripTotalExpenseDisplay(t), 0), false)}</strong></span>
         </div>
         
         <div>

@@ -80,6 +80,11 @@ export interface Trip {
   net_profit?: number;
   cost_per_km?: number;
   profit_status?: "profit" | "loss" | "neutral";
+
+  // Expense verification fields
+  expense_verified?: boolean;
+  expense_verified_by?: string;
+  expense_verified_at?: string;
 }
 
 export interface TripFormData extends Omit<

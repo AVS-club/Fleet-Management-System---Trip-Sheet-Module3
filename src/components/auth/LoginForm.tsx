@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginWithOrganization } from "../../utils/auth";
 import { Eye, EyeOff } from "lucide-react";
@@ -15,8 +15,8 @@ const LoginForm: React.FC<LoginFormProps> = ({
 }) => {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState({
-    organizationUsername: "cfaraipur19@gmail.com",
-    password: "password123"
+    organizationUsername: "",
+    password: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +24,17 @@ const LoginForm: React.FC<LoginFormProps> = ({
   // Refs for input elements to prevent focus issues
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved email from browser-specific localStorage on mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('lastUsedEmail');
+    if (savedEmail) {
+      setCredentials(prev => ({
+        ...prev,
+        organizationUsername: savedEmail
+      }));
+    }
+  }, []);
 
   // Optimized input handlers to prevent character sticking
   const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,6 +70,9 @@ const LoginForm: React.FC<LoginFormProps> = ({
     
     try {
       const result = await loginWithOrganization(credentials);
+      
+      // Save email to browser-specific localStorage for convenience
+      localStorage.setItem('lastUsedEmail', credentials.organizationUsername);
       
       toast.success(`Welcome back, ${result.organization.name}!`);
       navigate("/dashboard");
@@ -96,7 +110,9 @@ const LoginForm: React.FC<LoginFormProps> = ({
           className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent"
           placeholder="Enter email or username (we'll add @gmail.com)"
           required
-          autoComplete="username"
+          autoComplete="email"
+          autoCorrect="off"
+          autoCapitalize="off"
           spellCheck={false}
         />
       </div>

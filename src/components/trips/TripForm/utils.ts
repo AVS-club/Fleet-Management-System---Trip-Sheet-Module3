@@ -157,18 +157,6 @@ export const formatKm = (km: number | undefined): string => {
 };
 
 /**
- * Auto-calculate toll expense based on route analysis
- */
-export const calculateTollExpense = (
-  routeAnalysis: any,
-  isReturnTrip: boolean
-): number => {
-  if (!routeAnalysis?.estimated_toll) return 0;
-
-  return isReturnTrip ? routeAnalysis.estimated_toll * 2 : routeAnalysis.estimated_toll;
-};
-
-/**
  * Filter vehicles by search term
  */
 export const filterVehicles = (vehicles: any[], searchTerm: string): any[] => {

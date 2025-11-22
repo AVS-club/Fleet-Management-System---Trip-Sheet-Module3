@@ -7,11 +7,11 @@ import { useHeroFeed, useKPICards } from '../hooks/useHeroFeed';
 import LoadingScreen from '../components/LoadingScreen';
 import { RefreshCw, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff } from 'lucide-react';
 import { useYouTubeShorts, YouTubeShort } from '../hooks/useYouTubeShorts';
+import PermissionGuard from '../components/auth/PermissionGuard';
 
 // Dynamic YouTube shorts are now fetched from the API
 
 const NotificationsPage: React.FC = () => {
-  const { permissions, loading: permissionsLoading } = usePermissions();
   const [selectedFilters, setSelectedFilters] = useState<string[]>(['all']);
 
   // Video toggle state with localStorage persistence
@@ -102,15 +102,6 @@ const NotificationsPage: React.FC = () => {
     return events.filter((event: any) => feedKinds.includes(event.kind));
   }, [events, feedKinds, isMediaOnly]);
 
-
-  // Handle loading and permissions after all hooks
-  if (permissionsLoading) {
-    return <LoadingScreen isLoading={true} />;
-  }
-
-  if (!permissions?.canAccessAlerts) {
-    return <Navigate to="/vehicles" replace />;
-  }
 
   const handleFilterClick = (filterId: string) => {
     if (filterId === 'all') {
@@ -421,7 +412,12 @@ const NotificationsPage: React.FC = () => {
   };
 
   return (
-    <Layout>
+    <PermissionGuard 
+      requiredPermission="canAccessAlerts" 
+      redirectTo="/trips"
+      preventFlicker={true}
+    >
+      <Layout>
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Compact KPIs */}
         <CompactKPIs />
@@ -560,6 +556,7 @@ const NotificationsPage: React.FC = () => {
         </div>
       </div>
     </Layout>
+    </PermissionGuard>
   );
 };
 

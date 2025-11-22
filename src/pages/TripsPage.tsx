@@ -714,6 +714,7 @@ const TripsPage: React.FC = () => {
                   onPnlClick={handlePnlClick}
                   onEditTrip={handleEditTrip}
                   highlightTripId={highlightTripId}
+                  onTripUpdate={handleTripUpdate}
                 />
               ) : viewMode === 'list' ? (
                 <TripListView

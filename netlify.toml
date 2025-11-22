@@ -5,12 +5,6 @@
   command = "npm run build"
   # Directory to publish
   publish = "dist"
-  # Directory with the serverless functions
-  functions = "netlify/functions"
-
-[functions]
-  # Specify that functions are in the netlify/functions directory
-  directory = "netlify/functions"
 
 [build.environment]
   # Node version for building
@@ -24,31 +18,8 @@
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type"
 
-# Redirects for API calls to Netlify Functions
+# SPA redirect - This is crucial for React Router to work
 [[redirects]]
-  from = "/api/hello"
-  to = "/.netlify/functions/hello"
+  from = "/*"
+  to = "/index.html"
   status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/fetch-rc-details"
-  to = "/.netlify/functions/fetch-rc-details"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/fetch-dl-details"
-  to = "/.netlify/functions/fetch-dl-details"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/fetch-challan-info"
-  to = "/.netlify/functions/fetch-challan-info"
-  status = 200
-  force = true
-
-# Environment variables (these will be set in Netlify dashboard)
-[context.production.environment]
-  APICLUB_KEY = "Set this in Netlify dashboard for security"

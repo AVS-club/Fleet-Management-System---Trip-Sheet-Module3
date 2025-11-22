@@ -794,6 +794,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               label="Registration Number"
               placeholder="CG04AB1234"
               icon={<Truck className="h-4 w-4" />}
+              hideIconWhenFocused={true}
               error={errors.registration_number?.message}
               required
               disabled={isFetching || isSubmitting}
@@ -868,6 +869,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Year"
             type="number"
             icon={<Calendar className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             error={errors.year?.message}
             required
             disabled={fieldsDisabled || isSubmitting}
@@ -945,6 +947,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Current Odometer (km)"
             type="number"
             icon={<MapPin className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             error={errors.current_odometer?.message}
             required
             disabled={isSubmitting}
@@ -1040,6 +1043,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Cubic Capacity (cc)"
             type="number"
             icon={<Database className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('cubic_capacity', { valueAsNumber: true })}
           />
@@ -1048,6 +1052,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Number of Cylinders"
             type="number"
             icon={<Database className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('cylinders', { valueAsNumber: true })}
           />
@@ -1056,6 +1061,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Unladen Weight (kg)"
             type="number"
             icon={<Weight className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('unladen_weight', { valueAsNumber: true })}
           />
@@ -1065,6 +1071,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             placeholder="Enter GVW in kg"
             icon={<Weight className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('gvw', { valueAsNumber: true })}
           />
@@ -1074,6 +1081,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             placeholder="Enter GBW in kg"
             icon={<Weight className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('gbw', { valueAsNumber: true })}
           />
@@ -1082,6 +1090,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Seating Capacity"
             type="number"
             icon={<Users className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('seating_capacity', { valueAsNumber: true })}
           />
@@ -1107,6 +1116,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Number of Tyres"
             type="number"
             icon={<Settings className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={isSubmitting}
             {...register('number_of_tyres', { valueAsNumber: true })}
           />
@@ -1174,6 +1184,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="NOC Details"
             icon={<FileText className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('noc_details')}
           />
@@ -1191,6 +1202,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Policy Number"
             icon={<FileText className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('insurance_policy_number')}
           />
@@ -1198,6 +1210,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Insurer Name"
             icon={<Shield className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('insurer_name')}
           />
@@ -1224,6 +1237,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Premium Amount"
             type="number"
             icon={<IndianRupee className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('insurance_premium_amount', { valueAsNumber: true })}
           />
@@ -1232,6 +1246,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="IDV Amount"
             type="number"
             icon={<IndianRupee className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('insurance_idv', { valueAsNumber: true })}
           />
@@ -1249,6 +1264,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Certificate Number"
             icon={<FileText className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('fitness_certificate_number')}
           />
@@ -1275,6 +1291,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Cost"
             type="number"
             icon={<IndianRupee className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('fitness_cost', { valueAsNumber: true })}
           />
@@ -1292,6 +1309,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Receipt Number"
             icon={<FileText className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('tax_receipt_number')}
           />
@@ -1300,6 +1318,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Amount"
             type="number"
             icon={<IndianRupee className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('tax_amount', { valueAsNumber: true })}
           />
@@ -1307,6 +1326,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Period"
             icon={<Calendar className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('tax_period')}
           />
@@ -1332,6 +1352,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Permit Number"
             icon={<FileText className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('permit_number')}
           />
@@ -1339,6 +1360,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Issuing State"
             icon={<MapPin className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('permit_issuing_state')}
           />
@@ -1346,6 +1368,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Permit Type"
             icon={<FileText className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('permit_type')}
           />
@@ -1372,6 +1395,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Cost"
             type="number"
             icon={<IndianRupee className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('permit_cost', { valueAsNumber: true })}
           />
@@ -1379,6 +1403,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="National Permit Number"
             icon={<FileText className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('national_permit_number')}
           />
@@ -1404,6 +1429,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Certificate Number"
             icon={<FileText className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('puc_certificate_number')}
           />
@@ -1430,6 +1456,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Cost"
             type="number"
             icon={<IndianRupee className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('puc_cost', { valueAsNumber: true })}
           />

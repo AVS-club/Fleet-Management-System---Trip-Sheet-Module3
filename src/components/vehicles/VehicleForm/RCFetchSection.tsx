@@ -45,6 +45,7 @@ export const RCFetchSection: React.FC<RCFetchSectionProps> = ({
             label="Registration Number"
             placeholder="CG04AB1234"
             icon={<Truck className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             error={errors.registration_number?.message}
             required
             disabled={isFetching || disabled}

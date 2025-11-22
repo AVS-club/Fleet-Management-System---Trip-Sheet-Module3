@@ -78,6 +78,7 @@ export const MaterialTransportSection: React.FC<MaterialTransportSectionProps> =
           step="0.1"
           placeholder="0.0"
           icon={<Weight className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.capacity?.message}
           disabled={disabled}
           {...register('capacity', {
@@ -96,6 +97,7 @@ export const MaterialTransportSection: React.FC<MaterialTransportSectionProps> =
           step="0.1"
           placeholder="0.0"
           icon={<Weight className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.carrying_capacity?.message}
           disabled={disabled}
           {...register('carrying_capacity', {

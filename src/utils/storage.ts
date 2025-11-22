@@ -137,18 +137,20 @@ export const getDestinations = async (): Promise<Destination[]> => {
         if (config.isDev) logger.warn('Network error fetching user for destinations, returning empty array');
         return [];
       }
-      handleSupabaseError('get user for destinations', userError);
+      // Silent error handling - user might not be logged in yet
+      handleSupabaseError('get user for destinations', userError, true);
       return [];
     }
     
     if (!user) {
-      logger.error('No user authenticated');
+      // Silent failure - this is expected when user is not logged in
+      if (config.isDev) logger.warn('No user authenticated for destinations');
       return [];
     }
 
     const organizationId = await getUserActiveOrganization(user.id);
     if (!organizationId) {
-      logger.warn('No organization selected for user');
+      if (config.isDev) logger.warn('No organization selected for user');
       return [];
     }
 
@@ -170,7 +172,7 @@ export const getDestinations = async (): Promise<Destination[]> => {
       if (config.isDev) logger.warn('Network error fetching user for destinations, returning empty array');
       return [];
     }
-    handleSupabaseError('get user for destinations', error);
+    handleSupabaseError('get user for destinations', error, true);
     return [];
   }
 };
@@ -184,19 +186,21 @@ export const getDestination = async (id: string, ignoreOwnership: boolean = fals
         if (config.isDev) logger.warn('Network error fetching user for destination, returning null');
         return null;
       }
-      handleSupabaseError('get user for destination', userError);
+      // Silent error handling - user might not be logged in yet
+      handleSupabaseError('get user for destination', userError, true);
       return null;
     }
     
     if (!user && !ignoreOwnership) {
-      logger.error('No user authenticated');
+      // Silent failure - this is expected when user is not logged in
+      if (config.isDev) logger.warn('No user authenticated for destination');
       return null;
     }
 
     // Validate that id is a proper UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
-      logger.error('Invalid UUID format for destination id:', id);
+      if (config.isDev) logger.warn('Invalid UUID format for destination id:', id);
       return null;
     }
 
@@ -225,7 +229,7 @@ export const getDestination = async (id: string, ignoreOwnership: boolean = fals
       if (config.isDev) logger.warn('Network error fetching destination, returning null');
       return null;
     }
-    handleSupabaseError('fetch destination', error);
+    handleSupabaseError('fetch destination', error, true);
     return null;
   }
 };
@@ -239,12 +243,14 @@ export const getDestinationByAnyId = async (id: string, ignoreOwnership: boolean
         if (config.isDev) logger.warn('Network error fetching user for destination by any id, returning null');
         return null;
       }
-      handleSupabaseError('get user for destination by any id', userError);
+      // Silent error handling - user might not be logged in yet
+      handleSupabaseError('get user for destination by any id', userError, true);
       return null;
     }
     
     if (!user && !ignoreOwnership) {
-      logger.error('No user authenticated');
+      // Silent failure - this is expected when user is not logged in
+      if (config.isDev) logger.warn('No user authenticated for destination by any id');
       return null;
     }
 
@@ -291,7 +297,7 @@ export const getDestinationByAnyId = async (id: string, ignoreOwnership: boolean
       if (config.isDev) logger.warn('Network error fetching destination by any id, returning null');
       return null;
     }
-    handleSupabaseError('fetch destination by any id', error);
+    handleSupabaseError('fetch destination by any id', error, true);
     return null;
   }
 };
@@ -748,10 +754,9 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       });
     });
 
-    // Extract total distance, duration and toll data from Google Directions response
+    // Extract total distance and duration from Google Directions response
     let totalLiveDistanceMeters = 0;
     let totalLiveDurationSeconds = 0;
-    let estimatedTollCost = 0;
 
     if (directionsResult.routes[0]?.legs) {
       directionsResult.routes[0].legs.forEach(leg => {
@@ -759,13 +764,6 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
         totalLiveDurationSeconds += leg.duration?.value || 0;
       });
     }
-
-    // Calculate estimated toll based on distance (Indian toll rates)
-    // Average toll rate in India: ₹1.5-2 per km for cars/small vehicles
-    // For trucks: ₹3-5 per km depending on axles
-    // Using conservative estimate of ₹2 per km for light commercial vehicles
-    const tollRatePerKm = 2;
-    estimatedTollCost = Math.round((totalLiveDistanceMeters / 1000) * tollRatePerKm);
 
     // Convert to appropriate units
     const totalLiveDistanceKm = Math.round(totalLiveDistanceMeters / 1000 * 10) / 10; // Round to 1 decimal
@@ -778,7 +776,6 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       total_distance: totalLiveDistanceKm,
       standard_distance: totalLiveDistanceKm,
       deviation: 0, // Will be calculated when actual distance is known
-      estimated_toll: estimatedTollCost,
       estimated_time: estimatedTime,
       waypoints
     };

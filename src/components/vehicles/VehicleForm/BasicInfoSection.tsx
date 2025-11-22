@@ -48,6 +48,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           label="Registration Number"
           placeholder="CG04AB1234"
           icon={<Truck className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.registration_number?.message}
           required
           disabled={disabled}
@@ -95,6 +96,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           label="Color"
           placeholder="e.g., White"
           icon={<Palette className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.color?.message}
           disabled={disabled}
           {...register('color')}
@@ -105,6 +107,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           label="Engine Number"
           placeholder="Enter engine number"
           icon={<Hash className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.engine_number?.message}
           disabled={disabled}
           {...register('engine_number')}
@@ -115,6 +118,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           label="Chassis Number"
           placeholder="Enter chassis number"
           icon={<Hash className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.chassis_number?.message}
           disabled={disabled}
           {...register('chassis_number')}
@@ -126,6 +130,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           type="number"
           placeholder="0"
           icon={<Gauge className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.current_odometer?.message}
           disabled={disabled}
           {...register('current_odometer', {

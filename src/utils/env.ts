@@ -13,6 +13,7 @@ const envSchema = z.object({
   VITE_SUPABASE_URL: z.string().url({ message: 'VITE_SUPABASE_URL must be a valid URL' }).optional(),
   VITE_SUPABASE_ANON_KEY: z.string().min(1, 'VITE_SUPABASE_ANON_KEY is required').optional(),
   VITE_GOOGLE_MAPS_API_KEY: z.string().min(1, 'VITE_GOOGLE_MAPS_API_KEY is required').optional(),
+  VITE_ANTHROPIC_API_KEY: z.string().min(1, 'VITE_ANTHROPIC_API_KEY is required').optional(),
   MODE: z.string().optional(),
   DEV: z.union([z.boolean(), z.string()]).optional(),
 });
@@ -33,6 +34,7 @@ const config = {
   supabaseUrl: data.VITE_SUPABASE_URL,
   supabaseAnonKey: data.VITE_SUPABASE_ANON_KEY,
   googleMapsApiKey: data.VITE_GOOGLE_MAPS_API_KEY,
+  anthropicApiKey: data.VITE_ANTHROPIC_API_KEY,
   isDev,
 };
 
@@ -52,5 +54,9 @@ export const isSupabaseConfigured =
   config.supabaseUrl !== 'your_project_url' &&
   config.supabaseAnonKey !== 'your_anon_key' &&
   isValidUrl(config.supabaseUrl as string);
+
+export const isAnthropicConfigured =
+  !!config.anthropicApiKey &&
+  config.anthropicApiKey !== 'your_anthropic_api_key';
 
 export default config;

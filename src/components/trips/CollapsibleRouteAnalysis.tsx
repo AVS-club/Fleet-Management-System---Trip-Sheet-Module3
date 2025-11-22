@@ -188,13 +188,6 @@ const CollapsibleRouteAnalysis: React.FC<CollapsibleRouteAnalysisProps> = ({
                             {analysis.estimated_time && analysis.estimated_time !== '—' ? analysis.estimated_time : '—'}
                           </div>
                         </div>
-
-                        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-                          <div className="text-xs text-gray-500 mb-1">Est. Toll</div>
-                          <div className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                            ₹{analysis.estimated_toll || 0}
-                          </div>
-                        </div>
                       </div>
                     </div>
 

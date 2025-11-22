@@ -26,10 +26,28 @@ const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
 
+  // Check if device is mobile on mount and window resize
   useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint is 768px
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    // Only enable collapsing behavior on mobile devices
+    if (!isMobile) {
+      setIsCollapsed(false);
+      return;
+    }
+
     const handleScroll = () => {
       if (!ticking.current) {
         window.requestAnimationFrame(() => {
@@ -59,7 +77,7 @@ const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [isMobile]);
 
   const getTimeSinceUpdate = () => {
     const minutesAgo = Math.floor((new Date().getTime() - lastUpdated.getTime()) / 60000);
@@ -84,10 +102,10 @@ const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
     <div 
       className={`
         sticky top-0 z-30 transition-all duration-300 ease-in-out
-        ${isCollapsed ? '-translate-y-20 sm:-translate-y-16' : 'translate-y-0'}
+        ${isCollapsed && isMobile ? '-translate-y-20 sm:-translate-y-16' : 'translate-y-0'}
       `}
       style={{
-        transform: isCollapsed 
+        transform: isCollapsed && isMobile
           ? `translateY(-${Math.min(scrollY * 0.5, 80)}px)` 
           : 'translateY(0)'
       }}
@@ -103,7 +121,7 @@ const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
         {/* Compact Header Content */}
         <div className={`
           relative z-10 px-3 sm:px-4 transition-all duration-300
-          ${isCollapsed ? 'py-2' : 'py-3 sm:py-4'}
+          ${isCollapsed && isMobile ? 'py-2' : 'py-3 sm:py-4'}
         `}>
           <div className="flex items-center justify-between gap-2">
             {/* Left Section - Title */}
@@ -111,7 +129,7 @@ const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
               {/* Icon - Hidden when collapsed on mobile */}
               <div className={`
                 relative transition-all duration-300
-                ${isCollapsed ? 'hidden sm:block scale-75' : 'block'}
+                ${isCollapsed && isMobile ? 'hidden sm:block scale-75' : 'block'}
               `}>
                 <div className="absolute inset-0 bg-white/20 rounded-xl blur-lg animate-pulse"></div>
                 <div className="relative p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
@@ -123,13 +141,13 @@ const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
               <div className="min-w-0 flex-1">
                 <h1 className={`
                   font-bold text-white tracking-tight flex items-center gap-2 transition-all duration-300
-                  ${isCollapsed ? 'text-sm sm:text-base' : 'text-base sm:text-lg md:text-xl'}
+                  ${isCollapsed && isMobile ? 'text-sm sm:text-base' : 'text-base sm:text-lg md:text-xl'}
                 `}>
                   <span className="truncate">Fleet Activity</span>
                   {/* Live Indicator - Smaller when collapsed */}
                   <span className={`
                     inline-flex items-center gap-1 bg-green-400/20 backdrop-blur-sm rounded-full border border-green-400/30 transition-all duration-300
-                    ${isCollapsed ? 'px-1 py-0.5' : 'px-1.5 sm:px-2 py-0.5'}
+                    ${isCollapsed && isMobile ? 'px-1 py-0.5' : 'px-1.5 sm:px-2 py-0.5'}
                   `}>
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -137,12 +155,12 @@ const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
                     </span>
                     <span className={`
                       font-medium text-green-50 transition-all duration-300
-                      ${isCollapsed ? 'text-[9px] sm:text-[10px]' : 'text-[10px] sm:text-xs'}
+                      ${isCollapsed && isMobile ? 'text-[9px] sm:text-[10px]' : 'text-[10px] sm:text-xs'}
                     `}>LIVE</span>
                   </span>
                 </h1>
                 {/* Subtitle - Hidden when collapsed */}
-                {!isCollapsed && (
+                {!(isCollapsed && isMobile) && (
                   <p className="text-white/80 text-xs sm:text-sm mt-0.5 truncate">
                     Monitor your fleet performance in real-time
                   </p>
@@ -153,7 +171,7 @@ const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
             {/* Right Section - Actions */}
             <div className="flex items-center gap-1 sm:gap-1.5">
               {/* Quick Stats - Visible when collapsed */}
-              {isCollapsed && (
+              {isCollapsed && isMobile && (
                 <div className="hidden sm:flex items-center gap-3 mr-2">
                   <div className="text-white/90">
                     <span className="text-xs font-medium">Vehicles:</span>
@@ -172,19 +190,19 @@ const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
                 className={`
                   relative bg-white/20 backdrop-blur-sm rounded-lg border border-white/30 
                   hover:bg-white/30 active:scale-95 transition-all group
-                  ${isCollapsed ? 'p-1.5' : 'p-1.5 sm:p-2'}
+                  ${isCollapsed && isMobile ? 'p-1.5' : 'p-1.5 sm:p-2'}
                 `}
                 title={`View ${pendingAlerts} pending alerts`}
               >
                 <Bell className={`
                   text-white group-hover:scale-110 transition-transform
-                  ${isCollapsed ? 'w-3.5 h-3.5' : 'w-4 h-4'}
+                  ${isCollapsed && isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'}
                 `} />
                 {pendingAlerts > 0 && (
                   <span className={`
                     absolute flex items-center justify-center rounded-full bg-red-500 
                     font-bold text-white animate-pulse transition-all duration-300
-                    ${isCollapsed 
+                    ${isCollapsed && isMobile
                       ? '-top-0.5 -right-0.5 h-3.5 w-3.5 text-[8px]' 
                       : '-top-0.5 -right-0.5 h-4 w-4 text-[9px]'
                     }
@@ -202,21 +220,21 @@ const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
                   bg-white/20 backdrop-blur-sm rounded-lg border border-white/30 
                   hover:bg-white/30 transition-all group
                   ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}
-                  ${isCollapsed ? 'p-1.5' : 'p-1.5 sm:p-2'}
+                  ${isCollapsed && isMobile ? 'p-1.5' : 'p-1.5 sm:p-2'}
                 `}
                 title="Refresh feed"
               >
                 <RefreshCw className={`
                   text-white transition-transform duration-500
                   ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}
-                  ${isCollapsed ? 'w-3.5 h-3.5' : 'w-4 h-4'}
+                  ${isCollapsed && isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'}
                 `} />
               </button>
             </div>
           </div>
 
           {/* Stats Grid - Hidden when collapsed */}
-          {!isCollapsed && (
+          {!(isCollapsed && isMobile) && (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2 md:gap-3 mt-2 sm:mt-3">
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 border border-white/20">
@@ -247,7 +265,7 @@ const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
         </div>
 
         {/* Collapsed Indicator Bar - Shows at bottom when collapsed */}
-        {isCollapsed && (
+        {isCollapsed && isMobile && (
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20">
             <div className="h-full bg-white/40 animate-pulse" style={{ width: '100%' }}></div>
           </div>

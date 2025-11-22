@@ -10,27 +10,37 @@ Deno.serve(async (_req) => {
     console.log('🚀 Starting KPI refresh...')
     const startTime = performance.now()
 
-    // Try the new function with comparisons, fallback to basic if it doesn't exist
-    let { data, error } = await supabase.rpc('generate_kpi_cards_with_comparisons')
-    
-    // If the new function doesn't exist yet, use the original
-    if (error && error.message.includes('does not exist')) {
-      const result = await supabase.rpc('generate_kpi_cards')
-      data = result.data
-      error = result.error
+    // Call the main KPI generation function
+    console.log('📊 Generating basic KPIs...')
+    const { data: kpiData, error: kpiError } = await supabase.rpc('generate_kpi_cards')
+    if (kpiError) {
+      console.error('❌ Basic KPI error:', kpiError)
+      throw kpiError
     }
+    console.log('✅ Basic KPIs created:', kpiData?.cards_created || 0)
 
-    if (error) throw error
+    // Call the comparative KPI generation function
+    console.log('📈 Generating comparative KPIs...')
+    const { data: comparativeKpiData, error: comparativeKpiError } = await supabase.rpc('generate_comparative_kpis')
+    if (comparativeKpiError) {
+      console.error('❌ Comparative KPI error:', comparativeKpiError)
+      throw comparativeKpiError
+    }
+    console.log('✅ Comparative KPIs created:', comparativeKpiData?.cards_created || 0)
 
     const endTime = performance.now()
     const duration = Math.round(endTime - startTime)
 
-    console.log('✅ Success! Created', data.cards_created, 'cards in', duration, 'ms')
+    const totalCardsCreated = (kpiData?.cards_created || 0) + (comparativeKpiData?.cards_created || 0)
+
+    console.log('✅ Success! Created', totalCardsCreated, 'total cards in', duration, 'ms')
 
     return new Response(
       JSON.stringify({
         success: true,
-        cards_created: data.cards_created,
+        cards_created: totalCardsCreated,
+        basic_kpis: kpiData?.cards_created || 0,
+        comparative_kpis: comparativeKpiData?.cards_created || 0,
         execution_time_ms: duration,
         timestamp: new Date().toISOString()
       }),

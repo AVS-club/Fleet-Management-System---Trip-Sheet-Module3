@@ -12,6 +12,7 @@
     "seed:trips": "tsx scripts/seedVehicleTripsFixed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.1",
     "@googlemaps/js-api-loader": "^1.16.2",
     "@headlessui/react": "^2.2.7",
     "@supabase/supabase-js": "^2.39.3",

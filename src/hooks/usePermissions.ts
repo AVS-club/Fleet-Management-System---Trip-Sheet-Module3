@@ -6,11 +6,15 @@ import { createLogger } from '../utils/logger';
 const logger = createLogger('usePermissions');
 
 const PERMISSIONS_CACHE_KEY = 'fleet_user_permissions';
+const PERMISSIONS_TIMESTAMP_KEY = 'fleet_user_permissions_timestamp';
+const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Clear permissions cache on logout
 export const clearPermissionsCache = () => {
   try {
-    sessionStorage.removeItem(PERMISSIONS_CACHE_KEY);
+    localStorage.removeItem(PERMISSIONS_CACHE_KEY);
+    localStorage.removeItem(PERMISSIONS_TIMESTAMP_KEY);
+    sessionStorage.removeItem(PERMISSIONS_CACHE_KEY); // Clean old sessionStorage too
   } catch (error) {
     logger.error('Failed to clear permissions cache:', error);
   }
@@ -21,11 +25,35 @@ export const usePermissions = (): {
   loading: boolean;
   refetch: () => Promise<void>;
 } => {
-  // Initialize with cached permissions if available
+  // Initialize with cached permissions if available and not expired
   const [permissions, setPermissions] = useState<Permissions | null>(() => {
     try {
-      const cached = sessionStorage.getItem(PERMISSIONS_CACHE_KEY);
-      return cached ? JSON.parse(cached) : null;
+      const cached = localStorage.getItem(PERMISSIONS_CACHE_KEY);
+      const timestamp = localStorage.getItem(PERMISSIONS_TIMESTAMP_KEY);
+      
+      if (cached && timestamp) {
+        const age = Date.now() - parseInt(timestamp, 10);
+        if (age < CACHE_EXPIRY_MS) {
+          return JSON.parse(cached);
+        } else {
+          // Cache expired, clear it
+          localStorage.removeItem(PERMISSIONS_CACHE_KEY);
+          localStorage.removeItem(PERMISSIONS_TIMESTAMP_KEY);
+        }
+      }
+      
+      // Fallback to sessionStorage for backward compatibility
+      const sessionCached = sessionStorage.getItem(PERMISSIONS_CACHE_KEY);
+      if (sessionCached) {
+        const parsed = JSON.parse(sessionCached);
+        // Migrate to localStorage
+        localStorage.setItem(PERMISSIONS_CACHE_KEY, sessionCached);
+        localStorage.setItem(PERMISSIONS_TIMESTAMP_KEY, Date.now().toString());
+        sessionStorage.removeItem(PERMISSIONS_CACHE_KEY);
+        return parsed;
+      }
+      
+      return null;
     } catch {
       return null;
     }
@@ -33,8 +61,14 @@ export const usePermissions = (): {
   const [loading, setLoading] = useState(() => {
     // If we have cached permissions, start with loading false
     try {
-      const cached = sessionStorage.getItem(PERMISSIONS_CACHE_KEY);
-      return !cached;
+      const cached = localStorage.getItem(PERMISSIONS_CACHE_KEY);
+      const timestamp = localStorage.getItem(PERMISSIONS_TIMESTAMP_KEY);
+      
+      if (cached && timestamp) {
+        const age = Date.now() - parseInt(timestamp, 10);
+        return age >= CACHE_EXPIRY_MS; // Load if expired
+      }
+      return true;
     } catch {
       return true;
     }
@@ -117,9 +151,10 @@ export const usePermissions = (): {
 
       setPermissions(newPermissions);
       
-      // Cache permissions in sessionStorage
+      // Cache permissions in localStorage with timestamp
       try {
-        sessionStorage.setItem(PERMISSIONS_CACHE_KEY, JSON.stringify(newPermissions));
+        localStorage.setItem(PERMISSIONS_CACHE_KEY, JSON.stringify(newPermissions));
+        localStorage.setItem(PERMISSIONS_TIMESTAMP_KEY, Date.now().toString());
       } catch (error) {
         logger.error('Failed to cache permissions:', error);
       }
