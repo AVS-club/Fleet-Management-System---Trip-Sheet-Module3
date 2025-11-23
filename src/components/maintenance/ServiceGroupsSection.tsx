@@ -10,12 +10,16 @@ import Select from '../ui/Select';
 import { createLogger } from '../../utils/logger';
 import { getCurrentUserId, getUserActiveOrganization } from '../../utils/supaHelpers';
 import PartReplacement from './PartReplacement';
+import LineItemsGridEntry from './LineItemsGridEntry';
+import CostEntryModeToggle, { CostEntryMode, getDefaultCostEntryMode } from './CostEntryModeToggle';
+import { calculateLineItemsTotal } from '../../utils/maintenanceLineItemsStorage';
+import { getLineItemsFromTasks, getPartNameFromTask } from '../../utils/taskToItemsMapping';
 
 const logger = createLogger('ServiceGroupsSection');
 
 /**
  * Converts task names to task IDs by querying maintenance_tasks_catalog
- * This allows the UI to use human-readable names while the database uses UUIDs
+ * Auto-creates custom tasks if they don't exist in the catalog
  */
 const convertTaskNamesToIds = async (taskNames: string[]): Promise<string[]> => {
   if (!Array.isArray(taskNames) || taskNames.length === 0) {
@@ -49,15 +53,42 @@ const convertTaskNamesToIds = async (taskNames: string[]): Promise<string[]> => 
       return [];
     }
 
-    if (!data || data.length === 0) {
-      logger.warn('No matching tasks found in catalog for:', taskNames);
-      return [];
-    }
-
     // Create a map of task names to IDs
     const nameToIdMap = new Map(
-      data.map(task => [task.task_name, task.id])
+      (data || []).map(task => [task.task_name, task.id])
     );
+
+    // Find tasks that don't exist in catalog (custom tasks)
+    const missingTasks = taskNames.filter(name => !nameToIdMap.has(name));
+
+    // Auto-create missing tasks in the catalog
+    if (missingTasks.length > 0) {
+      logger.debug(`Auto-creating ${missingTasks.length} custom tasks in catalog:`, missingTasks);
+      
+      const tasksToInsert = missingTasks.map(taskName => ({
+        task_name: taskName,
+        task_category: 'Custom', // Categorize all custom tasks together
+        is_category: false,
+        organization_id: organizationId,
+        active: true
+      }));
+
+      const { data: insertedTasks, error: insertError } = await supabase
+        .from('maintenance_tasks_catalog')
+        .insert(tasksToInsert)
+        .select('id, task_name');
+
+      if (insertError) {
+        logger.error('Error creating custom tasks:', insertError);
+        // Don't fail completely - continue with tasks that exist
+      } else if (insertedTasks) {
+        // Add newly created tasks to the map
+        insertedTasks.forEach(task => {
+          nameToIdMap.set(task.task_name, task.id);
+        });
+        logger.debug(`✅ Created ${insertedTasks.length} custom tasks successfully`);
+      }
+    }
 
     // Convert names to IDs, maintaining order
     const taskIds = taskNames
@@ -67,6 +98,7 @@ const convertTaskNamesToIds = async (taskNames: string[]): Promise<string[]> => 
     logger.debug('Converted task names to IDs:', {
       input: taskNames,
       output: taskIds,
+      customTasksCreated: missingTasks,
       mapping: Object.fromEntries(nameToIdMap)
     });
 
@@ -223,6 +255,19 @@ interface ServiceGroup {
   cost: number;
   notes?: string;
   bills?: File[];
+  
+  // Line items support
+  use_line_items?: boolean;
+  line_items?: Array<{
+    id?: string;
+    item_name: string;
+    description?: string;
+    quantity: number;
+    unit_price: number;
+    subtotal?: number;
+    item_order: number;
+  }>;
+  cost_entry_mode?: CostEntryMode; // UI preference for this group (quick or detailed)
   
   // Parts tracking
   batteryData?: {
@@ -592,9 +637,58 @@ const ServiceGroup = ({
     }
   }, [groupData.tasks, groupData.serviceType]);
 
-  const handleTaskRemove = (taskToRemove) => {
-    const newTasks = (groupData.tasks || []).filter(task => task !== taskToRemove);
-    onChange({ ...groupData, tasks: newTasks });
+  const handleTaskRemove = (taskToRemove: string) => {
+    const newTasks = groupData.tasks.filter(t => t !== taskToRemove);
+    const updates: any = { 
+      ...groupData, 
+      tasks: newTasks
+    };
+    
+    // If in detailed mode, update line items based on new tasks
+    if (groupData.cost_entry_mode === 'detailed' && groupData.use_line_items) {
+      // Keep existing line items - user may have customized them
+      if (groupData.line_items && groupData.line_items.length > 0) {
+        updates.line_items = groupData.line_items;
+      } else if (newTasks.length > 0) {
+        // Generate new line items from task names
+        updates.line_items = newTasks.map((taskName, index) => ({
+          item_name: taskName,
+          description: '',
+          quantity: 1,
+          unit_price: 0,
+          item_order: index,
+        }));
+      }
+    }
+    
+    onChange(updates);
+  };
+  
+  // Handle task selection - auto-populate line items if in detailed mode
+  const handleTasksChange = (newTasks: string[]) => {
+    const updates: any = {
+      ...groupData,
+      tasks: newTasks,
+    };
+    
+    // If in detailed mode, auto-populate line items from tasks (use actual task names)
+    if (groupData.cost_entry_mode === 'detailed' && groupData.use_line_items) {
+      // Only auto-populate if line items are empty or match previous tasks
+      const shouldAutoPopulate = !groupData.line_items || groupData.line_items.length === 0;
+      
+      if (shouldAutoPopulate && newTasks.length > 0) {
+        // Use the actual task names as line items
+        updates.line_items = newTasks.map((taskName, index) => ({
+          item_name: taskName,
+          description: '',
+          quantity: 1,
+          unit_price: 0,
+          item_order: index,
+        }));
+      }
+    }
+    
+    onChange(updates);
   };
 
   const handlePartChange = (partIndex, updatedPart) => {
@@ -760,7 +854,7 @@ const ServiceGroup = ({
                 label="What work was done?"
                 options={getFilteredTasks(groupData.serviceType)}
                 value={groupData.tasks}
-                onChange={(val) => onChange({ ...groupData, tasks: val })}
+                onChange={handleTasksChange}
                 onAddNew={(newTask) => logger.debug('New task added:', newTask)}
                 icon={Wrench}
                 required
@@ -773,22 +867,88 @@ const ServiceGroup = ({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cost <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={groupData.cost || ''}
-                  onChange={(e) => onChange({ ...groupData, cost: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00"
-                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            {/* Cost Entry Section with Mode Toggle */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700">
+                  Cost <span className="text-red-500">*</span>
+                </label>
+                <CostEntryModeToggle
+                  value={groupData.cost_entry_mode || 'quick'}
+                  onChange={(mode) => {
+                    const updates: any = { 
+                      ...groupData, 
+                      cost_entry_mode: mode,
+                      use_line_items: mode === 'detailed'
+                    };
+                    
+                    // Initialize line items if switching to detailed mode
+                    if (mode === 'detailed') {
+                      // Auto-populate from selected tasks if empty
+                      if (!groupData.line_items || groupData.line_items.length === 0) {
+                        // Use the actual task names as line items (not extracted parts)
+                        const taskNames = groupData.tasks || [];
+                        if (taskNames.length > 0) {
+                          updates.line_items = taskNames.map((taskName, index) => ({
+                            item_name: taskName,
+                            description: '',
+                            quantity: 1,
+                            unit_price: 0,
+                            item_order: index,
+                          }));
+                        } else {
+                          updates.line_items = [];
+                        }
+                      }
+                    }
+                    
+                    // Clear line items if switching to quick mode
+                    if (mode === 'quick') {
+                      updates.line_items = [];
+                    }
+                    
+                    onChange(updates);
+                  }}
                 />
               </div>
+
+              {/* Quick Mode - Direct Cost Input */}
+              {(!groupData.cost_entry_mode || groupData.cost_entry_mode === 'quick') && (
+                <div className="relative">
+                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={groupData.cost || ''}
+                    onChange={(e) => onChange({ ...groupData, cost: parseFloat(e.target.value) || 0 })}
+                    placeholder="0.00"
+                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+              )}
+
+              {/* Detailed Mode - Grid with Line Items */}
+              {groupData.cost_entry_mode === 'detailed' && (
+                <div className="border border-blue-200 rounded-lg p-3 bg-blue-50">
+                  <LineItemsGridEntry
+                    items={groupData.line_items || []}
+                    onChange={(items) => {
+                      const total = calculateLineItemsTotal(items);
+                      onChange({ 
+                        ...groupData, 
+                        line_items: items,
+                        cost: total 
+                      });
+                    }}
+                  />
+                  {groupData.line_items && groupData.line_items.length > 0 && (
+                    <div className="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1 mt-2">
+                      Total from line items: <span className="font-semibold">₹{(groupData.cost || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -846,6 +1006,9 @@ const ServiceGroup = ({
                         onRemove={() => removePart(partIndex)}
                         vehicleType={vehicleType}
                         numberOfTyres={numberOfTyres}
+                        availableLineItems={
+                          groupData.line_items?.map(item => item.item_name) || []
+                        }
                       />
                     ))}
 
@@ -1081,35 +1244,22 @@ export const convertServiceGroupsToDatabase = async (
         tasks: taskIds, // Now contains UUIDs
         service_cost: group.cost || 0, // ✅ FIX: Map 'cost' to 'service_cost' for database
         service_type: group.serviceType || '',
-        notes: group.notes || '',
         bill_url: group.bill_url || [],
-        battery_warranty_url: group.battery_warranty_url || [],
-        tyre_warranty_url: group.tyre_warranty_url || [],
         parts_data: group.parts || [], // ✅ FIX: Map 'parts' to 'parts_data' for database
-        // Pass File objects for upload
-        bill_file: group.bill_file || [],
-        battery_warranty_file: group.battery_warranty_file || [],
-        tyre_warranty_file: group.tyre_warranty_file || [],
+        use_line_items: group.use_line_items || false, // ✅ Line items flag
+        // NOTE: line_items are NOT stored directly in service_tasks table
+        // They are handled separately via maintenance_service_line_items table
+        // NOTE: File objects (bill_file, etc.) are uploaded separately, only URLs go to DB
+        // NOTE: Removed zombie columns: notes, battery_warranty_url, tyre_warranty_url, *_file
       };
-
-      // Map battery data to JSONB if present
-      if (group.batteryData && group.batteryData.serialNumber) {
-        converted.battery_data = {
-          serialNumber: group.batteryData.serialNumber,
-          brand: group.batteryData.brand || '',
-        };
-        logger.debug(`[Group ${index}] Added battery_data JSONB:`, converted.battery_data);
+      
+      // Keep line_items for frontend processing but don't send to DB
+      if (group.line_items) {
+        converted._line_items = group.line_items; // Use underscore prefix to indicate it's for processing only
       }
 
-      // Map tyre data to JSONB if present
-      if (group.tyreData && group.tyreData.positions && group.tyreData.positions.length > 0) {
-        converted.tyre_data = {
-          positions: group.tyreData.positions,
-          brand: group.tyreData.brand || '',
-          serialNumbers: group.tyreData.serialNumbers || '',
-        };
-        logger.debug(`[Group ${index}] Added tyre_data JSONB:`, converted.tyre_data);
-      }
+      // NOTE: battery_data and tyre_data columns were removed as zombie code
+      // Use unified parts_data system instead (tracked via maintenance_parts_catalog)
 
       logger.debug(`[Group ${index}] FINAL CONVERTED - vendor_id="${converted.vendor_id}"`, converted);
 

@@ -1,4 +1,4 @@
-import { MaintenanceServiceGroup } from '@/types/maintenance';
+import { MaintenanceServiceGroup, MaintenanceServiceLineItem } from '@/types/maintenance';
 import { createLogger } from './logger';
 
 const logger = createLogger('maintenanceDataMappers');
@@ -14,6 +14,9 @@ export interface FormServiceGroup {
   bills?: File[];
   bill_url?: string[];
   notes?: string;
+  use_line_items?: boolean;
+  line_items?: MaintenanceServiceLineItem[];
+  cost_entry_mode?: 'quick' | 'detailed';
   partsData?: Array<{
     partType: string;
     partName: string;
@@ -38,6 +41,9 @@ export interface DatabaseServiceGroup {
   service_cost: number; // Database field is service_cost, not cost
   bill_url?: string[];
   notes?: string | null;
+  use_line_items?: boolean;
+  line_items?: MaintenanceServiceLineItem[];
+  cost_entry_mode?: 'quick' | 'detailed';
   parts_data?: Array<{
     partType: string;
     partName: string;
@@ -65,10 +71,23 @@ export const mapServiceGroupToDatabase = (
     service_type: group.serviceType,
     vendor_id: group.vendor,
     tasks: group.tasks || [],
-    cost: group.cost || 0,
+    service_cost: group.cost || 0,
     bill_url: group.bill_url || [],
     notes: group.notes || null,
+    use_line_items: group.use_line_items || false,
   };
+
+  // Map line items
+  if (group.use_line_items && group.line_items && group.line_items.length > 0) {
+    dbGroup.line_items = group.line_items.map((item, index) => ({
+      item_name: item.item_name,
+      description: item.description || '',
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      item_order: item.item_order !== undefined ? item.item_order : index,
+      id: item.id,
+    }));
+  }
 
   // Map parts data
   if (group.partsData && group.partsData.length > 0) {
@@ -119,10 +138,24 @@ export const mapDatabaseToFormServiceGroup = (
     serviceType: dbGroup.service_type,
     vendor: dbGroup.vendor_id,
     tasks: dbGroup.tasks || [],
-    cost: dbGroup.cost || 0,
+    cost: ('service_cost' in dbGroup) ? dbGroup.service_cost : ('cost' in dbGroup) ? dbGroup.cost : 0,
     bill_url: dbGroup.bill_url || [],
     notes: dbGroup.notes || undefined,
+    use_line_items: dbGroup.use_line_items || false,
   };
+
+  // Map line items
+  if (dbGroup.use_line_items && dbGroup.line_items && dbGroup.line_items.length > 0) {
+    formGroup.line_items = dbGroup.line_items.map((item) => ({
+      id: item.id,
+      item_name: item.item_name,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      subtotal: item.subtotal,
+      item_order: item.item_order,
+    }));
+  }
 
   // Map parts data
   if (dbGroup.parts_data && dbGroup.parts_data.length > 0) {

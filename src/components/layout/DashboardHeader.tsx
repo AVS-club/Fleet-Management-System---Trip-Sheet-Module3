@@ -55,15 +55,30 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
         return;
       }
 
-      // Load organization - get the most recent one for this user
-      const { data: orgData } = await supabase
-        .from('organizations')
-        .select('name, logo_url, created_at, tagline')
-        .eq('owner_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      // Load organization - check organization_users first (for all users including data users)
+      let org = null;
+      
+      // First try organization_users table (works for all users including data users)
+      const { data: orgUserData } = await supabase
+        .from('organization_users')
+        .select('organization_id, organizations(id, name, logo_url, created_at, tagline, owner_id)')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
 
-      const org = Array.isArray(orgData) && orgData.length > 0 ? orgData[0] : null;
+      if (orgUserData?.organizations) {
+        org = orgUserData.organizations;
+      } else {
+        // Fallback: check if user is owner of any organization
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('name, logo_url, created_at, tagline')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        org = Array.isArray(orgData) && orgData.length > 0 ? orgData[0] : null;
+      }
 
       if (org) {
         setOrganization(org);
@@ -172,7 +187,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
               <div className="relative flex items-center justify-center h-14 w-14 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200">
                 <img
                   src={organization.logo_url}
-                  alt={organization.name}
+                  alt={organization?.name || 'Organization'}
                   className="h-13 w-13 object-contain p-0.5 filter drop-shadow-sm"
                   onError={() => {
                     setLogoError(true);

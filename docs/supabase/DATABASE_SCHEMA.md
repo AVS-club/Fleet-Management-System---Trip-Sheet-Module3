@@ -516,7 +516,7 @@ const { data, error } = await supabase
 
 ### maintenance_service_tasks
 
-**Purpose:** Detailed breakdown of service items within a maintenance task
+**Purpose:** Service groups for maintenance tasks (vendors and their services)
 
 **Migration:** `20250120000000_create_maintenance_service_tasks.sql`
 
@@ -526,18 +526,61 @@ const { data, error } = await supabase
 |--------|------|-------------|---------|-------------|
 | `id` | uuid | PRIMARY KEY | `gen_random_uuid()` | Unique service task identifier |
 | `maintenance_task_id` | uuid | FK → maintenance_tasks, NOT NULL | - | Parent maintenance task |
-| `service_item` | text | NOT NULL | - | Name of service item (e.g., "Oil Change", "Brake Pad Replacement") |
-| `description` | text | - | - | Detailed description |
-| `quantity` | numeric | - | 1 | Quantity of items/services |
-| `unit_cost` | numeric | - | 0 | Cost per unit |
-| `total_cost` | numeric | GENERATED | - | quantity * unit_cost |
-| `status` | text | - | 'pending' | Status: 'pending', 'completed' |
-| `notes` | text | - | - | Additional notes |
+| `vendor_id` | varchar(255) | NOT NULL | - | Vendor/garage/mechanic identifier |
+| `tasks` | text[] | NOT NULL | `'{}'` | Array of task IDs from maintenance_tasks_catalog |
+| `service_cost` | numeric(10,2) | - | 0 | Total cost (auto-calculated if use_line_items=true) |
+| `service_type` | varchar | - | - | Type: 'purchase', 'labor', 'both' |
+| `bill_url` | text[] | - | - | Array of bill/receipt URLs |
+| `use_line_items` | boolean | - | false | Flag indicating if using line items breakdown |
+| `parts_data` | jsonb | - | - | JSON array of parts serviced/replaced |
 | `created_at` | timestamptz | NOT NULL | `now()` | Record creation timestamp |
 | `updated_at` | timestamptz | NOT NULL | `now()` | Last update timestamp |
 
 **Foreign Keys:**
 - `maintenance_task_id` → `maintenance_tasks(id)` ON DELETE CASCADE
+
+**Notes:**
+- When `use_line_items` is false, `service_cost` is manually entered
+- When `use_line_items` is true, `service_cost` is auto-calculated from line items via trigger
+
+---
+
+### maintenance_service_line_items
+
+**Purpose:** Detailed line item breakdowns for service tasks with quantity and unit price
+
+**Migration:** `20251123000000_create_maintenance_service_line_items.sql`
+
+**Columns:**
+
+| Column | Type | Constraints | Default | Description |
+|--------|------|-------------|---------|-------------|
+| `id` | uuid | PRIMARY KEY | `gen_random_uuid()` | Unique line item identifier |
+| `service_task_id` | uuid | FK → maintenance_service_tasks, NOT NULL | - | Parent service task |
+| `item_name` | varchar(255) | NOT NULL | - | Name of item (e.g., "Clutch plate", "Engine oil") |
+| `description` | text | - | - | Optional detailed description |
+| `quantity` | numeric(10,2) | NOT NULL | 1 | Quantity of items |
+| `unit_price` | numeric(10,2) | NOT NULL | 0 | Cost per unit |
+| `subtotal` | numeric(10,2) | GENERATED ALWAYS AS (quantity * unit_price) STORED | - | Auto-calculated subtotal |
+| `item_order` | integer | - | 0 | Display order (0-indexed) |
+| `created_at` | timestamptz | - | `now()` | Record creation timestamp |
+| `updated_at` | timestamptz | - | `now()` | Last update timestamp |
+
+**Foreign Keys:**
+- `service_task_id` → `maintenance_service_tasks(id)` ON DELETE CASCADE
+
+**Indexes:**
+- `idx_line_items_service_task_id` on `service_task_id`
+- `idx_line_items_order` on `(service_task_id, item_order)`
+
+**Triggers:**
+- Auto-updates `maintenance_service_tasks.service_cost` when line items change
+- Auto-updates `updated_at` timestamp on row update
+
+**Notes:**
+- `subtotal` is a generated column (automatically calculated by database)
+- Line items are only used when parent service task has `use_line_items = true`
+- Sum of all subtotals automatically updates parent `service_cost` via trigger
 
 ---
 

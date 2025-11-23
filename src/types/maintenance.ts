@@ -1,3 +1,17 @@
+// Add line item interface for detailed cost breakdown
+export interface MaintenanceServiceLineItem {
+  id?: string;
+  service_task_id?: string;
+  item_name: string;
+  description?: string;
+  quantity: number;
+  unit_price: number;
+  subtotal?: number; // Read-only, calculated by database
+  item_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Add service group interface
 export interface MaintenanceServiceGroup {
   id?: string;
@@ -6,6 +20,9 @@ export interface MaintenanceServiceGroup {
   tasks: string[];
   service_cost: number; // Renamed from 'cost' to match database
   cost?: number; // Backward compatibility - will be removed
+  use_line_items?: boolean; // Flag to indicate if using line items breakdown
+  line_items?: MaintenanceServiceLineItem[]; // Line items for detailed breakdown
+  cost_entry_mode?: 'quick' | 'detailed'; // UI preference: quick (total only) or detailed (line items)
   bill_url?: string[];
   bill_file?: File[]; // For frontend handling before upload
   created_at?: string;

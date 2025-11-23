@@ -104,7 +104,7 @@ export const getVendors = async (forceRefresh: boolean = false): Promise<Vendor[
 
     logger.debug(`Fetched ${data?.length || 0} vendors from database`);
     
-    // Save to cache in compatible format
+    // Save to cache in compatible format and return in consistent format
     if (data && data.length > 0) {
       const cacheFormat = data.map(v => ({
         id: v.id,
@@ -122,9 +122,13 @@ export const getVendors = async (forceRefresh: boolean = false): Promise<Vendor[
         created_by: v.created_by
       }));
       saveVendorsToCache(cacheFormat);
+      
+      // Return the data in the expected Vendor interface format
+      // Database has vendor_name, but keep it as-is (already correct)
+      return data as Vendor[];
     }
 
-    return data || [];
+    return [];
   } catch (error) {
     logger.error('Error in getVendors:', error);
     return [];

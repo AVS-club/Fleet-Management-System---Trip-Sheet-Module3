@@ -26,14 +26,37 @@ export const loginWithOrganization = async (credentials: LoginCredentials) => {
 
   if (error) throw error;
 
-  // After login, get organization
-  const { data: org } = await supabase
+  // After login, get organization - check both owner and organization_users
+  let org = null;
+  
+  // First, try to find organization where user is owner
+  const { data: ownerOrg } = await supabase
     .from('organizations')
     .select('*')
     .eq('owner_id', data.user.id)
     .single();
 
-  localStorage.setItem('current_organization', JSON.stringify(org));
+  if (ownerOrg) {
+    org = ownerOrg;
+  } else {
+    // If not owner, check organization_users table (for data users/data feeders)
+    const { data: orgUser } = await supabase
+      .from('organization_users')
+      .select(`
+        organization_id,
+        organizations (*)
+      `)
+      .eq('user_id', data.user.id)
+      .single();
+
+    if (orgUser?.organizations) {
+      org = orgUser.organizations;
+    }
+  }
+
+  if (org) {
+    localStorage.setItem('current_organization', JSON.stringify(org));
+  }
   
   return { user: data.user, organization: org };
 };

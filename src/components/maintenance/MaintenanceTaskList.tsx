@@ -948,7 +948,9 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                         {task.service_groups && task.service_groups.length > 0 ? (
                           <>
                             {task.service_groups.slice(0, 2).map((group: any, i: number) => {
-                              const vName = vendorsMap.get(group.vendor_id) || 'Unknown';
+                              // Frontend normalizer converts vendor_id → vendor, so use group.vendor
+                              const vendorId = group.vendor || group.vendor_id;
+                              const vName = vendorsMap.get(vendorId) || 'Unknown';
                               const taskCount = Array.isArray(group.tasks) ? group.tasks.length : 0;
                               return (
                                 <div key={i} className="flex items-center gap-1 truncate">

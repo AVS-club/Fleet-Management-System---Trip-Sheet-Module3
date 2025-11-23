@@ -23,6 +23,10 @@ import {
   validateMaintenanceTask
 } from './maintenanceDataNormalizer';
 import { logAuditEvent } from './maintenanceAuditLogger';
+import { 
+  bulkCreateLineItems, 
+  deleteAllLineItems 
+} from './maintenanceLineItemsStorage';
 
 const logger = createLogger('maintenanceStorage');
 
@@ -121,10 +125,29 @@ export const getTasks = async (): Promise<MaintenanceTask[]> => {
         return normalizeMaintenanceTaskForFrontend(task);
       }
 
+      // Fetch line items for each service group
+      const serviceGroupsWithLineItems = await Promise.all(
+        (serviceGroups || []).map(async (group) => {
+          if (group.use_line_items) {
+            const { data: lineItems } = await supabase
+              .from("maintenance_service_line_items")
+              .select("*")
+              .eq("service_task_id", group.id)
+              .order("item_order", { ascending: true });
+            
+            return {
+              ...group,
+              line_items: lineItems || [],
+            };
+          }
+          return group;
+        })
+      );
+
       // Normalize the entire task including service groups
       const taskWithGroups = {
         ...task,
-        service_groups: serviceGroups || [],
+        service_groups: serviceGroupsWithLineItems || [],
       };
       
       return normalizeMaintenanceTaskForFrontend(taskWithGroups);
@@ -157,10 +180,29 @@ export const getTask = async (id: string): Promise<MaintenanceTask | null> => {
     return normalizeMaintenanceTaskForFrontend(data);
   }
 
+  // Fetch line items for each service group
+  const serviceGroupsWithLineItems = await Promise.all(
+    (serviceGroups || []).map(async (group) => {
+      if (group.use_line_items) {
+        const { data: lineItems } = await supabase
+          .from("maintenance_service_line_items")
+          .select("*")
+          .eq("service_task_id", group.id)
+          .order("item_order", { ascending: true });
+        
+        return {
+          ...group,
+          line_items: lineItems || [],
+        };
+      }
+      return group;
+    })
+  );
+
   // Normalize the entire task including service groups
   const taskWithGroups = {
     ...data,
-    service_groups: serviceGroups || [],
+    service_groups: serviceGroupsWithLineItems || [],
   };
   
   return normalizeMaintenanceTaskForFrontend(taskWithGroups);
@@ -618,27 +660,68 @@ export const updateTask = async (
 
       // ✅ Service groups already have file URLs (uploaded in MaintenanceTaskPage.tsx)
       // Just add the task ID and organization ID
-      const serviceGroupsWithTaskId = service_groups.map(group => ({
-        ...group,
-        maintenance_task_id: id,
-        organization_id: oldTask.organization_id
-      }));
+      // IMPORTANT: Extract line_items and _line_items before inserting (they're handled separately)
+      const serviceGroupsWithTaskId = service_groups.map(group => {
+        const { line_items, _line_items, ...groupWithoutLineItems } = group;
+        return {
+          ...groupWithoutLineItems,
+          maintenance_task_id: id,
+          organization_id: oldTask.organization_id
+        };
+      });
 
-      // Insert the service groups with file URLs
+      logger.debug(`🔍 Inserting ${serviceGroupsWithTaskId.length} service groups into database`);
+      logger.debug('🔍 Service group fields:', Object.keys(serviceGroupsWithTaskId[0] || {}));
+      logger.debug('🔍 First service group:', serviceGroupsWithTaskId[0]);
+
+      // Insert the service groups with file URLs (WITHOUT line_items)
       const { error: insertError } = await supabase
         .from("maintenance_service_tasks")
         .insert(serviceGroupsWithTaskId);
+      
+      logger.debug('🔍 Insert result - error:', insertError);
 
       if (insertError) {
         logger.error('Error inserting service groups:', insertError);
         throw insertError;
       }
 
-      // Fetch the inserted service groups
+      // Fetch the inserted service groups to get their IDs
       const { data: insertedGroups } = await supabase
         .from("maintenance_service_tasks")
         .select("*")
         .eq("maintenance_task_id", id);
+
+      // Handle line items for each service group
+      if (insertedGroups && insertedGroups.length > 0) {
+        for (let i = 0; i < insertedGroups.length; i++) {
+          const serviceGroup = insertedGroups[i];
+          const originalGroup = service_groups[i];
+
+          // If this service group uses line items, save them
+          // Check both line_items and _line_items (frontend processing field)
+          const lineItems = originalGroup?.line_items || originalGroup?._line_items;
+          if (originalGroup?.use_line_items && lineItems && lineItems.length > 0) {
+            logger.debug(`Saving ${lineItems.length} line items for service group ${serviceGroup.id}`);
+            
+            // Delete existing line items for this service group (if any)
+            await deleteAllLineItems(serviceGroup.id);
+            
+            // Prepare line items with service_task_id
+            const lineItemsToSave = lineItems.map((item, index) => ({
+              service_task_id: serviceGroup.id,
+              item_name: item.item_name,
+              description: item.description || '',
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              item_order: item.item_order !== undefined ? item.item_order : index,
+            }));
+            
+            // Save line items
+            await bulkCreateLineItems(lineItemsToSave);
+          }
+        }
+      }
 
       // Re-fetch the main task to get updated total_cost from database trigger
       const { data: refreshedTask } = await supabase
@@ -647,9 +730,28 @@ export const updateTask = async (
         .eq("id", id)
         .single();
 
+      // Fetch line items for each service group
+      const groupsWithLineItems = await Promise.all(
+        (insertedGroups || []).map(async (group) => {
+          if (group.use_line_items) {
+            const { data: lineItems } = await supabase
+              .from("maintenance_service_line_items")
+              .select("*")
+              .eq("service_task_id", group.id)
+              .order("item_order", { ascending: true });
+            
+            return {
+              ...group,
+              line_items: lineItems || [],
+            };
+          }
+          return group;
+        })
+      );
+
       return {
         ...(refreshedTask || updatedTask),
-        service_groups: insertedGroups || [],
+        service_groups: groupsWithLineItems || [],
       };
     } catch (error) {
       handleSupabaseError('update service groups', error);
@@ -853,11 +955,23 @@ export const uploadOdometerImage = async (
     return null;
   }
 
-  const { data } = supabase.storage
+  // Try to get a signed URL instead of public URL for better access control
+  const { data: signedUrlData, error: signedUrlError } = await supabase.storage
     .from("maintenance-bills")
-    .getPublicUrl(filePath);
+    .createSignedUrl(filePath, 365 * 24 * 60 * 60); // 1 year expiry
 
-  return data.publicUrl;
+  if (signedUrlError) {
+    // Fallback to public URL if signed URL fails
+    const { data } = supabase.storage
+      .from("maintenance-bills")
+      .getPublicUrl(filePath);
+    
+    logger.debug('Using public URL as fallback for odometer:', data.publicUrl);
+    return data.publicUrl;
+  }
+
+  logger.debug('Generated signed URL for odometer image:', signedUrlData.signedUrl);
+  return signedUrlData.signedUrl;
 };
 
 // Upload supporting document
@@ -906,11 +1020,23 @@ export const uploadSupportingDocument = async (
     return null;
   }
 
-  const { data } = supabase.storage
+  // Try to get a signed URL instead of public URL for better access control
+  const { data: signedUrlData, error: signedUrlError } = await supabase.storage
     .from("maintenance-bills")
-    .getPublicUrl(filePath);
+    .createSignedUrl(filePath, 365 * 24 * 60 * 60); // 1 year expiry
 
-  return data.publicUrl;
+  if (signedUrlError) {
+    // Fallback to public URL if signed URL fails
+    const { data } = supabase.storage
+      .from("maintenance-bills")
+      .getPublicUrl(filePath);
+    
+    logger.debug('Using public URL as fallback:', data.publicUrl);
+    return data.publicUrl;
+  }
+
+  logger.debug('Generated signed URL for supporting document:', signedUrlData.signedUrl);
+  return signedUrlData.signedUrl;
 };
 
 // Statistics

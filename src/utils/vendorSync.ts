@@ -52,14 +52,19 @@ export async function fetchVendorsFromDatabase(): Promise<Vendor[]> {
       .select('*')
       .eq('organization_id', organizationId)
       .eq('active', true)
-      .order('name', { ascending: true });
+      .order('vendor_name', { ascending: true });
 
     if (error) {
       logger.error('Error fetching vendors from database:', error);
       throw error;
     }
 
-    return data || [];
+    // Map database columns to interface
+    return (data || []).map(vendor => ({
+      ...vendor,
+      name: vendor.vendor_name || vendor.name,
+      contact: vendor.contact_person || vendor.contact,
+    }));
   } catch (error) {
     logger.error('Failed to fetch vendors:', error);
     throw error;
@@ -187,7 +192,13 @@ export async function createVendor(vendor: Omit<Vendor, 'id' | 'created_at' | 'u
     const { data, error } = await supabase
       .from('maintenance_vendors')
       .insert({
-        ...vendor,
+        vendor_name: vendor.name,
+        contact_person: vendor.contact,
+        phone: vendor.phone,
+        email: vendor.email,
+        address: vendor.address,
+        gst_number: vendor.gst_number,
+        vendor_type: vendor.vendor_type,
         organization_id: organizationId,
         created_by: userId,
         active: true,
@@ -203,8 +214,15 @@ export async function createVendor(vendor: Omit<Vendor, 'id' | 'created_at' | 'u
     // Clear cache to force refresh on next fetch
     clearVendorCache();
     
-    logger.info(`Created vendor: ${data.name}`);
-    return data;
+    // Map database columns to interface
+    const mappedVendor = {
+      ...data,
+      name: data.vendor_name || data.name,
+      contact: data.contact_person || data.contact,
+    };
+    
+    logger.info(`Created vendor: ${mappedVendor.name}`);
+    return mappedVendor;
   } catch (error) {
     logger.error('Failed to create vendor:', error);
     throw error;
@@ -217,12 +235,14 @@ export async function createVendor(vendor: Omit<Vendor, 'id' | 'created_at' | 'u
 export async function updateVendor(id: string, updates: Partial<Vendor>): Promise<Vendor> {
   try {
     // Remove fields that shouldn't be updated
-    const { id: _, created_at, created_by, organization_id, ...updateData } = updates;
+    const { id: _, created_at, created_by, organization_id, name, contact, ...updateData } = updates;
 
     const { data, error } = await supabase
       .from('maintenance_vendors')
       .update({
         ...updateData,
+        ...(name && { vendor_name: name }),
+        ...(contact && { contact_person: contact }),
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -237,8 +257,15 @@ export async function updateVendor(id: string, updates: Partial<Vendor>): Promis
     // Clear cache to force refresh on next fetch
     clearVendorCache();
     
-    logger.info(`Updated vendor: ${data.name}`);
-    return data;
+    // Map database columns to interface
+    const mappedVendor = {
+      ...data,
+      name: data.vendor_name || data.name,
+      contact: data.contact_person || data.contact,
+    };
+    
+    logger.info(`Updated vendor: ${mappedVendor.name}`);
+    return mappedVendor;
   } catch (error) {
     logger.error('Failed to update vendor:', error);
     throw error;

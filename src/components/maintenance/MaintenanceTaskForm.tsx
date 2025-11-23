@@ -760,46 +760,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             />
           </div>
 
-          {/* Vehicle Tire Information Display */}
-          {vehicleId && (
-            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <CircleDot className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                      Vehicle Tire Information:
-                    </span>
-                  </div>
-                  {(() => {
-                    const selectedVehicle = vehicles.find(v => v.id === vehicleId);
-                    return selectedVehicle ? (
-                      <div className="flex items-center gap-4">
-                        {selectedVehicle.number_of_tyres && (
-                          <span className="text-sm text-blue-800 dark:text-blue-200">
-                            <strong>{selectedVehicle.number_of_tyres}</strong> tyres
-                          </span>
-                        )}
-                        {selectedVehicle.tyre_size && (
-                          <>
-                            <span className="text-blue-400 dark:text-blue-600">•</span>
-                            <span className="text-sm text-blue-800 dark:text-blue-200">
-                              Size: <strong>{selectedVehicle.tyre_size}</strong>
-                            </span>
-                          </>
-                        )}
-                        {!selectedVehicle.number_of_tyres && !selectedVehicle.tyre_size && (
-                          <span className="text-sm text-blue-600 dark:text-blue-400 italic">
-                            Tire information not available
-                          </span>
-                        )}
-                      </div>
-                    ) : null;
-                  })()}
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Vehicle Tire Information Display - Hidden per user request */}
+          {/* Tire information (number_of_tyres, tyre_size) is still passed to ServiceGroupsSection 
+              for backend calculations and parts tracking */}
 
           <Controller
             control={control}

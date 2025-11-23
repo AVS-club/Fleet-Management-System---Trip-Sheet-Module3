@@ -431,6 +431,7 @@ interface PartReplacementProps {
   onRemove: () => void;
   vehicleType?: 'truck' | 'tempo' | 'trailer' | 'pickup' | 'van' | string;
   numberOfTyres?: number; // NEW: Use actual tyre count from vehicle
+  availableLineItems?: string[]; // NEW: Line items from parent service group
 }
 
 // Map tyre count to tyre diagram configurations (PREFERRED - uses actual vehicle data)
@@ -465,7 +466,8 @@ const PartReplacement: React.FC<PartReplacementProps> = ({
   onChange,
   onRemove,
   vehicleType,
-  numberOfTyres
+  numberOfTyres,
+  availableLineItems = []
 }) => {
   // FIXED: Directly check partData.partType instead of using state
   const shouldShowTyreSelector = partData.partType === 'Tyre';
@@ -504,15 +506,26 @@ const PartReplacement: React.FC<PartReplacementProps> = ({
       <div className="space-y-3">
         <InlineSearchableDropdown
           label="What part?"
-          options={PART_TYPES}
+          options={availableLineItems.length > 0 ? [...availableLineItems, ...PART_TYPES] : PART_TYPES}
           value={partData.partType}
           onChange={(val) => {
-            onChange({ ...partData, partType: val });
+            // Auto-fill part name from line item if selected
+            const updates: any = { ...partData, partType: val };
+            if (availableLineItems.includes(val) && !partData.partName) {
+              updates.partName = val;
+            }
+            onChange(updates);
           }}
           onAddNew={(newPart) => logger.debug('New part type added:', newPart)}
           icon={Package}
           required
+          placeholder={availableLineItems.length > 0 ? "Select from line items or choose type..." : "Select part type..."}
         />
+        {availableLineItems.length > 0 && (
+          <div className="text-xs text-blue-600 bg-blue-50 rounded px-2 py-1">
+            💡 Tip: Select from line items entered above for easier tracking
+          </div>
+        )}
 
         {/* FIXED: Show tyre diagram when part type is Tyre */}
         {shouldShowTyreSelector && (

@@ -74,7 +74,9 @@ const LoginForm: React.FC<LoginFormProps> = ({
       // Save email to browser-specific localStorage for convenience
       localStorage.setItem('lastUsedEmail', credentials.organizationUsername);
       
-      toast.success(`Welcome back, ${result.organization.name}!`);
+      // Safely handle organization name - data users might not have organization yet
+      const orgName = result.organization?.name || 'User';
+      toast.success(`Welcome back, ${orgName}!`);
       navigate("/dashboard");
     } catch (error: any) {
       const errorMessage = error.message || 'Login failed';

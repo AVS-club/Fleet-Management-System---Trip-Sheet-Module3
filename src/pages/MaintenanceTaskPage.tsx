@@ -26,6 +26,7 @@ import { format, parseISO } from 'date-fns';
 import { supabase } from '../utils/supabaseClient';
 import { getWarrantyStatus, formatWarrantyExpiryDate } from '../utils/warrantyCalculations';
 import { useQueryClient } from "@tanstack/react-query";
+import { getAccessibleUrls } from '../utils/storageUrlHelper';
 
 const logger = createLogger('MaintenanceTaskPage');
 
@@ -117,6 +118,7 @@ const MaintenanceTaskPage: React.FC = () => {
   const queryClient = useQueryClient();
   const locationState = (location.state as { task?: MaintenanceTask; mode?: string } | undefined) || {};
   const [task, setTask] = useState<MaintenanceTask | null>(locationState.task || null);
+  const [transformedFormData, setTransformedFormData] = useState<any>(undefined);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -169,6 +171,9 @@ const MaintenanceTaskPage: React.FC = () => {
           const taskData = await getTask(id);
           if (taskData) {
             setTask(taskData);
+            // Transform the task data for the form (including converting URLs)
+            const transformed = await transformDatabaseToFormData(taskData);
+            setTransformedFormData(transformed);
           } else {
             navigate("/maintenance");
           }
@@ -217,7 +222,7 @@ const MaintenanceTaskPage: React.FC = () => {
   }, [id, isViewMode]);
 
   // Transform database format to form format for editing
-  const transformDatabaseToFormData = (dbTask: MaintenanceTask) => {
+  const transformDatabaseToFormData = async (dbTask: MaintenanceTask) => {
     try {
       logger.debug('🔄 Transforming database task to form format:', dbTask);
 
@@ -268,9 +273,14 @@ const MaintenanceTaskPage: React.FC = () => {
           part_warranty_url: group.part_warranty_url || [], // ✅ NEW: Include warranty URLs array
           parts: transformedParts,
           parts_data: group.parts_data, // Keep original for reference
+          use_line_items: group.use_line_items || false, // ✅ Line items flag
+          line_items: group.line_items || [], // ✅ Line items data
         };
       });
 
+      // Convert supporting document URLs to accessible signed URLs
+      const accessibleDocUrls = await getAccessibleUrls(dbTask.attachments || []);
+      
       // Build transformed task data
       const transformed = {
         ...dbTask,
@@ -284,7 +294,7 @@ const MaintenanceTaskPage: React.FC = () => {
         end_date: dbTask.end_date ? dbTask.end_date.split('T')[0] : undefined,
         // URLs for image previews (form will need to handle these specially)
         odometer_image: dbTask.odometer_image, // ✅ FIX: Use odometer_image instead of odometer_image_url
-        supporting_documents_urls: dbTask.attachments || [],
+        supporting_documents_urls: accessibleDocUrls, // ✅ Use accessible signed URLs
       };
 
       logger.debug('✅ Transformed form data:', transformed);
@@ -686,15 +696,19 @@ const MaintenanceTaskPage: React.FC = () => {
 
                   // Convert to database format (task names -> UUIDs, vendor name -> vendor_id)
                   const mappedServiceGroups = await convertServiceGroupsToDatabase(updatedServiceGroups);
+                  logger.debug(`📊 Mapped service groups count: ${mappedServiceGroups.length}`);
+                  logger.debug('📊 Mapped service groups:', mappedServiceGroups);
 
                   // Update the task with the service groups including file URLs
                   if (mappedServiceGroups.length > 0) {
+                    logger.debug(`🔄 Calling updateTask with ${mappedServiceGroups.length} service groups...`);
                     // Update operation status: database save in progress
                     updateOperationStatus('database_save', 'in-progress');
 
                     await updateTask(newTask.id, {
                       service_groups: mappedServiceGroups,
                     });
+                    logger.debug('✅ updateTask completed successfully');
 
                     // Update operation status: database save complete
                     updateOperationStatus('database_save', 'success');
@@ -1094,7 +1108,7 @@ const MaintenanceTaskPage: React.FC = () => {
                                 <span className="bg-green-200 text-green-900 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">
                                   {index + 1}
                                 </span>
-                                {vendorsMap.get(group.vendor_id) || group.vendor_id || '❌ NO VENDOR SAVED'}
+                                {vendorsMap.get(group.vendor || group.vendor_id) || group.vendor || group.vendor_id || '❌ NO VENDOR SAVED'}
                               </span>
                             </div>
                             <div>
@@ -1475,7 +1489,7 @@ const MaintenanceTaskPage: React.FC = () => {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <MaintenanceTaskForm
                   vehicles={vehicles}
-                  initialData={task ? transformDatabaseToFormData(task) : undefined}
+                  initialData={transformedFormData}
                   onSubmit={handleSubmit}
                   isSubmitting={isSubmitting}
                 />
