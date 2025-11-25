@@ -655,7 +655,8 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         service_groups: serviceGroups.length > 0 ? serviceGroups : undefined,
         // Only include new files if uploaded, otherwise preserve existing values
         odometer_image: odometerPhoto.length > 0 ? odometerPhoto : initialData?.odometer_image,
-        attachments: documents.length > 0 ? documents : initialData?.attachments,
+        // ✅ FIX: Use supporting_documents_urls (with accessible URLs) instead of attachments
+        attachments: documents.length > 0 ? documents : (initialData?.supporting_documents_urls || initialData?.attachments),
       };
 
       console.log('📋 Form data being submitted:', {

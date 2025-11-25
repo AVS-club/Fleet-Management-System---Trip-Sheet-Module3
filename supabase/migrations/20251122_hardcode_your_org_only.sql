@@ -695,3 +695,4 @@ GRANT EXECUTE ON FUNCTION public.generate_comparative_kpis() TO service_role;
 SELECT generate_kpi_cards();
 SELECT generate_comparative_kpis();
 
+

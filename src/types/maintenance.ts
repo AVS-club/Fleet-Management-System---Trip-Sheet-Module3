@@ -17,6 +17,7 @@ export interface MaintenanceServiceGroup {
   id?: string;
   maintenance_task_id?: string;
   vendor_id: string;
+  service_type?: 'purchase' | 'labor' | 'both'; // Type of service performed
   tasks: string[];
   service_cost: number; // Renamed from 'cost' to match database
   cost?: number; // Backward compatibility - will be removed
@@ -25,6 +26,7 @@ export interface MaintenanceServiceGroup {
   cost_entry_mode?: 'quick' | 'detailed'; // UI preference: quick (total only) or detailed (line items)
   bill_url?: string[];
   bill_file?: File[]; // For frontend handling before upload
+  parts_data?: any[]; // Parts information
   created_at?: string;
   updated_at?: string;
 }

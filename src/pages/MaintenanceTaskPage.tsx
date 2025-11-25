@@ -12,7 +12,7 @@ import {
 } from "../utils/maintenanceStorage";
 import { getVehicles } from "../utils/storage";
 import Button from "../components/ui/Button";
-import { ChevronLeft, Trash2, Edit, Wrench, Camera, FileText, Clock, Truck, Calendar, IndianRupee, Share2, Copy, CheckCircle, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Trash2, Edit, Wrench, Camera, FileText, Clock, Truck, Calendar, IndianRupee, Share2, Copy, CheckCircle, AlertTriangle, Shield, ExternalLink } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadFilesAndGetPublicUrls } from "@/utils/supabaseStorage";
 import { processAllServiceGroupFiles, FileUploadCallback } from "@/utils/maintenanceFileUpload";
@@ -172,7 +172,8 @@ const MaintenanceTaskPage: React.FC = () => {
           if (taskData) {
             setTask(taskData);
             // Transform the task data for the form (including converting URLs)
-            const transformed = await transformDatabaseToFormData(taskData);
+            // Pass the maps directly to avoid stale closure values
+            const transformed = await transformDatabaseToFormData(taskData, vendorMap, taskMap);
             setTransformedFormData(transformed);
           } else {
             navigate("/maintenance");
@@ -222,7 +223,11 @@ const MaintenanceTaskPage: React.FC = () => {
   }, [id, isViewMode]);
 
   // Transform database format to form format for editing
-  const transformDatabaseToFormData = async (dbTask: MaintenanceTask) => {
+  const transformDatabaseToFormData = async (
+    dbTask: MaintenanceTask, 
+    vendorMap: Map<string, string>, 
+    taskMap: Map<string, string>
+  ) => {
     try {
       logger.debug('🔄 Transforming database task to form format:', dbTask);
 
@@ -238,45 +243,69 @@ const MaintenanceTaskPage: React.FC = () => {
       };
 
       // Transform service groups from database format to form format
-      const transformedServiceGroups = (dbTask.service_groups || []).map((group: any, index: number) => {
-        // Transform tasks from UUIDs to names
+      const transformedServiceGroups = await Promise.all((dbTask.service_groups || []).map(async (group: any, index: number) => {
+        // Transform tasks from UUIDs to names using the passed taskMap
         const taskNames = (group.tasks || []).map((taskId: string) => {
-          const taskName = tasksMap.get(taskId);
+          const taskName = taskMap.get(taskId);
           return taskName || taskId; // Fallback to ID if name not found
         });
 
-        // Get vendor name from UUID
-        const vendorName = vendorsMap.get(group.vendor_id) || group.vendor_id;
+        // Get vendor UUID - check both possible field names
+        // normalizeServiceGroupForFrontend maps vendor_id → vendor
+        const vendorUuid = group.vendor_id || group.vendor || '';
+        
+        // Convert vendor UUID to vendor name using the passed vendorMap
+        const vendorName = vendorMap.get(vendorUuid) || vendorUuid || '';
+        
+        logger.debug(`🔍 Group ${index} mapping:`, {
+          vendor_field_in_group: group.vendor,
+          vendor_id_field_in_group: group.vendor_id,
+          vendorUuid: vendorUuid,
+          vendorName: vendorName,
+          serviceType: group.serviceType,
+          service_type: group.service_type,
+          tasks_count: group.tasks?.length,
+          vendorMapSize: vendorMap.size
+        });
 
         // Transform parts_data (snake_case) to parts (camelCase) for the form
-        const transformedParts = (group.parts_data || []).map((part: any) => ({
-          partType: part.partType || part.part_type || '',
-          partName: part.partName || part.part_name || '',
-          brand: part.brand || '',
-          serialNumber: part.serialNumber || part.serial_number || '',
-          quantity: part.quantity || 1,
-          warrantyPeriod: part.warrantyPeriod || part.warranty_period || '',
-          tyrePositions: part.tyrePositions || part.tyre_positions || [],
-          // Check multiple possible field names for warranty document URL
-          warrantyDocumentUrl: part.warrantyDocumentUrl || part.warranty_document_url || part.warrantyUrl || part.warranty_url || null,
+        // normalizeServiceGroupForFrontend may have already converted parts_data → partsData
+        const partsArray = group.partsData || group.parts_data || [];
+        const transformedParts = await Promise.all(partsArray.map(async (part: any) => {
+          // Get warranty document URL and ensure it's accessible (signed URL if needed)
+          const warrantyUrl = part.warrantyDocumentUrl || part.warranty_document_url || part.warrantyUrl || part.warranty_url || null;
+          const accessibleWarrantyUrl = warrantyUrl ? (await getAccessibleUrls([warrantyUrl]))[0] || warrantyUrl : null;
+          
+          return {
+            partType: part.partType || part.part_type || '',
+            partName: part.partName || part.part_name || '',
+            brand: part.brand || '',
+            serialNumber: part.serialNumber || part.serial_number || '',
+            quantity: part.quantity || 1,
+            warrantyPeriod: part.warrantyPeriod || part.warranty_period || '',
+            tyrePositions: part.tyrePositions || part.tyre_positions || [],
+            warrantyDocumentUrl: accessibleWarrantyUrl, // Use accessible signed URL
+          };
         }));
 
         return {
           id: group.id || `group-${index}`,
-          serviceType: group.service_type || '',
-          vendor: vendorName,
-          vendor_id: group.vendor_id, // Keep ID for submission
-          tasks: taskNames,
+          serviceType: group.serviceType || group.service_type || '', // Check both normalized and raw field names
+          vendor: vendorName, // Use vendor name for display
+          vendor_id: vendorUuid, // Keep UUID for submission
+          tasks: taskNames, // ✅ FIX: Convert task IDs to names for display
           cost: group.service_cost || group.cost || 0,
           notes: group.notes || '',
           bill_url: group.bill_url || [],
           part_warranty_url: group.part_warranty_url || [], // ✅ NEW: Include warranty URLs array
           parts: transformedParts,
-          parts_data: group.parts_data, // Keep original for reference
-          use_line_items: group.use_line_items || false, // ✅ Line items flag
-          line_items: group.line_items || [], // ✅ Line items data
+          parts_data: group.parts_data || group.partsData, // Keep original for reference (check both field names)
+          partsData: transformedParts, // Also set partsData for consistency
+          use_line_items: group.use_line_items || false, // Line items flag
+          line_items: group.line_items || [], // Line items data
+          cost_entry_mode: group.use_line_items ? 'detailed' : 'quick', // Set cost entry mode based on line items
         };
-      });
+      }));
 
       // Convert supporting document URLs to accessible signed URLs
       const accessibleDocUrls = await getAccessibleUrls(dbTask.attachments || []);
@@ -295,6 +324,7 @@ const MaintenanceTaskPage: React.FC = () => {
         // URLs for image previews (form will need to handle these specially)
         odometer_image: dbTask.odometer_image, // ✅ FIX: Use odometer_image instead of odometer_image_url
         supporting_documents_urls: accessibleDocUrls, // ✅ Use accessible signed URLs
+        attachments: accessibleDocUrls, // ✅ FIX: Also set attachments for backward compatibility
       };
 
       logger.debug('✅ Transformed form data:', transformed);
@@ -1023,65 +1053,142 @@ const MaintenanceTaskPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Warranty Information Section */}
+                {/* Warranty Information Section - Aggregated from All Parts */}
                 {(() => {
-                  const warrantyInfo = getWarrantyStatus(task.warranty_expiry);
-                  const hasWarranty = task.warranty_expiry && task.warranty_status !== 'not_applicable';
+                  // Collect all parts with warranty information from all service groups
+                  const allWarrantyParts: any[] = [];
+                  task.service_groups?.forEach((group: any) => {
+                    const parts = group.partsData || group.parts_data || group.parts || [];
+                    parts.forEach((part: any) => {
+                      if (part.warrantyPeriod || part.warranty_period) {
+                        allWarrantyParts.push({
+                          ...part,
+                          vendorName: vendorsMap.get(group.vendor || group.vendor_id) || 'Unknown Vendor',
+                        });
+                      }
+                    });
+                  });
 
-                  if (hasWarranty || task.warranty_claimed) {
+                  // Fallback to task-level warranty if no parts have warranty
+                  const warrantyInfo = getWarrantyStatus(task.warranty_expiry);
+                  const hasTaskWarranty = task.warranty_expiry && task.warranty_status !== 'not_applicable';
+                  const hasPartsWarranty = allWarrantyParts.length > 0;
+
+                  if (hasPartsWarranty || hasTaskWarranty || task.warranty_claimed) {
                     return (
                       <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
                         <h2 className="text-xl font-semibold text-gray-900 mb-5 flex items-center">
                           <div className="bg-gradient-to-br from-purple-100 to-indigo-100 p-2 rounded-lg mr-3">
-                            <FileText className="h-5 w-5 text-purple-700" />
+                            <Shield className="h-5 w-5 text-purple-700" />
                           </div>
                           Warranty Information
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {/* Warranty Expiry Date */}
-                          {task.warranty_expiry && (
-                            <div className={`rounded-xl p-4 border-2 shadow-sm ${warrantyInfo.statusColor}`}>
-                              <div className="flex items-center gap-2 mb-2">
-                                <Calendar className="h-4 w-4" />
-                                <label className="text-sm font-semibold">Warranty Expiry</label>
-                              </div>
-                              <p className="font-bold text-gray-900 text-lg">
-                                {formatWarrantyExpiryDate(task.warranty_expiry)}
-                              </p>
-                              {warrantyInfo.daysRemaining !== null && warrantyInfo.daysRemaining >= 0 && (
-                                <p className="text-sm mt-1 opacity-80">
-                                  {warrantyInfo.daysRemaining} days remaining
-                                </p>
-                              )}
-                            </div>
+                          {allWarrantyParts.length > 0 && (
+                            <span className="ml-auto text-sm font-normal text-gray-500">
+                              {allWarrantyParts.length} {allWarrantyParts.length === 1 ? 'part' : 'parts'} under warranty
+                            </span>
                           )}
+                        </h2>
 
-                          {/* Warranty Status */}
-                          <div className="rounded-xl p-4 border-2 border-gray-200 shadow-sm bg-white">
-                            <div className="flex items-center gap-2 mb-2">
-                              <CheckCircle className="h-4 w-4 text-gray-600" />
-                              <label className="text-sm font-semibold text-gray-600">Warranty Status</label>
+                        {/* Parts Warranty Table */}
+                        {hasPartsWarranty && (
+                          <div className="mb-6">
+                            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              Parts Warranty Details:
+                            </h3>
+                            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                              <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gradient-to-r from-purple-50 to-indigo-50">
+                                  <tr>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Part</th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Brand</th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Vendor</th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Warranty Period</th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Serial Number</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                  {allWarrantyParts.map((part: any, idx: number) => (
+                                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                      <td className="px-4 py-3 whitespace-nowrap">
+                                        <div className="flex items-center gap-2">
+                                          <div className="bg-indigo-100 text-indigo-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                            {idx + 1}
+                                          </div>
+                                          <div>
+                                            <div className="text-sm font-medium text-gray-900">{part.partType || part.part_type || 'N/A'}</div>
+                                            <div className="text-xs text-gray-500">{part.partName || part.part_name || ''}</div>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{part.brand || 'N/A'}</td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{part.vendorName}</td>
+                                      <td className="px-4 py-3 whitespace-nowrap">
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                          <Shield className="h-3 w-3 mr-1" />
+                                          {part.warrantyPeriod || part.warranty_period}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">{part.serialNumber || part.serial_number || 'N/A'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
                             </div>
-                            <span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${warrantyInfo.statusBadge}`}>
-                              {warrantyInfo.statusText}
-                            </span>
                           </div>
+                        )}
 
-                          {/* Warranty Claimed */}
-                          <div className="rounded-xl p-4 border-2 border-gray-200 shadow-sm bg-white">
-                            <div className="flex items-center gap-2 mb-2">
-                              <FileText className="h-4 w-4 text-gray-600" />
-                              <label className="text-sm font-semibold text-gray-600">Warranty Claimed</label>
+                        {/* Task-Level Warranty (if exists) */}
+                        {hasTaskWarranty && (
+                          <div>
+                            <h3 className="text-sm font-semibold text-gray-700 mb-3">Overall Task Warranty:</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {/* Warranty Expiry Date */}
+                              {task.warranty_expiry && (
+                                <div className={`rounded-xl p-4 border-2 shadow-sm ${warrantyInfo.statusColor}`}>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Calendar className="h-4 w-4" />
+                                    <label className="text-sm font-semibold">Warranty Expiry</label>
+                                  </div>
+                                  <p className="font-bold text-gray-900 text-lg">
+                                    {formatWarrantyExpiryDate(task.warranty_expiry)}
+                                  </p>
+                                  {warrantyInfo.daysRemaining !== null && warrantyInfo.daysRemaining >= 0 && (
+                                    <p className="text-sm mt-1 opacity-80">
+                                      {warrantyInfo.daysRemaining} days remaining
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Warranty Status */}
+                              <div className="rounded-xl p-4 border-2 border-gray-200 shadow-sm bg-white">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <CheckCircle className="h-4 w-4 text-gray-600" />
+                                  <label className="text-sm font-semibold text-gray-600">Warranty Status</label>
+                                </div>
+                                <span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${warrantyInfo.statusBadge}`}>
+                                  {warrantyInfo.statusText}
+                                </span>
+                              </div>
+
+                              {/* Warranty Claimed */}
+                              <div className="rounded-xl p-4 border-2 border-gray-200 shadow-sm bg-white">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <FileText className="h-4 w-4 text-gray-600" />
+                                  <label className="text-sm font-semibold text-gray-600">Warranty Claimed</label>
+                                </div>
+                                <span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${
+                                  task.warranty_claimed
+                                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                                    : 'bg-gray-100 text-gray-700 border border-gray-300'
+                                }`}>
+                                  {task.warranty_claimed ? 'Yes' : 'No'}
+                                </span>
+                              </div>
                             </div>
-                            <span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${
-                              task.warranty_claimed
-                                ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                                : 'bg-gray-100 text-gray-700 border border-gray-300'
-                            }`}>
-                              {task.warranty_claimed ? 'Yes' : 'No'}
-                            </span>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   }
@@ -1122,14 +1229,14 @@ const MaintenanceTaskPage: React.FC = () => {
                           {/* Service Type - ALWAYS SHOW */}
                           <div className="mb-2">
                             <p className="text-xs text-gray-500 mb-1">Service Type:</p>
-                            {group.service_type ? (
+                            {(group.serviceType || group.service_type) ? (
                               <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${
-                                group.service_type === 'purchase' ? 'bg-indigo-100 text-indigo-700' :
-                                group.service_type === 'labor' ? 'bg-purple-100 text-purple-700' :
+                                (group.serviceType || group.service_type) === 'purchase' ? 'bg-indigo-100 text-indigo-700' :
+                                (group.serviceType || group.service_type) === 'labor' ? 'bg-purple-100 text-purple-700' :
                                 'bg-teal-100 text-teal-700'
                               }`}>
-                                {group.service_type === 'purchase' ? 'Parts Purchase' :
-                                 group.service_type === 'labor' ? 'Service/Repair' :
+                                {(group.serviceType || group.service_type) === 'purchase' ? 'Parts Purchase' :
+                                 (group.serviceType || group.service_type) === 'labor' ? 'Service/Repair' :
                                  'Parts + Installation'}
                               </span>
                             ) : (
@@ -1153,6 +1260,48 @@ const MaintenanceTaskPage: React.FC = () => {
                             )}
                           </div>
 
+                          {/* Line Items Breakdown - Show when detailed cost entry was used */}
+                          {group.use_line_items && group.line_items && group.line_items.length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-xs text-gray-500 mb-2 font-semibold">Cost Breakdown (Line Items):</p>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm border-collapse">
+                                  <thead>
+                                    <tr className="bg-gray-50 border-b-2 border-gray-200">
+                                      <th className="text-left py-2 px-3 font-medium text-gray-700">#</th>
+                                      <th className="text-left py-2 px-3 font-medium text-gray-700">Item Name</th>
+                                      <th className="text-left py-2 px-3 font-medium text-gray-700">Description</th>
+                                      <th className="text-right py-2 px-3 font-medium text-gray-700">Qty</th>
+                                      <th className="text-right py-2 px-3 font-medium text-gray-700">Unit Price</th>
+                                      <th className="text-right py-2 px-3 font-medium text-gray-700">Subtotal</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {group.line_items.map((item: any, idx: number) => (
+                                      <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                                        <td className="py-2 px-3 text-gray-600">{idx + 1}</td>
+                                        <td className="py-2 px-3 font-medium text-gray-900">{item.item_name}</td>
+                                        <td className="py-2 px-3 text-gray-600 text-xs">{item.description || '—'}</td>
+                                        <td className="py-2 px-3 text-right text-gray-900">{item.quantity}</td>
+                                        <td className="py-2 px-3 text-right text-gray-900">₹{item.unit_price?.toLocaleString()}</td>
+                                        <td className="py-2 px-3 text-right font-medium text-gray-900">
+                                          ₹{((item.quantity || 0) * (item.unit_price || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                  <tfoot>
+                                    <tr className="bg-green-50 border-t-2 border-green-200">
+                                      <td colSpan={5} className="text-right py-2 px-3 font-semibold text-gray-700">Total:</td>
+                                      <td className="text-right py-2 px-3 font-bold text-green-700">
+                                        ₹{group.service_cost?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </td>
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Bills Photos */}
                           {group.bill_url && group.bill_url.length > 0 && (
@@ -1225,77 +1374,95 @@ const MaintenanceTaskPage: React.FC = () => {
                           )}
 
                           {/* Part Details */}
-                          {group.parts_data && group.parts_data.length > 0 && (
+                          {(group.partsData || group.parts_data || group.parts) && (group.partsData || group.parts_data || group.parts).length > 0 && (
                             <div className="mt-4">
-                              <p className="text-xs text-gray-500 mb-2 font-semibold">Parts Details ({group.parts_data.length}):</p>
+                              <p className="text-xs text-gray-500 mb-2 font-semibold">Parts Details ({(group.partsData || group.parts_data || group.parts).length}):</p>
                               <div className="space-y-3">
-                                {group.parts_data.map((part: any, partIdx: number) => (
-                                  <div key={partIdx} className="bg-white border border-gray-200 rounded-lg p-3">
-                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                {(group.partsData || group.parts_data || group.parts).map((part: any, partIdx: number) => (
+                                  <div key={partIdx} className="bg-white border-2 border-indigo-200 rounded-lg p-4 shadow-sm">
+                                    <div className="flex items-start justify-between mb-3">
+                                      <div className="flex items-center gap-2">
+                                        <div className="bg-indigo-100 text-indigo-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                                          {partIdx + 1}
+                                        </div>
+                                        <h4 className="text-sm font-semibold text-gray-900">
+                                          {part.partType || part.part_type || 'Part'}
+                                        </h4>
+                                      </div>
+                                      {(part.warrantyPeriod || part.warranty_period) && (
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                          <Shield className="h-3 w-3 mr-1" />
+                                          {part.warrantyPeriod || part.warranty_period}
+                                        </span>
+                                      )}
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
                                       <div>
-                                        <span className="text-gray-500">Type:</span>
-                                        <span className="ml-2 font-medium text-gray-900">{part.partType || 'N/A'}</span>
+                                        <span className="text-gray-500 text-xs">Part Name:</span>
+                                        <p className="font-medium text-gray-900 mt-0.5">{part.partName || part.part_name || 'N/A'}</p>
                                       </div>
                                       <div>
-                                        <span className="text-gray-500">Name:</span>
-                                        <span className="ml-2 font-medium text-gray-900">{part.partName || 'N/A'}</span>
+                                        <span className="text-gray-500 text-xs">Brand:</span>
+                                        <p className="font-medium text-gray-900 mt-0.5">{part.brand || 'N/A'}</p>
                                       </div>
                                       <div>
-                                        <span className="text-gray-500">Brand:</span>
-                                        <span className="ml-2 font-medium text-gray-900">{part.brand || 'N/A'}</span>
+                                        <span className="text-gray-500 text-xs">Serial Number:</span>
+                                        <p className="font-medium text-gray-900 mt-0.5">{part.serialNumber || part.serial_number || 'N/A'}</p>
                                       </div>
                                       <div>
-                                        <span className="text-gray-500">Serial #:</span>
-                                        <span className="ml-2 font-medium text-gray-900">{part.serialNumber || 'N/A'}</span>
+                                        <span className="text-gray-500 text-xs">Quantity:</span>
+                                        <p className="font-medium text-gray-900 mt-0.5">{part.quantity || 1}</p>
                                       </div>
-                                      <div>
-                                        <span className="text-gray-500">Quantity:</span>
-                                        <span className="ml-2 font-medium text-gray-900">{part.quantity || 'N/A'}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">Warranty:</span>
-                                        <span className="ml-2 font-medium text-gray-900">{part.warrantyPeriod || 'None'}</span>
-                                      </div>
-                                      {part.tyrePositions && part.tyrePositions.length > 0 && (
+                                      {(part.tyrePositions || part.tyre_positions) && (part.tyrePositions || part.tyre_positions).length > 0 && (
                                         <div className="col-span-2">
-                                          <span className="text-gray-500">Positions:</span>
-                                          <span className="ml-2 font-medium text-gray-900">{part.tyrePositions.join(', ')}</span>
+                                          <span className="text-gray-500 text-xs">Tyre Positions:</span>
+                                          <p className="font-medium text-gray-900 mt-0.5">{(part.tyrePositions || part.tyre_positions).join(', ')}</p>
                                         </div>
                                       )}
                                     </div>
                                     
                                     {/* Warranty Document */}
-                                    {part.warrantyDocumentUrl && (
-                                      <div className="mt-3 pt-3 border-t border-gray-200">
-                                        <p className="text-xs text-gray-500 mb-2 font-semibold">Warranty Document:</p>
+                                    {(part.warrantyDocumentUrl || part.warranty_document_url) && (
+                                      <div className="mt-4 pt-4 border-t border-gray-200">
+                                        <p className="text-xs text-gray-500 mb-2 font-semibold flex items-center gap-1">
+                                          <FileText className="h-3 w-3" />
+                                          Warranty Document:
+                                        </p>
                                         <a
-                                          href={part.warrantyDocumentUrl}
+                                          href={part.warrantyDocumentUrl || part.warranty_document_url}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="block relative w-full rounded-lg overflow-hidden border-2 border-gray-200 hover:border-green-500 transition-colors group"
+                                          className="block relative rounded-lg overflow-hidden border-2 border-gray-300 hover:border-indigo-500 transition-colors group cursor-pointer"
                                         >
-                                          {isPdfUrl(part.warrantyDocumentUrl) ? (
-                                            // PDF Display with filename
+                                          {isPdfUrl(part.warrantyDocumentUrl || part.warranty_document_url) ? (
+                                            // PDF Display
                                             <div className="flex items-center gap-3 p-3 bg-red-50">
                                               <FileText className="h-10 w-10 text-red-600 flex-shrink-0" />
                                               <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium text-gray-900 truncate">
-                                                  {getFilenameFromUrl(part.warrantyDocumentUrl)}
+                                                  {getFilenameFromUrl(part.warrantyDocumentUrl || part.warranty_document_url)}
                                                 </p>
                                                 <p className="text-xs text-gray-500">PDF Document</p>
                                               </div>
+                                              <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-indigo-600" />
                                             </div>
                                           ) : (
                                             // Image Display
-                                            <div className="aspect-square w-24">
+                                            <div className="relative">
                                               <img
-                                                src={part.warrantyDocumentUrl}
-                                                alt={`Warranty Document for ${part.partName || 'Part'}`}
-                                                className="w-full h-full object-cover"
+                                                src={part.warrantyDocumentUrl || part.warranty_document_url}
+                                                alt={`Warranty Document for ${part.partName || part.part_name || 'Part'}`}
+                                                className="w-full h-48 object-cover"
                                                 onError={(e) => {
-                                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📄%3C/text%3E%3C/svg%3E';
+                                                  const target = e.target as HTMLImageElement;
+                                                  target.onerror = null;
+                                                  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%236b7280" font-size="48"%3E📄%3C/text%3E%3C/svg%3E';
                                                 }}
                                               />
+                                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center">
+                                                <ExternalLink className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                              </div>
                                             </div>
                                           )}
                                         </a>
@@ -1348,14 +1515,14 @@ const MaintenanceTaskPage: React.FC = () => {
                 )}
 
                 {/* Supporting Documents */}
-                {task.attachments && task.attachments.length > 0 && (
+                {transformedFormData?.supporting_documents_urls && transformedFormData.supporting_documents_urls.length > 0 && (
                   <div className="bg-white rounded-lg shadow-sm p-6">
                     <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                       <FileText className="h-5 w-5 mr-2 text-purple-600" />
-                      Supporting Documents ({task.attachments.length})
+                      Supporting Documents ({transformedFormData.supporting_documents_urls.length})
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {task.attachments.map((url: string, idx: number) => (
+                      {transformedFormData.supporting_documents_urls.map((url: string, idx: number) => (
                         <a
                           key={idx}
                           href={url}

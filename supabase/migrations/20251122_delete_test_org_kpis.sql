@@ -32,3 +32,4 @@ FROM kpi_cards
 GROUP BY organization_id
 ORDER BY kpi_count DESC;
 
+
