@@ -771,7 +771,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             <h3 className="section-title text-gray-900 dark:text-gray-100">Basic Information</h3>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-5">
             <Controller
               control={control}
               name="vehicle_id"

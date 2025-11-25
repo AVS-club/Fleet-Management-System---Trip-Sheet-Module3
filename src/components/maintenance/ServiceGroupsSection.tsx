@@ -765,9 +765,9 @@ const ServiceGroup = ({
         </div>
       )}
 
-      <div className="p-1 sm:p-3">
+      <div className="p-2 sm:p-3">
         {/* Quick Entry Fields - Always Visible */}
-        <div className="border-0 sm:border sm:border-gray-200 rounded-none sm:rounded-lg p-2 sm:p-3 bg-white sm:bg-gray-50 mb-2 sm:mb-3">
+        <div className="border-0 sm:border sm:border-gray-200 rounded-none sm:rounded-lg p-1 sm:p-3 bg-white sm:bg-gray-50 mb-2 sm:mb-3">
           <div className="space-y-2 sm:space-y-3">
             {/* Service Type Selector - Button Version */}
             <div>

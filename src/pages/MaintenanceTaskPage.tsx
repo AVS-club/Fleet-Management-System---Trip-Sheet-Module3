@@ -846,6 +846,7 @@ const MaintenanceTaskPage: React.FC = () => {
 
   return (
     <Layout>
+      <div className="w-full">
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -856,17 +857,17 @@ const MaintenanceTaskPage: React.FC = () => {
       ) : (
         <>
           {/* ========== FULL WIDTH HEADER ========== */}
-          <div className="rounded-none sm:rounded-xl border-0 sm:border bg-white dark:bg-white px-2 sm:px-4 py-3 mb-2 sm:mb-6">
+          <div className="rounded-none sm:rounded-xl border-0 sm:border bg-white dark:bg-white px-3 sm:px-4 py-2 sm:py-3 mb-1 sm:mb-6">
             <div className="flex items-center group">
               <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-              <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
+              <h1 className="text-xl sm:text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
                 Maintenance Task
               </h1>
             </div>
-            <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">
+            <p className="text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 ml-7">
               Create and manage vehicle maintenance records
             </p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-2 sm:mt-4 flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -1734,6 +1735,7 @@ const MaintenanceTaskPage: React.FC = () => {
         operations={saveOperations}
         title="Save Progress"
       />
+      </div>
     </Layout>
   );
 };
