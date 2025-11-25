@@ -1736,7 +1736,6 @@ const MaintenanceTaskPage: React.FC = () => {
         operations={saveOperations}
         title="Save Progress"
       />
-      </div>
     </Layout>
   );
 };
