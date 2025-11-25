@@ -933,36 +933,6 @@ const MaintenanceTaskPage: React.FC = () => {
                         </Button>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-500">
-                      📱 Click to copy & share via WhatsApp
-                    </span>
-                  </div>
-
-                  {/* Status & Priority Row */}
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className={`px-3 py-1.5 rounded-full text-sm font-medium inline-flex items-center gap-1.5 ${
-                      task.status === 'resolved' ? 'bg-green-100 text-green-700 border border-green-200' :
-                      task.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                      task.status === 'open' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
-                      task.status === 'rework' ? 'bg-red-100 text-red-700 border border-red-200' :
-                      'bg-gray-100 text-gray-700 border border-gray-200'
-                    }`}>
-                      <span className={`w-2 h-2 rounded-full ${
-                        task.status === 'resolved' ? 'bg-green-500' :
-                        task.status === 'in_progress' ? 'bg-blue-500' :
-                        task.status === 'open' ? 'bg-yellow-500' :
-                        task.status === 'rework' ? 'bg-red-500' :
-                        'bg-gray-500'
-                      }`}></span>
-                      {task.status?.replace(/_/g, ' ').toUpperCase()}
-                    </span>
-                    <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                      task.priority === 'high' || task.priority === 'critical' ? 'bg-red-100 text-red-700 border border-red-200' :
-                      task.priority === 'medium' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
-                      'bg-green-100 text-green-700 border border-green-200'
-                    }`}>
-                      {task.priority?.toUpperCase()} PRIORITY
-                    </span>
                   </div>
 
                   {/* Vehicle & Task Type Row */}
@@ -980,9 +950,36 @@ const MaintenanceTaskPage: React.FC = () => {
                     </div>
                     <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
                       <label className="text-sm font-medium text-gray-600 mb-2 block">Task Type</label>
-                      <span className="inline-block bg-white text-purple-700 px-4 py-2 rounded-lg font-semibold capitalize border-2 border-purple-300 shadow-sm">
-                        {task.task_type?.replace(/_/g, ' ') || 'Not specified'}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-block bg-white text-purple-700 px-4 py-2 rounded-lg font-semibold capitalize border-2 border-purple-300 shadow-sm">
+                          {task.task_type?.replace(/_/g, ' ') || 'Not specified'}
+                        </span>
+                        {/* Status Badge */}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 ${
+                          task.status === 'resolved' ? 'bg-green-100 text-green-700 border border-green-200' :
+                          task.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                          task.status === 'open' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
+                          task.status === 'rework' ? 'bg-red-100 text-red-700 border border-red-200' :
+                          'bg-gray-100 text-gray-700 border border-gray-200'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            task.status === 'resolved' ? 'bg-green-500' :
+                            task.status === 'in_progress' ? 'bg-blue-500' :
+                            task.status === 'open' ? 'bg-yellow-500' :
+                            task.status === 'rework' ? 'bg-red-500' :
+                            'bg-gray-500'
+                          }`}></span>
+                          {task.status?.replace(/_/g, ' ').toUpperCase()}
+                        </span>
+                        {/* Priority Badge */}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          task.priority === 'high' || task.priority === 'critical' ? 'bg-red-100 text-red-700 border border-red-200' :
+                          task.priority === 'medium' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                          'bg-green-100 text-green-700 border border-green-200'
+                        }`}>
+                          {task.priority?.toUpperCase()} PRIORITY
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -1053,7 +1050,7 @@ const MaintenanceTaskPage: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                     <div>
                       <label className="text-sm font-medium text-gray-500 mb-2 block">Odometer Reading</label>
-                      <p className="text-gray-900 font-semibold flex items-center gap-2">
+                      <p className="text-2xl text-gray-900 font-bold flex items-center gap-2">
                         <span role="img" aria-label="odometer">🧭</span>
                         {task.odometer_reading ? `${task.odometer_reading.toLocaleString()} km` : 'Not specified'}
                       </p>
