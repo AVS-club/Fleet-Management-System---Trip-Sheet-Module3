@@ -935,23 +935,39 @@ const MaintenanceTaskPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Vehicle & Task Type Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                  {/* Vehicle, Odometer & Task Type Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Vehicle */}
+                    <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-4 border border-gray-300">
                       <label className="text-sm font-medium text-gray-600 mb-2 block flex items-center gap-1">
-                        <Truck className="h-4 w-4 text-blue-600" />
+                        <Truck className="h-4 w-4 text-teal-600" />
                         Vehicle
                       </label>
                       <div className="flex items-center gap-2">
-                        <span className="bg-white text-blue-700 px-4 py-2 rounded-lg font-semibold border-2 border-blue-300 shadow-sm">
+                        <span className="bg-white text-teal-700 px-3 py-1.5 rounded-lg font-semibold border-2 border-teal-300 shadow-sm text-sm">
                           {vehicles.find((v) => v.id === task.vehicle_id)?.registration_number || 'Unknown'}
                         </span>
                       </div>
                     </div>
+                    
+                    {/* Odometer Reading */}
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-orange-200">
+                      <label className="text-sm font-medium text-gray-600 mb-2 block flex items-center gap-1">
+                        <span role="img" aria-label="odometer" className="text-base">🧭</span>
+                        Odometer Reading
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="bg-white text-orange-700 px-3 py-1.5 rounded-lg font-bold border-2 border-orange-300 shadow-sm text-lg">
+                          {task.odometer_reading ? `${task.odometer_reading.toLocaleString()} km` : 'Not specified'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Task Type */}
                     <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
                       <label className="text-sm font-medium text-gray-600 mb-2 block">Task Type</label>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-block bg-white text-purple-700 px-4 py-2 rounded-lg font-semibold capitalize border-2 border-purple-300 shadow-sm">
+                        <span className="inline-block bg-white text-purple-700 px-3 py-1.5 rounded-lg font-semibold capitalize border-2 border-purple-300 shadow-sm text-sm">
                           {task.task_type?.replace(/_/g, ' ') || 'Not specified'}
                         </span>
                         {/* Status Badge */}
@@ -1046,16 +1062,6 @@ const MaintenanceTaskPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Additional Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 mb-2 block">Odometer Reading</label>
-                      <p className="text-2xl text-gray-900 font-bold flex items-center gap-2">
-                        <span role="img" aria-label="odometer">🧭</span>
-                        {task.odometer_reading ? `${task.odometer_reading.toLocaleString()} km` : 'Not specified'}
-                      </p>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Warranty Information Section - Aggregated from All Parts */}
