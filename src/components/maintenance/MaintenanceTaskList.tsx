@@ -197,6 +197,121 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
     return '';
   };
 
+  // Helper: Get warranty status
+  const getWarrantyStatus = (task: MaintenanceTask): { status: string; color: string } => {
+    if (!task.warranty_status || task.warranty_status === 'not_applicable') {
+      return { status: 'N/A', color: 'bg-gray-100 text-gray-600' };
+    }
+    if (task.warranty_status === 'valid') {
+      return { status: 'Active', color: 'bg-green-100 text-green-700' };
+    }
+    return { status: 'Expired', color: 'bg-red-100 text-red-700' };
+  };
+
+  // Helper: Get parts count from all service groups
+  const getPartsCount = (task: MaintenanceTask): number => {
+    if (!task.service_groups) return 0;
+    return task.service_groups.reduce((total, group) => {
+      const parts = (group as any).parts_data || (group as any).partsData || (group as any).parts || [];
+      return total + (Array.isArray(parts) ? parts.length : 0);
+    }, 0);
+  };
+
+  // Helper: Get document counts (bills + supporting docs)
+  const getDocumentCounts = (task: MaintenanceTask): { bills: number; docs: number } => {
+    let billsCount = 0;
+    if (task.service_groups) {
+      billsCount = task.service_groups.reduce((total, group) => {
+        const bills = (group as any).bill_url || [];
+        return total + (Array.isArray(bills) ? bills.length : 0);
+      }, 0);
+    }
+    const docsCount = task.attachments?.length || 0;
+    return { bills: billsCount, docs: docsCount };
+  };
+
+  // Helper: Format next service due
+  const getNextServiceDue = (task: MaintenanceTask): string => {
+    if (task.next_service_due) {
+      if (task.next_service_due.date && task.next_service_due.odometer) {
+        return `${format(parseISO(task.next_service_due.date), 'MMM dd')} / ${task.next_service_due.odometer} km`;
+      } else if (task.next_service_due.date) {
+        return format(parseISO(task.next_service_due.date), 'MMM dd, yyyy');
+      } else if (task.next_service_due.odometer) {
+        return `${task.next_service_due.odometer} km`;
+      }
+    }
+    return '—';
+  };
+
+  // New helper functions for expanded columns
+  const getWarrantyStatus = (task: MaintenanceTask): { status: string; color: string; text: string } => {
+    if (task.warranty_status === 'not_applicable' || !task.warranty_expiry) {
+      return { status: 'N/A', color: 'bg-gray-100 text-gray-600 border-gray-200', text: 'N/A' };
+    }
+    
+    if (task.warranty_status === 'valid') {
+      return { status: 'valid', color: 'bg-green-100 text-green-700 border-green-200', text: 'Valid' };
+    }
+    
+    if (task.warranty_status === 'expired') {
+      return { status: 'expired', color: 'bg-red-100 text-red-700 border-red-200', text: 'Expired' };
+    }
+    
+    return { status: 'N/A', color: 'bg-gray-100 text-gray-600 border-gray-200', text: 'N/A' };
+  };
+
+  const getPartsCount = (task: MaintenanceTask): number => {
+    let count = 0;
+    if (task.service_groups && task.service_groups.length > 0) {
+      task.service_groups.forEach(group => {
+        if (group.parts_data && Array.isArray(group.parts_data)) {
+          count += group.parts_data.length;
+        }
+      });
+    }
+    return count;
+  };
+
+  const getDocumentCounts = (task: MaintenanceTask): { bills: number; docs: number } => {
+    let bills = 0;
+    let docs = 0;
+    
+    // Count bills from service groups
+    if (task.service_groups && task.service_groups.length > 0) {
+      task.service_groups.forEach(group => {
+        if (group.bill_url && Array.isArray(group.bill_url)) {
+          bills += group.bill_url.length;
+        }
+      });
+    }
+    
+    // Count supporting documents
+    if (task.attachments && Array.isArray(task.attachments)) {
+      docs = task.attachments.length;
+    }
+    
+    return { bills, docs };
+  };
+
+  const getCreatedBy = (task: MaintenanceTask): string => {
+    // This would need to be populated from user data
+    // For now, return a placeholder or extract from task metadata
+    return task.added_by || 'System';
+  };
+
+  const getNextServiceInfo = (task: MaintenanceTask): string => {
+    if (task.next_service_due) {
+      if (task.next_service_due.date) {
+        return formatDate(task.next_service_due.date);
+      }
+      if (task.next_service_due.odometer) {
+        return `${task.next_service_due.odometer.toLocaleString()} km`;
+      }
+    }
+    return 'N/A';
+  };
+
   const calculateDowntimeHours = (task: MaintenanceTask): number => {
     const days = task.downtime_days || 0;
     const hours = task.downtime_hours || 0;
@@ -705,7 +820,7 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
         style={{ maxHeight: '600px' }}
         ref={listContainerRef}
       >
-        <table className="min-w-full divide-y divide-gray-200" style={{ minWidth: '1400px' }}>
+        <table className="min-w-full divide-y divide-gray-200" style={{ minWidth: '2000px' }}>
           <thead className="bg-gray-100 sticky top-0 z-10 border-b-2 border-gray-300">
             <tr>
               {/* Serial Number */}
@@ -796,12 +911,52 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                 </div>
               </th>
 
-              {/* Complaint */}
+              {/* Warranty Status - NEW */}
+              <th className="px-1.5 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[90px]">
+                Warranty
+              </th>
+
+              {/* Warranty Expiry - NEW */}
+              <th className="px-1.5 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[100px]">
+                Warranty Exp
+              </th>
+
+              {/* Next Service - NEW */}
+              <th className="px-1.5 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[100px]">
+                Next Service
+              </th>
+
+              {/* Parts Count - NEW */}
+              <th className="px-1.5 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[70px]">
+                Parts
+              </th>
+
+              {/* Docs/Bills - NEW */}
+              <th className="px-1.5 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[80px]">
+                Docs/Bills
+              </th>
+
+              {/* Title - NEW */}
+              <th className="px-1.5 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px]">
+                Title
+              </th>
+
+              {/* Complaint - MOVED RIGHT */}
               <th className="px-1.5 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px]">
                 Complaint
               </th>
 
-              {/* Created Date */}
+              {/* Resolution - NEW */}
+              <th className="px-1.5 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[150px]">
+                Resolution
+              </th>
+
+              {/* Notes - NEW */}
+              <th className="px-1.5 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px]">
+                Notes
+              </th>
+
+              {/* Created Date - MOVED RIGHT */}
               <th
                 className="px-1.5 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 min-w-[100px]"
                 onClick={() => handleSort('created_at')}
@@ -810,6 +965,11 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                   Created
                   <SortIcon field="created_at" />
                 </div>
+              </th>
+
+              {/* Created By - NEW */}
+              <th className="px-1.5 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[100px]">
+                Created By
               </th>
 
               {/* Actions - Fixed Right */}
@@ -821,7 +981,7 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
           <tbody className="bg-white divide-y divide-gray-200">
             {sortedTasks.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-6 py-12 text-center">
+                <td colSpan={20} className="px-6 py-12 text-center">
                   <Wrench className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 text-lg">No maintenance tasks found</p>
                   <p className="text-gray-400 text-sm mt-1">
@@ -985,6 +1145,73 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                       {downtimeHours > 0 ? `${downtimeHours}h` : '—'}
                     </td>
 
+                    {/* Warranty Status */}
+                    <td className="px-1.5 py-2 whitespace-nowrap text-xs">
+                      {(() => {
+                        const warranty = getWarrantyStatus(task);
+                        return (
+                          <span className={`px-2 py-0.5 rounded ${warranty.color} text-xs`}>
+                            {warranty.status}
+                          </span>
+                        );
+                      })()}
+                    </td>
+
+                    {/* Warranty Expiry */}
+                    <td className="px-1.5 py-2 whitespace-nowrap text-xs text-gray-700">
+                      {task.warranty_expiry ? formatDate(task.warranty_expiry) : '—'}
+                    </td>
+
+                    {/* Next Service */}
+                    <td className="px-1.5 py-2 whitespace-nowrap text-xs text-gray-700">
+                      {getNextServiceDue(task)}
+                    </td>
+
+                    {/* Parts Count */}
+                    <td className="px-1.5 py-2 whitespace-nowrap text-xs text-center">
+                      {(() => {
+                        const count = getPartsCount(task);
+                        return count > 0 ? (
+                          <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-semibold">
+                            {count}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        );
+                      })()}
+                    </td>
+
+                    {/* Docs/Bills */}
+                    <td className="px-1.5 py-2 whitespace-nowrap text-xs text-center">
+                      {(() => {
+                        const { bills, docs } = getDocumentCounts(task);
+                        const total = bills + docs;
+                        return total > 0 ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs font-semibold" title="Bills">
+                              📄{bills}
+                            </span>
+                            <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-xs font-semibold" title="Docs">
+                              📎{docs}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        );
+                      })()}
+                    </td>
+
+                    {/* Title */}
+                    <td className="px-1.5 py-2 text-xs text-gray-700">
+                      {task.title && task.title.length > 0 ? (
+                        <div className="truncate max-w-[120px]" title={task.title.join(', ')}>
+                          {task.title.join(', ')}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+
                     {/* Complaint */}
                     <td className="px-1.5 py-2 text-xs text-gray-700">
                       {task.complaint_description ? (
@@ -999,9 +1226,42 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                       )}
                     </td>
 
+                    {/* Resolution */}
+                    <td className="px-1.5 py-2 text-xs text-gray-700">
+                      {task.resolution_summary ? (
+                        <div
+                          className="truncate cursor-help hover:text-gray-900 max-w-[150px]"
+                          title={task.resolution_summary}
+                        >
+                          ✅ {task.resolution_summary}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+
+                    {/* Notes */}
+                    <td className="px-1.5 py-2 text-xs text-gray-700">
+                      {task.notes ? (
+                        <div
+                          className="truncate cursor-help hover:text-gray-900 max-w-[120px]"
+                          title={task.notes}
+                        >
+                          📝 {task.notes}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+
                     {/* Created Date */}
                     <td className="px-1.5 py-2 whitespace-nowrap text-xs text-gray-700">
                       {task.created_at ? formatDate(task.created_at) : '—'}
+                    </td>
+
+                    {/* Created By */}
+                    <td className="px-1.5 py-2 text-xs text-gray-700">
+                      <span className="text-gray-500">User</span>
                     </td>
 
                     {/* Actions - Fixed Right */}

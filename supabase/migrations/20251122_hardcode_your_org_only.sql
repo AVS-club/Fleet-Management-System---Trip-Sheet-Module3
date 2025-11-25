@@ -696,3 +696,4 @@ SELECT generate_kpi_cards();
 SELECT generate_comparative_kpis();
 
 
+
