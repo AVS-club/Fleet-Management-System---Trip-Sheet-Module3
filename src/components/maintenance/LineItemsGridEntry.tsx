@@ -102,7 +102,7 @@ const LineItemsGridEntry: React.FC<LineItemsGridEntryProps> = ({
     rowIndex: number,
     colName: string
   ) => {
-    const cols = ['item_name', 'description', 'quantity', 'unit_price'];
+    const cols = ['item_name', 'quantity', 'unit_price']; // Removed description
     const currentColIndex = cols.indexOf(colName);
 
     // Enter: Move to next row, same column (or add new row if last)
@@ -165,32 +165,29 @@ const LineItemsGridEntry: React.FC<LineItemsGridEntryProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 sm:space-y-4">
       {/* Grid Table */}
-      <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
+      <div className="overflow-x-auto border border-gray-300 rounded-lg">
         <table className="min-w-full divide-y divide-gray-300 bg-white">
           {/* Table Header */}
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-8">
+              <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-8 sm:w-12">
                 #
               </th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Item Name *
               </th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                Description
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-24">
+              <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-16 sm:w-24">
                 Qty *
               </th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">
+              <th className="px-2 sm:px-3 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-24 sm:w-32">
                 Unit Price *
               </th>
-              <th className="px-3 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">
+              <th className="px-2 sm:px-3 py-2 sm:py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider w-24 sm:w-32">
                 Subtotal
               </th>
-              <th className="px-3 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider w-16">
+              <th className="px-2 sm:px-3 py-2 sm:py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider w-12 sm:w-16">
                 Action
               </th>
             </tr>
@@ -200,7 +197,7 @@ const LineItemsGridEntry: React.FC<LineItemsGridEntryProps> = ({
           <tbody className="bg-white divide-y divide-gray-200">
             {localItems.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-12 text-center text-sm text-gray-500">
+                <td colSpan={6} className="px-2 sm:px-3 py-8 sm:py-12 text-center text-sm text-gray-500">
                   No line items added. Click "Add Line Item" to start.
                 </td>
               </tr>
@@ -211,13 +208,13 @@ const LineItemsGridEntry: React.FC<LineItemsGridEntryProps> = ({
                   className="hover:bg-gray-50 transition-colors"
                 >
                   {/* Row Number */}
-                  <td className="px-3 py-2 text-sm text-gray-600 font-medium">
+                  <td className="px-2 sm:px-3 py-1 sm:py-2 text-sm text-gray-600 font-medium">
                     {rowIndex + 1}
                   </td>
 
                   {/* Item Name */}
                   <td
-                    className="px-3 py-2 cursor-pointer"
+                    className="px-2 sm:px-3 py-1 sm:py-2 cursor-pointer"
                     onClick={() => handleCellClick(rowIndex, 'item_name')}
                   >
                     <input
@@ -230,32 +227,13 @@ const LineItemsGridEntry: React.FC<LineItemsGridEntryProps> = ({
                       onKeyDown={(e) => handleKeyDown(e, rowIndex, 'item_name')}
                       disabled={disabled}
                       placeholder="Item name"
-                      className="w-full px-2 py-1 text-sm border border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
-                    />
-                  </td>
-
-                  {/* Description */}
-                  <td
-                    className="px-3 py-2 cursor-pointer"
-                    onClick={() => handleCellClick(rowIndex, 'description')}
-                  >
-                    <input
-                      ref={(el) => (inputRefs.current[`${rowIndex}-description`] = el)}
-                      type="text"
-                      value={item.description || ''}
-                      onChange={(e) =>
-                        handleUpdateItem(rowIndex, 'description', e.target.value)
-                      }
-                      onKeyDown={(e) => handleKeyDown(e, rowIndex, 'description')}
-                      disabled={disabled}
-                      placeholder="Optional"
-                      className="w-full px-2 py-1 text-sm border border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
+                      className="w-full px-2 sm:px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed h-11 sm:h-auto"
                     />
                   </td>
 
                   {/* Quantity */}
                   <td
-                    className="px-3 py-2 cursor-pointer"
+                    className="px-2 sm:px-3 py-1 sm:py-2 cursor-pointer"
                     onClick={() => handleCellClick(rowIndex, 'quantity')}
                   >
                     <input
@@ -273,17 +251,17 @@ const LineItemsGridEntry: React.FC<LineItemsGridEntryProps> = ({
                       disabled={disabled}
                       min="0"
                       step="0.01"
-                      className="w-full px-2 py-1 text-sm border border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
+                      className="w-full px-2 sm:px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed h-11 sm:h-auto min-w-[60px]"
                     />
                   </td>
 
                   {/* Unit Price */}
                   <td
-                    className="px-3 py-2 cursor-pointer"
+                    className="px-2 sm:px-3 py-1 sm:py-2 cursor-pointer"
                     onClick={() => handleCellClick(rowIndex, 'unit_price')}
                   >
                     <div className="flex items-center">
-                      <IndianRupee className="h-3 w-3 text-gray-400 mr-1 flex-shrink-0" />
+                      <IndianRupee className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mr-1 flex-shrink-0" />
                       <input
                         ref={(el) => (inputRefs.current[`${rowIndex}-unit_price`] = el)}
                         type="number"
@@ -299,29 +277,29 @@ const LineItemsGridEntry: React.FC<LineItemsGridEntryProps> = ({
                         disabled={disabled}
                         min="0"
                         step="0.01"
-                        className="w-full px-2 py-1 text-sm border border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
+                        className="w-full px-2 sm:px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed h-11 sm:h-auto min-w-[100px]"
                       />
                     </div>
                   </td>
 
                   {/* Subtotal (Read-only) */}
-                  <td className="px-3 py-2 text-right">
-                    <div className="flex items-center justify-end text-sm font-medium text-gray-900">
-                      <IndianRupee className="h-3 w-3 mr-1" />
+                  <td className="px-2 sm:px-3 py-1 sm:py-2 text-right">
+                    <div className="flex items-center justify-end text-sm sm:text-base font-medium text-gray-900">
+                      <IndianRupee className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                       {calculateSubtotal(item.quantity, item.unit_price).toFixed(2)}
                     </div>
                   </td>
 
                   {/* Delete Button */}
-                  <td className="px-3 py-2 text-center">
+                  <td className="px-2 sm:px-3 py-1 sm:py-2 text-center">
                     <button
                       type="button"
                       onClick={() => handleRemoveItem(rowIndex)}
                       disabled={disabled}
-                      className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="text-red-500 hover:text-red-700 p-2 sm:p-1 rounded hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] sm:min-h-0 flex items-center justify-center mx-auto"
                       title="Delete item"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-5 w-5 sm:h-4 sm:w-4" />
                     </button>
                   </td>
                 </tr>
@@ -330,13 +308,13 @@ const LineItemsGridEntry: React.FC<LineItemsGridEntryProps> = ({
 
             {/* Total Row */}
             {localItems.length > 0 && (
-              <tr className="bg-blue-50 font-semibold">
-                <td colSpan={5} className="px-3 py-3 text-right text-sm text-blue-900">
+              <tr className="bg-green-50 font-semibold">
+                <td colSpan={4} className="px-2 sm:px-3 py-2 sm:py-3 text-right text-sm sm:text-base text-green-900">
                   Total:
                 </td>
-                <td className="px-3 py-3 text-right">
-                  <div className="flex items-center justify-end text-base font-bold text-blue-900">
-                    <IndianRupee className="h-4 w-4 mr-1" />
+                <td className="px-2 sm:px-3 py-2 sm:py-3 text-right">
+                  <div className="flex items-center justify-end text-base sm:text-lg font-bold text-green-900">
+                    <IndianRupee className="h-4 w-4 sm:h-5 sm:w-5 mr-1" />
                     {calculateTotal().toFixed(2)}
                   </div>
                 </td>
@@ -353,14 +331,14 @@ const LineItemsGridEntry: React.FC<LineItemsGridEntryProps> = ({
         variant="secondary"
         onClick={handleAddItem}
         disabled={disabled}
-        className="w-full"
+        className="w-full min-h-[44px] text-sm sm:text-base"
       >
-        <Plus className="h-4 w-4 mr-2" />
+        <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
         Add Line Item
       </Button>
 
-      {/* Keyboard Shortcuts Hint */}
-      <div className="text-xs text-gray-500 bg-gray-50 rounded px-3 py-2 border border-gray-200">
+      {/* Keyboard Shortcuts Hint - Hidden on mobile */}
+      <div className="hidden sm:block text-xs text-gray-500 bg-gray-50 rounded px-3 py-2 border border-gray-200">
         <p className="font-medium mb-1">Keyboard Shortcuts:</p>
         <ul className="space-y-0.5 ml-4">
           <li>• <kbd className="px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-white border border-gray-300 rounded">Tab</kbd> - Move to next cell</li>

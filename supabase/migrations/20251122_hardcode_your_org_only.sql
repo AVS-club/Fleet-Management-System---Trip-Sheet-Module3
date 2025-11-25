@@ -697,3 +697,4 @@ SELECT generate_comparative_kpis();
 
 
 
+

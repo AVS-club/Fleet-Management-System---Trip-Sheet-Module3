@@ -746,44 +746,44 @@ const ServiceGroup = ({
   };
 
   return (
-    <div className="bg-white border-2 border-gray-200 rounded-xl overflow-visible shadow-sm">
+    <div className="bg-white border border-gray-300 rounded-lg overflow-visible">
       {/* Header */}
-      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-          <Wrench className="h-5 w-5 text-green-600" />
+      <div className="bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-200 flex items-center justify-between">
+        <h3 className="text-sm sm:text-base font-semibold text-gray-800 flex items-center gap-2">
+          <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
           Shop/Mechanic {index + 1}
         </h3>
         {canRemove && (
           <button
             type="button"
             onClick={onRemove}
-            className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium flex items-center gap-1"
+            className="px-2 sm:px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 text-xs sm:text-sm font-medium flex items-center gap-1 min-h-[44px] sm:min-h-0"
           >
             <Trash2 className="h-4 w-4" />
-            Remove
+            <span className="hidden sm:inline">Remove</span>
           </button>
         )}
       </div>
 
-      <div className="p-4">
+      <div className="p-2 sm:p-4">
         {/* Quick Entry Fields - Always Visible */}
-        <div className="border-2 border-green-200 rounded-lg p-4 bg-green-50 mb-4">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white sm:bg-gray-50 mb-3 sm:mb-4">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm font-semibold text-green-900">Quick Entry</span>
+            <span className="text-xs sm:text-sm font-semibold text-gray-900">Quick Entry</span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {/* Service Type Selector - Button Version */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 What did you do here? <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => onChange({ ...groupData, serviceType: 'purchase' })}
-                  className={`px-4 py-3 rounded-lg font-medium text-sm transition-all border-2 ${
+                  className={`px-3 sm:px-4 py-3 rounded-lg font-medium text-xs sm:text-sm transition-all border-2 min-h-[44px] ${
                     groupData.serviceType === 'purchase'
                       ? 'bg-indigo-600 text-white border-indigo-700 shadow-md'
                       : 'bg-white text-indigo-700 border-indigo-300 hover:bg-indigo-50'
@@ -794,7 +794,7 @@ const ServiceGroup = ({
                 <button
                   type="button"
                   onClick={() => onChange({ ...groupData, serviceType: 'labor' })}
-                  className={`px-4 py-3 rounded-lg font-medium text-sm transition-all border-2 ${
+                  className={`px-3 sm:px-4 py-3 rounded-lg font-medium text-xs sm:text-sm transition-all border-2 min-h-[44px] ${
                     groupData.serviceType === 'labor'
                       ? 'bg-purple-500 text-white border-purple-600 shadow-md'
                       : 'bg-white text-purple-700 border-purple-300 hover:bg-purple-50'
@@ -805,7 +805,7 @@ const ServiceGroup = ({
                 <button
                   type="button"
                   onClick={() => onChange({ ...groupData, serviceType: 'both' })}
-                  className={`px-4 py-3 rounded-lg font-medium text-sm transition-all border-2 ${
+                  className={`px-3 sm:px-4 py-3 rounded-lg font-medium text-xs sm:text-sm transition-all border-2 min-h-[44px] ${
                     groupData.serviceType === 'both'
                       ? 'bg-teal-600 text-white border-teal-700 shadow-md'
                       : 'bg-white text-teal-700 border-teal-300 hover:bg-teal-50'

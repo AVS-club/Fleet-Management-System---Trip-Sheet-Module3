@@ -2,8 +2,14 @@
 .maintenance-page-container {
   max-width: 1200px !important;
   margin: 0 auto !important;
-  padding: 12px 24px;
+  padding: 8px; /* Mobile: minimal padding */
   width: 100%;
+}
+
+@media (min-width: 640px) {
+  .maintenance-page-container {
+    padding: 12px 24px; /* Desktop: more padding */
+  }
 }
 
 /* Override any existing max-width constraints */
@@ -62,18 +68,33 @@
 .maintenance-form-section {
   background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
   border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: 12px; /* Mobile: reduced padding */
+  margin-bottom: 12px;
   border: 1px solid #e5e7eb;
+}
+
+@media (min-width: 640px) {
+  .maintenance-form-section {
+    padding: 16px; /* Desktop: more padding */
+    margin-bottom: 16px;
+  }
 }
 
 .maintenance-form-section-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  gap: 8px; /* Mobile: smaller gap */
+  margin-bottom: 8px;
+  padding-bottom: 6px;
   border-bottom: 2px solid #e5e7eb;
+}
+
+@media (min-width: 640px) {
+  .maintenance-form-section-header {
+    gap: 12px; /* Desktop: larger gap */
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
 }
 
 .maintenance-form-section-header h3 {

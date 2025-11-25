@@ -751,9 +751,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   };
 
   return (
-    <div>
+    <div className="p-0 sm:p-2">
       <FormProvider {...methods}>
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-3 sm:space-y-6">
         {/* Vehicle & Basic Info */}
         <div className="maintenance-form-section basic-information-section bg-white dark:bg-gray-900">
           <div className="maintenance-form-section-header">
