@@ -12,7 +12,7 @@ import {
 } from "../utils/maintenanceStorage";
 import { getVehicles } from "../utils/storage";
 import Button from "../components/ui/Button";
-import { ChevronLeft, Trash2, Edit, Wrench, Camera, FileText, Clock, Truck, Calendar, IndianRupee, Share2, Copy, CheckCircle, AlertTriangle, Shield, ExternalLink } from "lucide-react";
+import { ChevronLeft, Trash2, Edit, Wrench, Camera, FileText, Clock, Truck, Calendar, IndianRupee, Share2, Copy, CheckCircle, AlertTriangle, Shield, ExternalLink, Eye, Download, MessageCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadFilesAndGetPublicUrls } from "@/utils/supabaseStorage";
 import { processAllServiceGroupFiles, FileUploadCallback } from "@/utils/maintenanceFileUpload";
@@ -271,7 +271,15 @@ const MaintenanceTaskPage: React.FC = () => {
         // Transform parts_data (snake_case) to parts (camelCase) for the form
         // normalizeServiceGroupForFrontend may have already converted parts_data → partsData
         const partsArray = group.partsData || group.parts_data || [];
-        const transformedParts = await Promise.all(partsArray.map(async (part: any) => {
+        
+        // ✅ FIX: Filter out empty/deleted parts (those without partType or partName)
+        const validParts = partsArray.filter((part: any) => {
+          const hasPartType = (part.partType || part.part_type || '').trim() !== '';
+          const hasPartName = (part.partName || part.part_name || '').trim() !== '';
+          return hasPartType || hasPartName; // Keep part if it has at least type or name
+        });
+        
+        const transformedParts = await Promise.all(validParts.map(async (part: any) => {
           // Get warranty document URL and ensure it's accessible (signed URL if needed)
           const warrantyUrl = part.warrantyDocumentUrl || part.warranty_document_url || part.warrantyUrl || part.warranty_url || null;
           const accessibleWarrantyUrl = warrantyUrl ? (await getAccessibleUrls([warrantyUrl]))[0] || warrantyUrl : null;
@@ -1523,43 +1531,90 @@ const MaintenanceTaskPage: React.FC = () => {
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {transformedFormData.supporting_documents_urls.map((url: string, idx: number) => (
-                        <a
-                          key={idx}
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block relative rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-colors group"
-                        >
-                          {isPdfUrl(url) ? (
-                            // PDF Display with filename
-                            <div className="flex items-center gap-3 p-4 bg-purple-50">
-                              <FileText className="h-12 w-12 text-purple-600 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">
+                        <div key={idx} className="border-2 border-gray-200 rounded-lg overflow-hidden hover:border-purple-500 transition-colors">
+                          {/* Document Preview */}
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block relative group"
+                          >
+                            {isPdfUrl(url) ? (
+                              // PDF Display
+                              <div className="flex items-center gap-3 p-4 bg-purple-50">
+                                <FileText className="h-12 w-12 text-purple-600 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {getFilenameFromUrl(url)}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">PDF Document</p>
+                                </div>
+                              </div>
+                            ) : (
+                              // Image Display
+                              <>
+                                <div className="aspect-square">
+                                  <img
+                                    src={url}
+                                    alt={getFilenameFromUrl(url)}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📎%3C/text%3E%3C/svg%3E';
+                                    }}
+                                  />
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity truncate">
                                   {getFilenameFromUrl(url)}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">PDF Document #{idx + 1}</p>
-                              </div>
-                            </div>
-                          ) : (
-                            // Image Display
-                            <>
-                              <div className="aspect-square">
-                                <img
-                                  src={url}
-                                  alt={`Supporting Document ${idx + 1}`}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📎%3C/text%3E%3C/svg%3E';
-                                  }}
-                                />
-                              </div>
-                              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                Document {idx + 1}
-                              </div>
-                            </>
-                          )}
-                        </a>
+                                </div>
+                              </>
+                            )}
+                          </a>
+
+                          {/* Action Buttons - View, Download, WhatsApp */}
+                          <div className="grid grid-cols-3 gap-1 p-2 bg-gray-50 border-t border-gray-200">
+                            {/* View Button */}
+                            <button
+                              onClick={() => window.open(url, '_blank')}
+                              className="flex flex-col items-center justify-center gap-1 p-2 rounded hover:bg-blue-100 transition-colors group"
+                              title="View Document"
+                            >
+                              <Eye className="h-4 w-4 text-blue-600" />
+                              <span className="text-xs text-blue-600 font-medium">View</span>
+                            </button>
+
+                            {/* Download Button */}
+                            <a
+                              href={url}
+                              download={getFilenameFromUrl(url)}
+                              className="flex flex-col items-center justify-center gap-1 p-2 rounded hover:bg-green-100 transition-colors"
+                              title="Download Document"
+                            >
+                              <Download className="h-4 w-4 text-green-600" />
+                              <span className="text-xs text-green-600 font-medium">Download</span>
+                            </a>
+
+                            {/* WhatsApp Button */}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const filename = getFilenameFromUrl(url);
+                                  const vehicleReg = task.vehicle_id || 'Maintenance Task';
+                                  const message = `📄 Vehicle: ${vehicleReg}\n\nDocument: ${filename}\n\n${url}`;
+                                  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                                  window.open(whatsappUrl, '_blank');
+                                  toast.success('Opening WhatsApp...');
+                                } catch (error) {
+                                  toast.error('Failed to share via WhatsApp');
+                                }
+                              }}
+                              className="flex flex-col items-center justify-center gap-1 p-2 rounded hover:bg-emerald-100 transition-colors"
+                              title="Share via WhatsApp"
+                            >
+                              <MessageCircle className="h-4 w-4 text-emerald-600" />
+                              <span className="text-xs text-emerald-600 font-medium">WhatsApp</span>
+                            </button>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
