@@ -1010,7 +1010,7 @@ const ServiceGroup = ({
                     <button
                       type="button"
                       onClick={addPart}
-                      className="w-full py-2 sm:py-3 border border-dashed border-gray-300 rounded sm:rounded-lg text-gray-600 hover:border-green-400 hover:text-green-600 hover:bg-green-50 flex items-center justify-center gap-1 sm:gap-2 font-medium text-sm sm:text-base"
+                      className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-green-400 hover:text-green-600 hover:bg-green-50 flex items-center justify-center gap-2 font-medium"
                     >
                       <Plus className="h-4 w-4" />
                       Add Another Part
@@ -1135,7 +1135,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
         <button
             type="button"
             onClick={addServiceGroup}
-          className="w-full py-2 sm:py-4 border border-dashed border-gray-300 rounded sm:rounded-xl text-gray-600 hover:border-green-500 hover:text-green-600 hover:bg-green-50 flex items-center justify-center gap-1 sm:gap-2 font-semibold text-sm sm:text-lg"
+          className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-green-500 hover:text-green-600 hover:bg-green-50 flex items-center justify-center gap-2 font-semibold text-lg"
         >
           <Plus className="h-5 w-5" />
           Add Another Shop/Mechanic

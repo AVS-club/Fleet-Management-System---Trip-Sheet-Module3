@@ -5,7 +5,6 @@ import "./index.css";
 import "./styles/mobile-dashboard.css";
 import "./styles/navigation-mobile.css";
 import "./styles/mobile.css";
-import "./styles/aggressiveMobileOptimization.css";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./utils/themeContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
