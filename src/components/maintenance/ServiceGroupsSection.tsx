@@ -747,13 +747,13 @@ const ServiceGroup = ({
 
   return (
     <div className="bg-white border border-gray-300 rounded-lg overflow-visible">
-      {/* Header */}
-      <div className="bg-gray-50 px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-200 flex items-center justify-between">
-        <h3 className="text-sm sm:text-base font-semibold text-gray-800 flex items-center gap-2">
-          <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-          Shop/Mechanic {index + 1}
-        </h3>
-        {canRemove && (
+      {/* Header - Hidden for first service group, shown only for additional ones with Remove button */}
+      {canRemove && (
+        <div className="bg-gray-50 px-3 sm:px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+            <Wrench className="h-4 w-4 text-green-600" />
+            Shop/Mechanic {index + 1}
+          </h3>
           <button
             type="button"
             onClick={onRemove}
@@ -762,8 +762,8 @@ const ServiceGroup = ({
             <Trash2 className="h-4 w-4" />
             <span className="hidden sm:inline">Remove</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="p-2 sm:p-3">
         {/* Quick Entry Fields - Always Visible */}
