@@ -761,7 +761,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   return (
     <div className="w-full">
       <FormProvider {...methods}>
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-2 sm:space-y-6">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-1 sm:space-y-6">
         {/* Vehicle & Basic Info */}
         <div className="maintenance-form-section service-details-override bg-white dark:bg-gray-900">
           <div className="maintenance-form-section-header">
@@ -771,7 +771,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             <h3 className="section-title text-gray-900 dark:text-gray-100">Basic Information</h3>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-5">
             <Controller
               control={control}
               name="vehicle_id"
@@ -842,7 +842,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         {/* Downtime Tracking and Odometer Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left side: Downtime Tracking */}
-          <div className="space-y-5">
+          <div className="space-y-2 sm:space-y-5">
             <DowntimeSummary />
           </div>
           

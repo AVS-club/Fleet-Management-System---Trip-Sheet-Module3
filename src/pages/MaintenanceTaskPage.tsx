@@ -17,6 +17,7 @@ import { toast } from "react-toastify";
 import { uploadFilesAndGetPublicUrls } from "@/utils/supabaseStorage";
 import { processAllServiceGroupFiles, FileUploadCallback } from "@/utils/maintenanceFileUpload";
 import "../styles/maintenanceFormUpdates.css";
+import "../styles/aggressiveMobileOptimization.css";
 import { createLogger } from '../utils/logger';
 import SaveDiagnosticsModal, { SaveOperation, OperationStatus } from '../components/maintenance/SaveDiagnosticsModal';
 import { convertServiceGroupsToDatabase } from '../components/maintenance/ServiceGroupsSection';
@@ -846,7 +847,6 @@ const MaintenanceTaskPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="w-full">
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -857,22 +857,23 @@ const MaintenanceTaskPage: React.FC = () => {
       ) : (
         <>
           {/* ========== FULL WIDTH HEADER ========== */}
-          <div className="rounded-none sm:rounded-xl border-0 sm:border bg-white dark:bg-white px-3 sm:px-4 py-2 sm:py-3 mb-1 sm:mb-6">
+          <div className="rounded-none sm:rounded-xl border-0 sm:border bg-white dark:bg-white px-2 sm:px-4 py-1 sm:py-3 mb-0 sm:mb-6">
             <div className="flex items-center group">
-              <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-              <h1 className="text-xl sm:text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
+              <Wrench className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+              <h1 className="text-lg sm:text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
                 Maintenance Task
               </h1>
             </div>
-            <p className="text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 ml-7">
+            <p className="text-[10px] sm:text-sm font-sans text-gray-500 dark:text-gray-400 mt-0 sm:mt-1 ml-5 sm:ml-7">
               Create and manage vehicle maintenance records
             </p>
-            <div className="mt-2 sm:mt-4 flex flex-wrap gap-2">
+            <div className="mt-1 sm:mt-4 flex flex-wrap gap-1 sm:gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate("/maintenance")}
-                icon={<ChevronLeft className="h-4 w-4" />}
+                icon={<ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />}
+                className="text-xs sm:text-sm py-1 px-2 sm:py-1.5 sm:px-3"
               >
                 Back to Maintenance
               </Button>
@@ -894,7 +895,7 @@ const MaintenanceTaskPage: React.FC = () => {
             task ? (
               <div className="space-y-6">
                 {/* Basic Task Details */}
-                <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+                <div className="bg-white rounded sm:rounded-lg shadow-sm p-3 sm:p-6 space-y-3 sm:space-y-6">
                   {/* Header with Edit Button */}
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -952,7 +953,7 @@ const MaintenanceTaskPage: React.FC = () => {
                     </div>
                     
                     {/* Odometer Reading */}
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-orange-200">
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-md sm:rounded-xl p-2 sm:p-4 border border-orange-200">
                       <label className="text-sm font-medium text-gray-600 mb-2 block flex items-center gap-1">
                         <span role="img" aria-label="odometer" className="text-base">🧭</span>
                         Odometer Reading

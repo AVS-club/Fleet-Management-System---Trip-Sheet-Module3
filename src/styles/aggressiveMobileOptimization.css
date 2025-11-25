@@ -1,0 +1,213 @@
+/* Ultra Aggressive Mobile Optimization - 95% Edge-to-Edge */
+@media (max-width: 640px) {
+  /* Global resets for mobile */
+  * {
+    letter-spacing: normal !important;
+  }
+
+  /* Main containers */
+  body, html {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Organization badge - ultra compact */
+  .bg-amber-100, .bg-yellow-50 {
+    padding: 2px 6px !important;
+    border-radius: 2px !important;
+  }
+
+  /* All sections and cards */
+  section, .bg-white, .rounded-lg, .rounded-xl, .shadow-sm {
+    padding: 6px !important;
+    margin: 2px 0 !important;
+    border-radius: 4px !important;
+  }
+
+  /* Headers and titles */
+  h1, h2, h3 {
+    margin-top: 4px !important;
+    margin-bottom: 2px !important;
+  }
+
+  /* Form elements */
+  input, select, textarea {
+    height: 36px !important;
+    padding: 4px 6px !important;
+    font-size: 14px !important;
+  }
+
+  /* All buttons */
+  button {
+    padding: 6px 10px !important;
+    min-height: 32px !important;
+    height: auto !important;
+    border-radius: 4px !important;
+    font-size: 13px !important;
+  }
+
+  /* Priority buttons specific */
+  .priority-button {
+    padding: 4px 8px !important;
+  }
+
+  /* Dashed borders (Add Shop buttons) */
+  .border-dashed {
+    border-width: 1px !important;
+    padding: 8px !important;
+    margin: 6px 0 !important;
+  }
+
+  /* Service groups */
+  .service-group-container {
+    padding: 4px !important;
+    margin: 4px 0 !important;
+  }
+
+  /* Remove all unnecessary margins */
+  .mt-4, .mt-6, .mb-4, .mb-6 {
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .space-y-6 > * + * {
+    margin-top: 4px !important;
+  }
+
+  .space-y-4 > * + * {
+    margin-top: 2px !important;
+  }
+
+  .gap-4, .gap-6 {
+    gap: 4px !important;
+  }
+
+  /* Tables ultra compact */
+  th, td {
+    padding: 2px 4px !important;
+    font-size: 11px !important;
+  }
+
+  /* Icon sizes */
+  .h-5.w-5 {
+    height: 16px !important;
+    width: 16px !important;
+  }
+
+  .h-4.w-4 {
+    height: 14px !important;
+    width: 14px !important;
+  }
+
+  /* Remove rounded corners on mobile for edge-to-edge feel */
+  .rounded-none {
+    border-radius: 0 !important;
+  }
+
+  /* Full width everything */
+  .max-w-md, .max-w-lg, .max-w-xl, .max-w-2xl {
+    max-width: 100% !important;
+  }
+
+  /* Header specific */
+  header {
+    padding: 4px !important;
+  }
+
+  /* Navigation */
+  nav {
+    padding: 2px !important;
+  }
+
+  /* Form specific overrides */
+  form > div {
+    margin-bottom: 4px !important;
+  }
+
+  /* Labels */
+  label {
+    font-size: 12px !important;
+    margin-bottom: 2px !important;
+  }
+
+  /* Error messages */
+  .text-red-500, .text-red-600 {
+    font-size: 11px !important;
+  }
+
+  /* Tooltips and help text */
+  .text-xs {
+    font-size: 10px !important;
+  }
+
+  .text-sm {
+    font-size: 12px !important;
+  }
+
+  /* Grid gaps ultra tight */
+  .grid {
+    gap: 4px !important;
+  }
+
+  /* Flex gaps ultra tight */
+  .flex {
+    gap: 2px !important;
+  }
+
+  /* Border widths */
+  .border-2 {
+    border-width: 1px !important;
+  }
+
+  /* Padding overrides for specific elements */
+  .p-6 {
+    padding: 6px !important;
+  }
+
+  .p-4 {
+    padding: 4px !important;
+  }
+
+  .p-3 {
+    padding: 3px !important;
+  }
+
+  .p-2 {
+    padding: 2px !important;
+  }
+
+  .px-4 {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+
+  .py-3 {
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+  }
+
+  .px-3 {
+    padding-left: 3px !important;
+    padding-right: 3px !important;
+  }
+
+  .py-2 {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+  }
+
+  /* Line heights */
+  .leading-relaxed {
+    line-height: 1.2 !important;
+  }
+
+  /* Remove decorative elements on mobile */
+  .shadow-lg, .shadow-xl {
+    box-shadow: none !important;
+  }
+
+  /* Backdrop blur removed for performance */
+  .backdrop-blur {
+    backdrop-filter: none !important;
+  }
+}

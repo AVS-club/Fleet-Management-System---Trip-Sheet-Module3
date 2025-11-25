@@ -20,7 +20,7 @@ const Layout: React.FC<LayoutProps> = ({
       <Header />
       <MobileNavigation />
 
-      <main className="mx-auto max-w-7xl px-0 sm:px-6 lg:px-8 py-2 sm:py-6 lg:py-8">
+      <main className="mx-auto max-w-full sm:max-w-7xl px-0 sm:px-6 lg:px-8 py-0 sm:py-6 lg:py-8">
         {/* Page Header with Title and Actions */}
         {(title || actions) && (
           <div className="mb-6">
