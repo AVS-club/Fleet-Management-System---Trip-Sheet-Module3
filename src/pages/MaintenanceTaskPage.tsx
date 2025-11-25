@@ -846,7 +846,7 @@ const MaintenanceTaskPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="w-full">
+      <div className="maintenance-page-container">
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -857,7 +857,7 @@ const MaintenanceTaskPage: React.FC = () => {
       ) : (
         <>
           {/* ========== FULL WIDTH HEADER ========== */}
-          <div className="rounded-none sm:rounded-xl border-0 sm:border bg-white dark:bg-white px-3 sm:px-4 py-2 sm:py-3 mb-1 sm:mb-6">
+          <div className="rounded-lg sm:rounded-xl border-0 sm:border bg-white dark:bg-white px-2 sm:px-4 py-2 sm:py-3 mb-1 sm:mb-6">
             <div className="flex items-center group">
               <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
               <h1 className="text-xl sm:text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
@@ -894,7 +894,7 @@ const MaintenanceTaskPage: React.FC = () => {
             task ? (
               <div className="space-y-6">
                 {/* Basic Task Details */}
-                <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-4 sm:space-y-6">
                   {/* Header with Edit Button */}
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between gap-3 flex-wrap">

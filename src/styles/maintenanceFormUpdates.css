@@ -319,3 +319,44 @@
     font-size: 0.875rem;
   }
 }
+
+/* Mobile-specific optimizations for maintenance forms */
+@media (max-width: 640px) {
+  /* Maintenance page container - minimal side padding */
+  .maintenance-page-container {
+    padding: 0 8px !important;
+    max-width: 100% !important;
+  }
+  
+  /* Form wrapper - extend slightly with negative margins */
+  .maintenance-form-wrapper {
+    margin-left: -4px;
+    margin-right: -4px;
+    padding: 0 4px;
+  }
+  
+  /* Form sections - reduced padding but keep rounded corners */
+  .maintenance-form-section {
+    padding: 10px !important;
+    margin-left: -2px;
+    margin-right: -2px;
+    border-radius: 8px !important; /* Keep curves, smaller radius */
+  }
+  
+  /* Section headers - compact */
+  .maintenance-form-section-header {
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+    padding-bottom: 6px !important;
+  }
+  
+  /* Priority buttons - keep proportional */
+  .priority-buttons {
+    gap: 6px;
+  }
+  
+  .priority-button {
+    padding: 10px 6px;
+    border-radius: 6px;
+  }
+}

@@ -759,7 +759,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   };
 
   return (
-    <div className="w-full">
+    <div className="maintenance-form-wrapper">
       <FormProvider {...methods}>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-2 sm:space-y-6">
         {/* Vehicle & Basic Info */}
