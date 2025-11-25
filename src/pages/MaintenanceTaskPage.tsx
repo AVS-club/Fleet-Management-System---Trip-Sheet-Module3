@@ -944,7 +944,7 @@ const MaintenanceTaskPage: React.FC = () => {
                         Vehicle
                       </label>
                       <div className="flex items-center gap-2">
-                        <span className="bg-white text-teal-700 px-3 py-1.5 rounded-lg font-semibold border-2 border-teal-300 shadow-sm text-sm">
+                        <span className="bg-white text-teal-700 px-3 py-1.5 rounded-lg font-semibold border-2 border-teal-300 shadow-sm text-base">
                           {vehicles.find((v) => v.id === task.vehicle_id)?.registration_number || 'Unknown'}
                         </span>
                       </div>
@@ -957,7 +957,7 @@ const MaintenanceTaskPage: React.FC = () => {
                         Odometer Reading
                       </label>
                       <div className="flex items-center gap-2">
-                        <span className="bg-white text-orange-700 px-3 py-1.5 rounded-lg font-bold border-2 border-orange-300 shadow-sm text-lg">
+                        <span className="bg-white text-orange-700 px-3 py-1.5 rounded-lg font-semibold border-2 border-orange-300 shadow-sm text-base">
                           {task.odometer_reading ? `${task.odometer_reading.toLocaleString()} km` : 'Not specified'}
                         </span>
                       </div>
@@ -967,7 +967,7 @@ const MaintenanceTaskPage: React.FC = () => {
                     <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
                       <label className="text-sm font-medium text-gray-600 mb-2 block">Task Type</label>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-block bg-white text-purple-700 px-3 py-1.5 rounded-lg font-semibold capitalize border-2 border-purple-300 shadow-sm text-sm">
+                        <span className="inline-block bg-white text-purple-700 px-3 py-1.5 rounded-lg font-semibold capitalize border-2 border-purple-300 shadow-sm text-base">
                           {task.task_type?.replace(/_/g, ' ') || 'Not specified'}
                         </span>
                         {/* Status Badge */}
