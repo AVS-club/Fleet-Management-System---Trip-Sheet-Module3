@@ -290,10 +290,14 @@
   }
   
   .priority-buttons {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
   }
   
   .priority-button {
     width: 100%;
+    padding: 12px 8px;
+    font-size: 0.875rem;
   }
 }

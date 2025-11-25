@@ -765,14 +765,9 @@ const ServiceGroup = ({
         )}
       </div>
 
-      <div className="p-2 sm:p-4">
+      <div className="p-2 sm:p-3">
         {/* Quick Entry Fields - Always Visible */}
-        <div className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white sm:bg-gray-50 mb-3 sm:mb-4">
-          <div className="flex items-center gap-2 mb-2 sm:mb-3">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs sm:text-sm font-semibold text-gray-900">Quick Entry</span>
-          </div>
-
+        <div className="border border-gray-200 rounded-lg p-2 sm:p-3 bg-white sm:bg-gray-50 mb-2 sm:mb-3">
           <div className="space-y-2 sm:space-y-3">
             {/* Service Type Selector - Button Version */}
             <div>
@@ -1112,10 +1107,15 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
         <div className="icon">
           <Wrench className="h-5 w-5" />
         </div>
-        <h3 className="section-title">Service Groups</h3>
+        <h3 className="section-title flex items-center gap-2">
+          Service Groups 
+          {serviceGroups.length > 0 && (
+            <span className="text-sm font-normal text-gray-500">- Shop/Mechanic 1</span>
+          )}
+        </h3>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {serviceGroups.map((group, index) => (
           <ServiceGroup
             key={group.id}

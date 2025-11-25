@@ -41,8 +41,8 @@ const logger = createLogger('MaintenanceTaskForm');
 const ServiceDetailsSection = () => {
   const { watch, setValue, register } = useFormContext();
   const [selectedOption, setSelectedOption] = useState('');
-  const [displayStartTime] = useState('09:00');
-  const [displayEndTime, setDisplayEndTime] = useState('09:00');
+  const [displayStartTime] = useState('10:00');
+  const [displayEndTime, setDisplayEndTime] = useState('10:00');
   
   // Watch form values
   const startDate = watch('start_date');
@@ -77,6 +77,26 @@ const ServiceDetailsSection = () => {
     }
   }, [downtimeDays, downtimeHours]); // Only run when downtime values change
 
+  // Handle date change
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    setValue('start_date', newDate);
+    
+    // If a quick select is active, recalculate end date
+    if (downtimeDays > 0 || downtimeHours > 0) {
+      const start = new Date(newDate);
+      if (downtimeHours > 0 && downtimeDays === 0) {
+        setValue('end_date', start.toISOString().split('T')[0]);
+        const endHour = (10 + downtimeHours) % 24;
+        setDisplayEndTime(`${endHour.toString().padStart(2, '0')}:00`);
+      } else {
+        const end = new Date(start.getTime() + downtimeDays * 24 * 60 * 60 * 1000);
+        setValue('end_date', end.toISOString().split('T')[0]);
+        setDisplayEndTime('10:00');
+      }
+    }
+  };
+
   // Handle quick select
   const handleQuickSelect = (days: number, hours: number, optionId: string) => {
     setSelectedOption(optionId);
@@ -90,13 +110,13 @@ const ServiceDetailsSection = () => {
       setValue('end_date', start.toISOString().split('T')[0]);
       
       // Calculate display time
-      const endHour = (9 + hours) % 24;
+      const endHour = (10 + hours) % 24;
       setDisplayEndTime(`${endHour.toString().padStart(2, '0')}:00`);
     } else {
       // For days: add days
       const end = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
       setValue('end_date', end.toISOString().split('T')[0]);
-      setDisplayEndTime('09:00');
+      setDisplayEndTime('10:00');
     }
   };
 
@@ -117,13 +137,38 @@ const ServiceDetailsSection = () => {
 
   return (
     <>
-      {/* Service Details Box */}
-      <div className="maintenance-form-section service-details-override bg-white dark:bg-gray-900">
-        <div className="maintenance-form-section-header">
-          <div className="icon">
-            <Calendar className="h-5 w-5" />
+      {/* Dates */}
+      <div className="mt-5">
+        {/* Date Fields */}
+        <div className="grid grid-cols-2 gap-6 mb-5">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Start Date *
+            </label>
+            <input
+              type="date"
+              value={startDate || ''}
+              onChange={handleDateChange}
+              className="w-full px-4 py-3 border-2 border-green-200 dark:border-gray-700 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800 text-gray-700 dark:text-gray-100 font-medium shadow-sm focus:border-green-400 focus:ring-2 focus:ring-green-200"
+            />
           </div>
-          <h3>Service Details</h3>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              End Date {selectedOption && `(${formatDisplay(endDate, true)})`}
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formatDisplay(endDate, true)}
+                readOnly
+                className="w-full px-4 py-3 border-2 border-green-200 dark:border-gray-700 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800 text-gray-700 dark:text-gray-100 font-medium shadow-sm focus:border-green-400 focus:ring-2 focus:ring-green-200"
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <Calendar className="h-5 w-5 text-green-500" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Quick Select */}
@@ -159,43 +204,6 @@ const ServiceDetailsSection = () => {
                       </button>
                     ))}
                   </div>
-        </div>
-
-        {/* Date Display Fields */}
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Start Date *
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formatDisplay(startDate)}
-                readOnly
-                className="w-full px-4 py-3 border-2 border-green-200 dark:border-gray-700 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800 text-gray-700 dark:text-gray-100 font-medium shadow-sm focus:border-green-400 focus:ring-2 focus:ring-green-200"
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <Calendar className="h-5 w-5 text-green-500" />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              End Date
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formatDisplay(endDate, true)}
-                readOnly
-                className="w-full px-4 py-3 border-2 border-green-200 dark:border-gray-700 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800 text-gray-700 dark:text-gray-100 font-medium shadow-sm focus:border-green-400 focus:ring-2 focus:ring-green-200"
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <Calendar className="h-5 w-5 text-green-500" />
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -755,7 +763,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       <FormProvider {...methods}>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-3 sm:space-y-6">
         {/* Vehicle & Basic Info */}
-        <div className="maintenance-form-section basic-information-section bg-white dark:bg-gray-900">
+        <div className="maintenance-form-section service-details-override bg-white dark:bg-gray-900">
           <div className="maintenance-form-section-header">
             <div className="icon">
               <Truck className="h-5 w-5" />
@@ -812,6 +820,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               />
             )}
           />
+
+          {/* Service Details - Dates and Quick Select integrated here */}
+          <ServiceDetailsSection />
         </div>
 
         {/* Service Groups */}
@@ -828,11 +839,10 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           onResolutionTranscript={handleResolutionTranscript}
         />
 
-        {/* Service Details and Odometer Section */}
+        {/* Downtime Tracking and Odometer Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left side: Service Details and Downtime Tracking */}
+          {/* Left side: Downtime Tracking */}
           <div className="space-y-5">
-            <ServiceDetailsSection />
             <DowntimeSummary />
           </div>
           
