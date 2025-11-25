@@ -11,22 +11,18 @@ const TASK_TYPES = [
   {
     value: "general_scheduled_service",
     label: "General Scheduled Service",
-    description: "Regular maintenance and service",
   },
   {
     value: "wear_and_tear_replacement_repairs",
     label: "Wear and Tear / Replacement Repairs",
-    description: "Parts replacement due to normal wear",
   },
   {
     value: "accidental",
     label: "Accidental",
-    description: "Repairs due to accidents or damage",
   },
   {
     value: "others",
     label: "Others",
-    description: "Other maintenance activities",
   },
 ];
 
@@ -85,7 +81,7 @@ const TaskTypeSelector: React.FC<TaskTypeSelectorProps> = ({
   }, [isOpen]);
 
   const filteredTaskTypes = TASK_TYPES.filter((taskType) =>
-    `${taskType.label} ${taskType.description}`
+    taskType.label
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
@@ -163,7 +159,7 @@ const TaskTypeSelector: React.FC<TaskTypeSelectorProps> = ({
               {filteredTaskTypes.map((taskType) => (
                 <div
                   key={taskType.value}
-                  className={`p-4 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 ${
+                  className={`p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 ${
                     selectedTaskType === taskType.value ? "bg-primary-50" : ""
                   }`}
                   onClick={() => {
@@ -174,14 +170,9 @@ const TaskTypeSelector: React.FC<TaskTypeSelectorProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <PenTool className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <span className="font-medium text-gray-900">
-                          {taskType.label}
-                        </span>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {taskType.description}
-                        </p>
-                      </div>
+                      <span className="font-medium text-gray-900">
+                        {taskType.label}
+                      </span>
                     </div>
                     {selectedTaskType === taskType.value && (
                       <Check className="h-4 w-4 text-primary-600" />
