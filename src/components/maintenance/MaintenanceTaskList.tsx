@@ -647,11 +647,12 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
           {/* View Breakdown Button */}
           <button
             onClick={() => setShowBreakdown(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium text-sm"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium text-xs sm:text-sm whitespace-nowrap"
           >
-            <BarChart3 className="h-4 w-4" />
-            <span>View Breakdown</span>
-            <span className="bg-white text-purple-700 rounded-full px-2 py-0.5 text-xs font-bold">
+            <BarChart3 className="h-4 w-4 flex-shrink-0" />
+            <span className="hidden sm:inline">View Breakdown</span>
+            <span className="sm:hidden">Breakdown</span>
+            <span className="bg-white text-purple-700 rounded-full px-1.5 sm:px-2 py-0.5 text-xs font-bold">
               {tasks.length}
             </span>
           </button>
