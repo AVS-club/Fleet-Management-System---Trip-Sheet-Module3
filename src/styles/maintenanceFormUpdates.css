@@ -320,6 +320,56 @@
   }
 }
 
+/* Targeted Mobile Optimization - Maintenance Forms Only */
+@media (max-width: 640px) {
+  /* Page container - minimal side padding */
+  .maintenance-page-container {
+    padding: 0 8px !important;
+    margin: 0 !important;
+  }
+  
+  /* Form sections - reduced padding with slight extension */
+  .maintenance-form-section {
+    padding: 10px !important;
+    margin-left: -4px;
+    margin-right: -4px;
+    border-radius: 8px !important; /* Keep curves, just smaller */
+  }
+  
+  /* Form wrapper - extend to edges */
+  .maintenance-form-wrapper {
+    margin-left: -8px;
+    margin-right: -8px;
+    padding: 0 8px;
+  }
+  
+  /* Section headers - compact but readable */
+  .maintenance-form-section-header {
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+    padding-bottom: 6px !important;
+  }
+  
+  /* Icons slightly smaller on mobile */
+  .maintenance-form-section-header .icon {
+    width: 26px !important;
+    height: 26px !important;
+  }
+  
+  /* Priority buttons stay usable */
+  .priority-button {
+    padding: 10px 6px !important;
+    font-size: 0.875rem !important;
+  }
+  
+  /* Keep all rounded corners for aesthetics */
+  .maintenance-form-section,
+  .rounded-lg,
+  .rounded-xl {
+    border-radius: 8px !important;
+  }
+}
+
 /* Mobile-specific optimizations for maintenance forms */
 @media (max-width: 640px) {
   /* Maintenance page container - minimal side padding */
