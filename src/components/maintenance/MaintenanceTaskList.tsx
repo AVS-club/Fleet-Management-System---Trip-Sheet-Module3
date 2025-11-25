@@ -3,9 +3,10 @@ import { MaintenanceTask, Vehicle } from '@/types';
 import { format, parseISO } from 'date-fns';
 import VehicleTagBadges from '../vehicles/VehicleTagBadges';
 import { getVendors } from '@/utils/vendorStorage';
-import { Eye, Edit, Calendar, Truck, IndianRupee, Clock, Wrench, ChevronUp, ChevronDown, Search, X, Filter, ChevronRight, LayoutGrid, List } from 'lucide-react';
+import { Eye, Edit, Calendar, Truck, IndianRupee, Clock, Wrench, ChevronUp, ChevronDown, Search, X, Filter, ChevronRight, LayoutGrid, List, BarChart3 } from 'lucide-react';
 import Button from '../ui/Button';
 import MaintenanceCard from './MaintenanceCard';
+import TaskBreakdownModal from './TaskBreakdownModal';
 import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
 import { useCleanup, useIsMounted } from '@/hooks/useCleanup';
 
@@ -46,6 +47,7 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE_TASKS);
   const listContainerRef = useRef<HTMLDivElement | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [showBreakdown, setShowBreakdown] = useState<boolean>(false);
 
   // Use debounced search hook for better performance
   const {
@@ -197,39 +199,6 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
     return '';
   };
 
-  // Helper: Get warranty status
-  const getWarrantyStatus = (task: MaintenanceTask): { status: string; color: string } => {
-    if (!task.warranty_status || task.warranty_status === 'not_applicable') {
-      return { status: 'N/A', color: 'bg-gray-100 text-gray-600' };
-    }
-    if (task.warranty_status === 'valid') {
-      return { status: 'Active', color: 'bg-green-100 text-green-700' };
-    }
-    return { status: 'Expired', color: 'bg-red-100 text-red-700' };
-  };
-
-  // Helper: Get parts count from all service groups
-  const getPartsCount = (task: MaintenanceTask): number => {
-    if (!task.service_groups) return 0;
-    return task.service_groups.reduce((total, group) => {
-      const parts = (group as any).parts_data || (group as any).partsData || (group as any).parts || [];
-      return total + (Array.isArray(parts) ? parts.length : 0);
-    }, 0);
-  };
-
-  // Helper: Get document counts (bills + supporting docs)
-  const getDocumentCounts = (task: MaintenanceTask): { bills: number; docs: number } => {
-    let billsCount = 0;
-    if (task.service_groups) {
-      billsCount = task.service_groups.reduce((total, group) => {
-        const bills = (group as any).bill_url || [];
-        return total + (Array.isArray(bills) ? bills.length : 0);
-      }, 0);
-    }
-    const docsCount = task.attachments?.length || 0;
-    return { bills: billsCount, docs: docsCount };
-  };
-
   // Helper: Format next service due
   const getNextServiceDue = (task: MaintenanceTask): string => {
     if (task.next_service_due) {
@@ -244,7 +213,7 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
     return '—';
   };
 
-  // New helper functions for expanded columns
+  // Helper functions for expanded columns
   const getWarrantyStatus = (task: MaintenanceTask): { status: string; color: string; text: string } => {
     if (task.warranty_status === 'not_applicable' || !task.warranty_expiry) {
       return { status: 'N/A', color: 'bg-gray-100 text-gray-600 border-gray-200', text: 'N/A' };
@@ -575,6 +544,31 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
     setVisibleCount(prev => Math.min(prev + LOAD_INCREMENT, sortedTasks.length));
   };
 
+  // Handle filter by category from breakdown modal
+  const handleFilterByCategory = (category: string, value: string) => {
+    setShowBreakdown(false); // Close modal
+    
+    switch (category) {
+      case 'status':
+        setFilterStatus(value);
+        break;
+      case 'priority':
+        setFilterPriority(value);
+        break;
+      case 'taskType':
+        setFilterTaskType(value);
+        break;
+      case 'vehicle':
+        setFilterVehicle(value);
+        break;
+      default:
+        break;
+    }
+    
+    // Scroll to top of list
+    listContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Calculate summary statistics
   const totalTasks = sortedTasks.length;
   const totalExpenditure = sortedTasks.reduce((sum, task) => sum + (task.total_cost || 0), 0);
@@ -649,6 +643,18 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
               </button>
             )}
           </div>
+
+          {/* View Breakdown Button */}
+          <button
+            onClick={() => setShowBreakdown(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg font-medium text-sm"
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span>View Breakdown</span>
+            <span className="bg-white text-purple-700 rounded-full px-2 py-0.5 text-xs font-bold">
+              {tasks.length}
+            </span>
+          </button>
 
           {/* Status Filter */}
           <div className="flex gap-2 flex-wrap">
@@ -1342,6 +1348,17 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
             </button>
           )}
         </div>
+      )}
+
+      {/* Task Breakdown Modal */}
+      {showBreakdown && (
+        <TaskBreakdownModal
+          tasks={tasks}
+          vehicles={vehicles}
+          vendorsMap={vendorsMap}
+          onClose={() => setShowBreakdown(false)}
+          onFilterByCategory={handleFilterByCategory}
+        />
       )}
     </div>
   );
