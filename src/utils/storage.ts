@@ -810,28 +810,42 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
 };
 
 // Get latest odometer reading
-export const getLatestOdometer = async (vehicleId: string): Promise<{ value: number; fromTrip: boolean }> => {
+export const getLatestOdometer = async (vehicleId: string): Promise<{ value: number; fromTrip: boolean; tripDate: string | null; daysOld: number }> => {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError) {
       if (isNetworkError(userError)) {
         if (config.isDev) logger.warn('Network error fetching user for odometer, returning default');
-        return { value: 0, fromTrip: false };
+        return { value: 0, fromTrip: false, tripDate: null, daysOld: 0 };
       }
       handleSupabaseError('get user for odometer', userError);
-      return { value: 0, fromTrip: false };
+      return { value: 0, fromTrip: false, tripDate: null, daysOld: 0 };
     }
     
     if (!user) {
       logger.error('No user authenticated');
-      return { value: 0, fromTrip: false };
+      return { value: 0, fromTrip: false, tripDate: null, daysOld: 0 };
     }
 
     const organizationId = await getUserActiveOrganization(user.id);
     if (!organizationId) {
-      return { value: 0, fromTrip: false };
+      return { value: 0, fromTrip: false, tripDate: null, daysOld: 0 };
     }
+
+    // Helper function to calculate days old
+    const calculateDaysOld = (tripDate: string | null): number => {
+      if (!tripDate) return 0;
+      try {
+        const tripDateTime = new Date(tripDate);
+        const today = new Date();
+        const diffTime = Math.abs(today.getTime() - tripDateTime.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+      } catch (error) {
+        return 0;
+      }
+    };
 
     // First try to get the latest completed trip using end_km and timestamps
     // ✅ FIXED: Use organization-based query consistent with validation
@@ -842,7 +856,7 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
       .eq('organization_id', organizationId);
 
     if (orgUsersError || !orgUsers || orgUsers.length === 0) {
-      return { value: 0, fromTrip: false };
+      return { value: 0, fromTrip: false, tripDate: null, daysOld: 0 };
     }
 
     const userIds = orgUsers.map(ou => ou.user_id);
@@ -858,14 +872,16 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
       .limit(1);
 
     if (!tripsError && trips && trips.length > 0 && trips[0].end_km) {
-      return { value: trips[0].end_km, fromTrip: true };
+      const tripDate = trips[0].trip_end_date || trips[0].created_at;
+      const daysOld = calculateDaysOld(tripDate);
+      return { value: trips[0].end_km, fromTrip: true, tripDate, daysOld };
     }
 
     // Fallback to the highest recorded odometer in trips if ordering fails
     // ✅ FIXED: Use organization-based query consistent with validation
     const { data: maxOdometerTrip, error: maxTripError } = await supabase
       .from('trips')
-      .select('end_km')
+      .select('end_km, trip_end_date, created_at')
       .eq('vehicle_id', vehicleId)
       .in('created_by', userIds)
       .not('end_km', 'is', null)
@@ -873,7 +889,9 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
       .limit(1);
 
     if (!maxTripError && maxOdometerTrip && maxOdometerTrip.length > 0 && maxOdometerTrip[0].end_km) {
-      return { value: maxOdometerTrip[0].end_km, fromTrip: true };
+      const tripDate = maxOdometerTrip[0].trip_end_date || maxOdometerTrip[0].created_at;
+      const daysOld = calculateDaysOld(tripDate);
+      return { value: maxOdometerTrip[0].end_km, fromTrip: true, tripDate, daysOld };
     }
 
     // Also check maintenance tasks for latest odometer reading
@@ -886,18 +904,20 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
       .limit(1);
 
     if (!maintenanceError && maintenanceTasks && maintenanceTasks.length > 0 && maintenanceTasks[0].odometer_reading) {
-      return { value: maintenanceTasks[0].odometer_reading, fromTrip: false };
+      return { value: maintenanceTasks[0].odometer_reading, fromTrip: false, tripDate: null, daysOld: 0 };
     }
 
     // Fallback to vehicle's current_odometer
     const vehicle = await getVehicle(vehicleId);
     return { 
       value: vehicle?.current_odometer || 0, 
-      fromTrip: false 
+      fromTrip: false,
+      tripDate: null,
+      daysOld: 0 
     };
   } catch (error) {
     handleSupabaseError('get latest odometer', error);
-    return { value: 0, fromTrip: false };
+    return { value: 0, fromTrip: false, tripDate: null, daysOld: 0 };
   }
 };
 

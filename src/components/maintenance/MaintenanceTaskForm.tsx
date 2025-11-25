@@ -308,6 +308,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   // File upload states
   const [odometerPhoto, setOdometerPhoto] = useState<File[]>([]);
   const [documents, setDocuments] = useState<File[]>([]);
+  
+  // Odometer warning state
+  const [odometerWarning, setOdometerWarning] = useState<string | null>(null);
 
   // Initialize serviceGroups from initialData when editing
   useEffect(() => {
@@ -328,6 +331,39 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       });
     }
   }, [initialData]);
+  
+  // Auto-fill odometer reading from latest trip when vehicle is selected
+  useEffect(() => {
+    const selectedVehicleId = watch("vehicle_id");
+    
+    // Only auto-fill if:
+    // 1. A vehicle is selected
+    // 2. We're NOT in edit mode (no initialData?.odometer_reading)
+    // 3. The odometer field is empty
+    if (selectedVehicleId && !initialData?.odometer_reading) {
+      const fetchOdometer = async () => {
+        try {
+          const { value, fromTrip, tripDate, daysOld } = await getLatestOdometer(selectedVehicleId);
+          
+          if (value > 0) {
+            setValue('odometer_reading', value);
+            
+            // Show warning if odometer data is more than 7 days old
+            if (fromTrip && daysOld > 7) {
+              setOdometerWarning(`⚠️ This odometer reading is ${daysOld} days old`);
+            } else {
+              setOdometerWarning(null);
+            }
+          }
+        } catch (error) {
+          logger.error('Error fetching latest odometer:', error);
+          setOdometerWarning(null);
+        }
+      };
+      
+      fetchOdometer();
+    }
+  }, [watch("vehicle_id"), initialData?.odometer_reading, setValue]);
 
   const methods = useForm<Partial<MaintenanceTask>>({
     defaultValues: {
@@ -829,6 +865,14 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                   }
                 })}
               />
+              
+              {/* Warning message if odometer data is old */}
+              {odometerWarning && (
+                <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                  <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                  <p>{odometerWarning}</p>
+                </div>
+              )}
               
               <FileUploadWithProgress
                 id="odometerPhoto"
