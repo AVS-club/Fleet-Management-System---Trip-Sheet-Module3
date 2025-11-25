@@ -746,10 +746,10 @@ const ServiceGroup = ({
   };
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg overflow-visible">
+    <div className="bg-white border border-gray-300 rounded-none sm:rounded-lg overflow-visible">
       {/* Header - Hidden for first service group, shown only for additional ones with Remove button */}
       {canRemove && (
-        <div className="bg-gray-50 px-3 sm:px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+        <div className="bg-gray-50 px-2 sm:px-4 py-2 border-b border-gray-200 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
             <Wrench className="h-4 w-4 text-green-600" />
             Shop/Mechanic {index + 1}
@@ -765,9 +765,9 @@ const ServiceGroup = ({
         </div>
       )}
 
-      <div className="p-2 sm:p-3">
+      <div className="p-1 sm:p-3">
         {/* Quick Entry Fields - Always Visible */}
-        <div className="border border-gray-200 rounded-lg p-2 sm:p-3 bg-white sm:bg-gray-50 mb-2 sm:mb-3">
+        <div className="border-0 sm:border sm:border-gray-200 rounded-none sm:rounded-lg p-2 sm:p-3 bg-white sm:bg-gray-50 mb-2 sm:mb-3">
           <div className="space-y-2 sm:space-y-3">
             {/* Service Type Selector - Button Version */}
             <div>

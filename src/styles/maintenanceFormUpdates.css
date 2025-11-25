@@ -1,13 +1,15 @@
 /* Main Container - Match Trip Form Width */
 .maintenance-page-container {
-  max-width: 1200px !important;
-  margin: 0 auto !important;
-  padding: 8px; /* Mobile: minimal padding */
+  max-width: 100% !important; /* Mobile: full width */
+  margin: 0 !important;
+  padding: 0 !important; /* Mobile: zero padding */
   width: 100%;
 }
 
 @media (min-width: 640px) {
   .maintenance-page-container {
+    max-width: 1200px !important;
+    margin: 0 auto !important;
     padding: 12px 24px; /* Desktop: more padding */
   }
 }
@@ -67,26 +69,33 @@
 /* Section Headers - Subtle Colors */
 .maintenance-form-section {
   background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-  border-radius: 10px;
-  padding: 12px; /* Mobile: reduced padding */
-  margin-bottom: 12px;
+  border-radius: 0; /* Mobile: square corners for full width */
+  padding: 8px; /* Mobile: minimal padding */
+  margin-bottom: 8px;
+  margin-left: 0;
+  margin-right: 0;
   border: 1px solid #e5e7eb;
+  border-left: none; /* Mobile: no left border */
+  border-right: none; /* Mobile: no right border */
 }
 
 @media (min-width: 640px) {
   .maintenance-form-section {
+    border-radius: 10px;
     padding: 16px; /* Desktop: more padding */
     margin-bottom: 16px;
+    border-left: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
   }
 }
 
 .maintenance-form-section-header {
   display: flex;
   align-items: center;
-  gap: 8px; /* Mobile: smaller gap */
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 2px solid #e5e7eb;
+  gap: 6px; /* Mobile: smaller gap */
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e5e7eb; /* Mobile: thinner border */
 }
 
 @media (min-width: 640px) {
@@ -94,6 +103,7 @@
     gap: 12px; /* Desktop: larger gap */
     margin-bottom: 12px;
     padding-bottom: 8px;
+    border-bottom: 2px solid #e5e7eb;
   }
 }
 
@@ -106,14 +116,22 @@
 }
 
 .maintenance-form-section-header .icon {
-  width: 36px;
-  height: 36px;
+  width: 28px; /* Mobile: smaller */
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border-radius: 8px;
+  border-radius: 6px;
   color: #10b981;
+}
+
+@media (min-width: 640px) {
+  .maintenance-form-section-header .icon {
+    width: 36px; /* Desktop: larger */
+    height: 36px;
+    border-radius: 8px;
+  }
 }
 
 /* Basic Information Section - Dimmed Blue */

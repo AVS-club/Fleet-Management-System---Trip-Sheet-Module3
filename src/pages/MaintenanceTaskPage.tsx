@@ -856,7 +856,7 @@ const MaintenanceTaskPage: React.FC = () => {
       ) : (
         <>
           {/* ========== FULL WIDTH HEADER ========== */}
-          <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+          <div className="rounded-none sm:rounded-xl border-0 sm:border bg-white dark:bg-white px-2 sm:px-4 py-3 mb-2 sm:mb-6">
             <div className="flex items-center group">
               <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
               <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">

@@ -165,9 +165,9 @@ const LineItemsGridEntry: React.FC<LineItemsGridEntryProps> = ({
   };
 
   return (
-    <div className="space-y-2 sm:space-y-4">
+    <div className="space-y-2 sm:space-y-4 -mx-2 sm:mx-0">
       {/* Grid Table */}
-      <div className="overflow-x-auto border border-gray-300 rounded-lg">
+      <div className="overflow-x-auto border-0 sm:border border-gray-300 rounded-none sm:rounded-lg">
         <table className="min-w-full divide-y divide-gray-300 bg-white">
           {/* Table Header */}
           <thead className="bg-gray-50">
