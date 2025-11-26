@@ -322,25 +322,25 @@
 
 /* Targeted Mobile Optimization - Maintenance Forms Only */
 @media (max-width: 640px) {
-  /* Page container - minimal side padding */
+  /* Page container - minimal side padding (70% reduction: 8px -> 2px) */
   .maintenance-page-container {
-    padding: 0 8px !important;
+    padding: 0 2px !important;
     margin: 0 !important;
   }
   
-  /* Form sections - reduced padding with slight extension */
+  /* Form sections - reduced padding with slight extension (70% reduction) */
   .maintenance-form-section {
-    padding: 10px !important;
-    margin-left: -4px;
-    margin-right: -4px;
+    padding: 6px !important;
+    margin-left: -2px;
+    margin-right: -2px;
     border-radius: 8px !important; /* Keep curves, just smaller */
   }
   
-  /* Form wrapper - extend to edges */
+  /* Form wrapper - extend to edges (70% reduction: 8px -> 2px) */
   .maintenance-form-wrapper {
-    margin-left: -8px;
-    margin-right: -8px;
-    padding: 0 8px;
+    margin-left: -2px;
+    margin-right: -2px;
+    padding: 0 2px;
   }
   
   /* Section headers - compact but readable */
