@@ -1119,13 +1119,14 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: isMobile ? 8 : 10 }}
+                tick={{ fontSize: isMobile ? 7 : 10 }}
                 tickLine={false}
                 axisLine={{ stroke: '#d1d5db' }}
-                angle={isMobile ? -60 : -45}
+                angle={isMobile ? -75 : -45}
                 textAnchor="end"
-                height={isMobile ? 60 : 50}
-                interval={isMobile ? 'preserveStartEnd' : 0}
+                height={isMobile ? 65 : 50}
+                interval={isMobile ? Math.floor(chartData.length / 4) : 0}
+                minTickGap={isMobile ? 30 : 10}
               />
               <YAxis
                 tickLine={false}
@@ -1189,34 +1190,32 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
           </div>
         )}
         
-        {/* Mobile Horizontal Scrollable Legend */}
+        {/* Mobile Wrapped Legend */}
         {isMobile && showLegend && chartVehicles.length > 0 && chartData.length > 0 && (
-          <div className="mt-3 -mx-2">
-            <div className="overflow-x-auto px-2 pb-2 scrollbar-hide">
-              <div className="flex gap-3 min-w-max">
-                {chartVehicles.map((vehicle, index) => (
+          <div className="mt-3">
+            <div className="flex flex-wrap gap-2">
+              {chartVehicles.map((vehicle, index) => (
+                <div
+                  key={vehicle}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-md"
+                >
                   <div
-                    key={vehicle}
-                    className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-gray-700/50 rounded-md whitespace-nowrap"
-                  >
-                    <div
-                      className="w-3 h-0.5 rounded-full"
-                      style={{ backgroundColor: colors[index % colors.length] }}
-                    />
-                    <span className="text-[9px] font-medium text-gray-700 dark:text-gray-300">
-                      {vehicle}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                    className="w-3 h-0.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: colors[index % colors.length] }}
+                  />
+                  <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 leading-tight">
+                    {vehicle}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         )}
         
         {/* Compact Info Section */}
         {selectedTags.length > 0 && (
-          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 text-xs sm:text-sm leading-tight">
+          <div className="mt-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-3 sm:gap-x-6 sm:gap-y-4 text-xs sm:text-sm leading-tight">
               <div className="min-w-0">
                 <div className="text-gray-500 dark:text-gray-400 break-words">Vehicles</div>
                 <div className="font-semibold text-gray-900 dark:text-gray-100 break-words">
@@ -1252,7 +1251,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
 
       {/* Anomalies Section */}
       {anomalies.length > 0 && (
-        <div className="mt-4 sm:mt-6">
+        <div className="mt-6 sm:mt-8">
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-4">
@@ -1359,19 +1358,19 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                       {typeAnomalies.map((anomaly, index) => (
                       <div
                         key={index}
-                        className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-2.5 sm:p-4 hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer transition-all hover:shadow-md"
+                        className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-2.5 sm:p-4 hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer transition-all hover:shadow-md overflow-hidden"
                         onClick={() => handleAnomalyClick(anomaly.trip_id)}
                       >
                         <div className="flex items-start justify-between gap-2 sm:gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mb-1.5 sm:mb-2">
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-1.5 mb-1.5 sm:mb-2">
                               <span className="font-mono text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400 truncate">
                                 {anomaly.trip_serial_number}
                               </span>
                               <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                                 {anomaly.vehicle_registration}
                               </span>
-                              <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap">
+                              <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 truncate">
                                 {isMobile ? anomaly.date.split(' ').slice(0, 2).join(' ') : anomaly.date}
                               </span>
                             </div>
