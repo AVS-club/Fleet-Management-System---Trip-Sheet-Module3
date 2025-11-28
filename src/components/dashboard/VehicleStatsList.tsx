@@ -107,11 +107,14 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
 
       {/* Vehicle list with enhanced cards */}
       <div 
-        className="vehicle-stats-scroll p-2 overflow-y-scroll"
+        className="vehicle-stats-scroll p-2 overflow-y-scroll overscroll-contain"
         style={{ 
+          height: '500px',
           maxHeight: '500px',
           scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(156, 163, 175, 0.3) transparent'
+          scrollbarColor: 'rgba(156, 163, 175, 0.3) transparent',
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y'
         }}
       >
         <div className="space-y-2">
@@ -123,13 +126,16 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
               <div 
                 key={vehicle.id}
                 className={`
-                  group relative p-4 rounded-xl cursor-pointer transition-all duration-300 
-                  hover:shadow-card-hover hover:scale-[1.02] hover:-translate-y-0.5
+                  group relative p-4 rounded-xl cursor-pointer transition-all duration-200 
+                  hover:shadow-card-hover
                   bg-white dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50
                   hover:border-primary-300 dark:hover:border-primary-600
                   ${index === 0 && hasData ? 'ring-2 ring-primary-500/20 dark:ring-primary-400/20' : ''}
                 `}
-                onClick={() => onSelectVehicle(vehicle)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectVehicle(vehicle);
+                }}
               >
                 {/* Top performer badge */}
                 {index === 0 && hasData && (
