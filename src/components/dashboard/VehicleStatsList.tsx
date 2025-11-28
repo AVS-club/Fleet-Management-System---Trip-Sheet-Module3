@@ -3,6 +3,7 @@ import { Vehicle, Trip } from '@/types';
 import { Fuel, TrendingUp, Activity, Zap, Award, AlertCircle } from 'lucide-react';
 import { NumberFormatter } from '@/utils/numberFormatter';
 import EmptyState from './EmptyState';
+import '@/styles/vehicle-stats-scrollbar.css';
 
 interface VehicleStatsListProps {
   vehicles: Vehicle[];
@@ -105,7 +106,14 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
       </div>
 
       {/* Vehicle list with enhanced cards */}
-      <div className="p-2 max-h-[400px] sm:max-h-[500px] overflow-y-auto custom-scrollbar">
+      <div 
+        className="vehicle-stats-scroll p-2 overflow-y-scroll"
+        style={{ 
+          maxHeight: '500px',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(156, 163, 175, 0.3) transparent'
+        }}
+      >
         <div className="space-y-2">
           {sortedVehicles.map((vehicle, index) => {
             const efficiencyBadge = getEfficiencyBadge(vehicle.stats.efficiencyScore);
@@ -261,23 +269,6 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
           })}
         </div>
       </div>
-
-      {/* Custom scrollbar styles */}
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(156, 163, 175, 0.3);
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(156, 163, 175, 0.5);
-        }
-      `}</style>
     </div>
   );
 };
