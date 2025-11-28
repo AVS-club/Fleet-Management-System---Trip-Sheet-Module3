@@ -768,16 +768,16 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+        <hr className="my-4 sm:my-6 border-gray-200 dark:border-gray-700" />
 
         {/* Detailed Analytics Section */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center space-x-2 mb-6">
-            <BarChart className="h-5 w-5 text-blue-600" />
-            <h2 className="text-lg font-display font-semibold tracking-tight-plus text-gray-900">Detailed Analytics</h2>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-6">
+          <div className="flex items-center space-x-2 mb-4 sm:mb-6">
+            <BarChart className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+            <h2 className="text-base sm:text-lg font-display font-semibold tracking-tight-plus text-gray-900">Detailed Analytics</h2>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4 xl:gap-6">
             {/* Left column - Stats */}
             <div className="xl:col-span-1 order-2 xl:order-1">
               <div
@@ -787,7 +787,7 @@ const DashboardPage: React.FC = () => {
                 onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/vehicles")}
                 className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
               >
-                <VehicleStatsList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
+                <VehicleStatsList vehicles={vehicles} trips={trips} onSelectVehicle={handleSelectVehicle} />
               </div>
             </div>
             
@@ -801,7 +801,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+        <hr className="my-4 sm:my-6 border-gray-200 dark:border-gray-700" />
 
         {/* Tip Section */}
         {hasEnoughData && (

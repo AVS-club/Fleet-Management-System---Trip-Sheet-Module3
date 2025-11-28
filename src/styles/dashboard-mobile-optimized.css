@@ -1,0 +1,436 @@
+/* ============================================
+   Mobile Dashboard Optimizations
+   ============================================ */
+
+/* Custom scrollbar hiding utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================
+   Mobile Breakpoints (< 640px)
+   ============================================ */
+
+@media (max-width: 640px) {
+  /* Dashboard Container */
+  .dashboard-container {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  /* Chart Container Optimizations */
+  .mileage-chart-container {
+    padding: 0.75rem !important;
+  }
+
+  .mileage-chart-header {
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* Filter Controls - Compact Mobile Layout */
+  .chart-filters {
+    gap: 0.5rem !important;
+  }
+
+  .chart-filter-button {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1rem !important;
+  }
+
+  /* Dropdown Menus - Full Width on Mobile */
+  .chart-dropdown {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* Vehicle Tag Pills - Horizontal Scroll */
+  .tag-pills-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .tag-pills-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tag-pill {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Chart Info Cards - Compact Grid */
+  .chart-info-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+    padding: 0.75rem !important;
+  }
+
+  .chart-info-item {
+    padding: 0.5rem !important;
+  }
+
+  .chart-info-label {
+    font-size: 0.625rem !important;
+    margin-bottom: 0.125rem !important;
+  }
+
+  .chart-info-value {
+    font-size: 0.875rem !important;
+  }
+
+  /* Anomalies Section - Mobile Optimizations */
+  .anomalies-container {
+    margin-top: 1rem !important;
+  }
+
+  .anomalies-header {
+    padding: 0.75rem !important;
+  }
+
+  .anomalies-title {
+    font-size: 1rem !important;
+  }
+
+  .anomalies-subtitle {
+    font-size: 0.75rem !important;
+  }
+
+  .anomaly-card {
+    padding: 0.625rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .anomaly-type-header {
+    padding: 0.5rem 0 !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .anomaly-details-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  .anomaly-detail-label {
+    font-size: 0.625rem !important;
+  }
+
+  .anomaly-detail-value {
+    font-size: 0.75rem !important;
+  }
+
+  /* Export Button - Compact */
+  .export-button {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .export-button span {
+    display: none;
+  }
+
+  .export-button::after {
+    content: 'CSV';
+  }
+
+  /* Vehicle Stats List - Mobile Compact */
+  .vehicle-stats-container {
+    padding: 0.5rem !important;
+  }
+
+  .vehicle-stats-header {
+    padding: 0.75rem 1rem !important;
+    font-size: 1rem !important;
+  }
+
+  .vehicle-stats-list {
+    max-height: 300px !important;
+    padding: 0.25rem !important;
+  }
+
+  .vehicle-stat-card {
+    padding: 0.625rem !important;
+    margin-bottom: 0.375rem !important;
+  }
+
+  .vehicle-stat-title {
+    font-size: 0.875rem !important;
+  }
+
+  .vehicle-stat-subtitle {
+    font-size: 0.75rem !important;
+  }
+
+  .vehicle-stat-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.375rem !important;
+    margin-top: 0.5rem !important;
+  }
+
+  /* Metric Cards - Reduce Padding */
+  .metric-card {
+    padding: 0.625rem !important;
+  }
+
+  .metric-card-icon {
+    width: 2rem !important;
+    height: 2rem !important;
+  }
+
+  .metric-card-label {
+    font-size: 0.625rem !important;
+  }
+
+  .metric-card-value {
+    font-size: 1.125rem !important;
+  }
+
+  /* Collapsible Sections */
+  .collapsible-section-header {
+    padding: 0.75rem !important;
+  }
+
+  .collapsible-section-content {
+    padding: 0.75rem !important;
+  }
+
+  /* Buttons - Touch-Friendly Sizing */
+  button,
+  .btn,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Small buttons that need to be larger */
+  .icon-button {
+    padding: 0.75rem !important;
+  }
+
+  /* Input Fields - Better Touch Targets */
+  input[type="text"],
+  input[type="date"],
+  input[type="number"],
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Dropdown Items - Touch-Friendly */
+  .dropdown-item {
+    padding: 0.75rem 1rem !important;
+    min-height: 44px;
+  }
+
+  /* Modal/Drawer Optimizations */
+  .mobile-modal {
+    max-height: 85vh;
+    border-radius: 1rem 1rem 0 0;
+  }
+
+  /* Typography Adjustments */
+  h1 {
+    font-size: 1.5rem !important;
+  }
+
+  h2 {
+    font-size: 1.25rem !important;
+  }
+
+  h3 {
+    font-size: 1.125rem !important;
+  }
+
+  /* Reduce Gap Between Sections */
+  .section-gap {
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Legend Horizontal Scroll */
+  .chart-legend-mobile {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .chart-legend-mobile::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chart-legend-item {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+/* ============================================
+   Extra Small Mobile (< 375px)
+   ============================================ */
+
+@media (max-width: 375px) {
+  /* Further reduce padding for very small screens */
+  .dashboard-container {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+
+  .mileage-chart-container {
+    padding: 0.5rem !important;
+  }
+
+  .anomaly-card {
+    padding: 0.5rem !important;
+  }
+
+  .vehicle-stat-card {
+    padding: 0.5rem !important;
+  }
+
+  /* Font size reductions */
+  .metric-card-value {
+    font-size: 1rem !important;
+  }
+
+  .chart-info-value {
+    font-size: 0.75rem !important;
+  }
+
+  /* Grid adjustments */
+  .chart-info-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* ============================================
+   Tablet Breakpoint (641px - 1024px)
+   ============================================ */
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Tablet-specific optimizations */
+  .chart-info-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  .vehicle-stats-list {
+    max-height: 400px !important;
+  }
+
+  .anomaly-card {
+    padding: 1rem !important;
+  }
+}
+
+/* ============================================
+   Landscape Mobile (< 640px height)
+   ============================================ */
+
+@media (max-height: 640px) and (orientation: landscape) {
+  /* Reduce vertical spacing in landscape */
+  .mileage-chart-container {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  .anomalies-container {
+    margin-top: 0.75rem !important;
+  }
+
+  .vehicle-stats-list {
+    max-height: 250px !important;
+  }
+}
+
+/* ============================================
+   Dark Mode Mobile Adjustments
+   ============================================ */
+
+@media (max-width: 640px) and (prefers-color-scheme: dark) {
+  .chart-legend-item {
+    background-color: rgba(31, 41, 55, 0.5);
+  }
+
+  .anomaly-card {
+    background-color: rgba(55, 65, 81, 0.3);
+  }
+}
+
+/* ============================================
+   Performance Optimizations
+   ============================================ */
+
+@media (max-width: 640px) {
+  /* Reduce animations on mobile for performance */
+  * {
+    animation-duration: 0.2s !important;
+    transition-duration: 0.2s !important;
+  }
+
+  /* Optimize repaints */
+  .chart-container,
+  .anomaly-card,
+  .vehicle-stat-card {
+    will-change: auto;
+  }
+
+  /* Improve scroll performance */
+  .overflow-scroll,
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ============================================
+   Accessibility Improvements
+   ============================================ */
+
+@media (max-width: 640px) {
+  /* Larger focus indicators */
+  *:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 2px;
+  }
+
+  /* Better contrast for interactive elements */
+  button:active,
+  [role="button"]:active {
+    opacity: 0.7;
+  }
+
+  /* Improved tap highlights */
+  button,
+  a,
+  [role="button"] {
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
+  }
+}
+
+/* ============================================
+   Safe Area Support (iOS Notch/Dynamic Island)
+   ============================================ */
+
+@media (max-width: 640px) {
+  @supports (padding: max(0px)) {
+    .dashboard-container {
+      padding-left: max(0.5rem, env(safe-area-inset-left)) !important;
+      padding-right: max(0.5rem, env(safe-area-inset-right)) !important;
+    }
+
+    .fixed-bottom-action {
+      padding-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+    }
+  }
+}
+

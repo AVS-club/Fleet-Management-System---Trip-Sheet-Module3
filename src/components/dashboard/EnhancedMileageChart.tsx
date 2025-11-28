@@ -198,6 +198,31 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
   const [averageType, setAverageType] = useState<'overall' | 'perVehicle' | 'rolling7'>('overall');
   const [vehicleSearchTerm, setVehicleSearchTerm] = useState('');
   const [showLegend, setShowLegend] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  const [expandedAnomalyTypes, setExpandedAnomalyTypes] = useState<Set<string>>(new Set());
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Toggle anomaly type expansion
+  const toggleAnomalyType = (type: string) => {
+    setExpandedAnomalyTypes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(type)) {
+        newSet.delete(type);
+      } else {
+        newSet.add(type);
+      }
+      return newSet;
+    });
+  };
 
   // Fetch tags
   const { data: tags = [] } = useQuery({
@@ -818,7 +843,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
           <div className="relative">
             <button
               onClick={() => setShowAverageDropdown(!showAverageDropdown)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+              className="flex items-center gap-2 px-4 py-3 sm:py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors min-h-[48px]"
             >
               <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <div className="text-left">
@@ -845,7 +870,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                       setAverageType('overall');
                       setShowAverageDropdown(false);
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm"
+                    className="w-full text-left px-3 py-3 sm:py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm min-h-[44px] sm:min-h-0 flex items-center"
                   >
                     Overall Average
                   </button>
@@ -854,7 +879,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                       setAverageType('rolling7');
                       setShowAverageDropdown(false);
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm"
+                    className="w-full text-left px-3 py-3 sm:py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm min-h-[44px] sm:min-h-0 flex items-center"
                   >
                     Rolling 7-Day Average
                   </button>
@@ -863,7 +888,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                       setAverageType('perVehicle');
                       setShowAverageDropdown(false);
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm"
+                    className="w-full text-left px-3 py-3 sm:py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm min-h-[44px] sm:min-h-0 flex items-center"
                   >
                     Per Vehicle Average
                   </button>
@@ -898,7 +923,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
               <button
                 key={tag}
                 onClick={() => toggleTag(tag)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                className={`px-3 py-2 sm:py-1.5 rounded-full text-xs font-medium transition-all min-h-[44px] sm:min-h-0 flex items-center ${
                   isSelected
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -911,7 +936,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
           {selectedTags.length > 0 && (
             <button
               onClick={() => setShowLegend(!showLegend)}
-              className="ml-auto px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+              className="ml-auto px-3 py-2 sm:py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 min-h-[44px] sm:min-h-0 flex items-center"
             >
               {showLegend ? 'Hide' : 'Show'} Legend
             </button>
@@ -924,7 +949,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
           <div className="relative flex-1 max-w-md">
             <button
               onClick={() => setShowVehicleDropdown(!showVehicleDropdown)}
-              className="w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-blue-400 dark:hover:border-blue-500 transition-colors text-xs sm:text-sm"
+              className="w-full flex items-center justify-between px-3 sm:px-4 py-3 sm:py-2.5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-blue-400 dark:hover:border-blue-500 transition-colors text-xs sm:text-sm min-h-[48px]"
             >
               <div className="flex items-center gap-2">
                 <span className="text-blue-600 dark:text-blue-400">🚗</span>
@@ -957,13 +982,13 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                 <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex gap-2">
                   <button
                     onClick={selectAllVehicles}
-                    className="flex-1 px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                    className="flex-1 px-3 py-2.5 sm:py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors min-h-[44px] sm:min-h-0"
                   >
                     Select All
                   </button>
                   <button
                     onClick={clearAllVehicles}
-                    className="flex-1 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors"
+                    className="flex-1 px-3 py-2.5 sm:py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors min-h-[44px] sm:min-h-0"
                   >
                     Clear All
                   </button>
@@ -975,7 +1000,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                     <button
                       key={vehicle}
                       onClick={() => toggleVehicle(vehicle)}
-                      className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full px-4 py-3 sm:py-2.5 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-[48px]"
                     >
                       <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                         selectedVehicles.includes(vehicle)
@@ -998,7 +1023,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
           <div className="relative">
             <button
               onClick={() => setShowDateDropdown(!showDateDropdown)}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-xs sm:text-sm"
+              className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-3 sm:py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-xs sm:text-sm min-h-[48px]"
             >
               <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="font-medium">
@@ -1019,7 +1044,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                         setDateRange(option);
                         setShowDateDropdown(false);
                       }}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm"
+                      className="w-full text-left px-3 py-3 sm:py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm min-h-[44px] sm:min-h-0 flex items-center"
                     >
                       Last {option.replace('days', ' Days')}
                     </button>
@@ -1032,14 +1057,14 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                         type="date"
                         value={customDateStart}
                         onChange={(e) => setCustomDateStart(e.target.value)}
-                        className="w-full px-2 py-1 border dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                        className="w-full px-2 py-2.5 sm:py-1 border dark:border-gray-600 dark:bg-gray-700 rounded text-sm min-h-[44px] sm:min-h-0"
                         placeholder="Start Date"
                       />
                       <input
                         type="date"
                         value={customDateEnd}
                         onChange={(e) => setCustomDateEnd(e.target.value)}
-                        className="w-full px-2 py-1 border dark:border-gray-600 dark:bg-gray-700 rounded text-sm"
+                        className="w-full px-2 py-2.5 sm:py-1 border dark:border-gray-600 dark:bg-gray-700 rounded text-sm min-h-[44px] sm:min-h-0"
                         placeholder="End Date"
                       />
                       <button
@@ -1050,7 +1075,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                           }
                         }}
                         disabled={!customDateStart || !customDateEnd}
-                        className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-3 py-3 sm:py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                       >
                         Apply
                       </button>
@@ -1064,7 +1089,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
       </div>
 
       {/* Enhanced Chart */}
-      <div className="mb-4 sm:mb-6" style={{ height: '500px' }}>
+      <div className="mb-4 sm:mb-6" style={{ height: isMobile ? '320px' : '500px' }}>
         {/* Outlier Warning */}
         {outlierTrips.length > 0 && (
           <div className="mb-3 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
@@ -1089,30 +1114,32 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}
-              margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+              margin={isMobile ? { top: 5, right: 5, left: -20, bottom: 5 } : { top: 10, right: 20, left: 0, bottom: 10 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: isMobile ? 8 : 10 }}
                 tickLine={false}
                 axisLine={{ stroke: '#d1d5db' }}
-                angle={-45}
+                angle={isMobile ? -60 : -45}
                 textAnchor="end"
-                height={50}
+                height={isMobile ? 60 : 50}
+                interval={isMobile ? 'preserveStartEnd' : 0}
               />
               <YAxis
                 tickLine={false}
                 axisLine={{ stroke: '#d1d5db' }}
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: isMobile ? 8 : 10 }}
                 domain={yAxisDomain}
                 ticks={yAxisTicks}
-                label={{
+                label={isMobile ? undefined : {
                   value: 'Mileage (km/L)',
                   angle: -90,
                   position: 'insideLeft',
                   style: { fontSize: 10, fontWeight: 600 }
                 }}
+                width={isMobile ? 35 : 60}
               />
               <Tooltip
                 contentStyle={{
@@ -1143,7 +1170,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                   hide={!showLegend && index > 5}  // Hide excess lines if legend is hidden
                 />
               ))}
-              {showLegend && chartVehicles.length > 0 && (
+              {showLegend && chartVehicles.length > 0 && !isMobile && (
                 <Legend 
                   verticalAlign="bottom" 
                   height={36}
@@ -1158,6 +1185,30 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
             <div className="text-center">
               <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>No data available for the selected period</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Mobile Horizontal Scrollable Legend */}
+        {isMobile && showLegend && chartVehicles.length > 0 && chartData.length > 0 && (
+          <div className="mt-3 -mx-2">
+            <div className="overflow-x-auto px-2 pb-2 scrollbar-hide">
+              <div className="flex gap-3 min-w-max">
+                {chartVehicles.map((vehicle, index) => (
+                  <div
+                    key={vehicle}
+                    className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-gray-700/50 rounded-md whitespace-nowrap"
+                  >
+                    <div
+                      className="w-3 h-0.5 rounded-full"
+                      style={{ backgroundColor: colors[index % colors.length] }}
+                    />
+                    <span className="text-[9px] font-medium text-gray-700 dark:text-gray-300">
+                      {vehicle}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -1201,34 +1252,34 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
 
       {/* Anomalies Section */}
       {anomalies.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                    <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-4">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className="p-1.5 sm:p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                    <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 dark:text-orange-400" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                       Mileage Anomalies
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-snug break-words">
-                      {anomalies.length} issues found • Click any entry to review
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-snug break-words">
+                      {anomalies.length} issues found • {isMobile ? 'Tap' : 'Click'} to review
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={exportAnomalies}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors w-full sm:w-auto justify-center"
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors w-full sm:w-auto justify-center"
                 >
-                  <Download className="w-4 h-4" />
-                  <span>Export CSV</span>
+                  <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span>{isMobile ? 'CSV' : 'Export CSV'}</span>
                 </button>
               </div>
             </div>
 
-            <div className="p-6 space-y-4 max-h-96 overflow-y-auto">
+            <div className="p-3 sm:p-6 space-y-3 sm:space-y-4 max-h-96 overflow-y-auto">
             {(() => {
               // Group anomalies by type first
               const groupedByType = anomalies.reduce((acc, anomaly) => {
@@ -1284,68 +1335,79 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                   icon: '📄'
                 };
 
+                const isExpanded = !isMobile || expandedAnomalyTypes.has(type);
+
                 return (
-                <div key={type} className="">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg">{config.icon}</span>
-                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                <div key={type} className="mb-3 last:mb-0">
+                  <button
+                    onClick={() => isMobile && toggleAnomalyType(type)}
+                    className={`flex items-center gap-2 mb-2 w-full ${isMobile ? 'cursor-pointer' : 'cursor-default'}`}
+                  >
+                    <span className="text-base sm:text-lg">{config.icon}</span>
+                    <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300">
                       {config.label}
                     </h4>
-                    <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
+                    <span className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
                       {typeAnomalies.length}
                     </span>
-                  </div>
-                  <div className="space-y-2">
+                    {isMobile && (
+                      <ChevronDown className={`w-4 h-4 ml-auto text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    )}
+                  </button>
+                  {isExpanded && (
+                  <div className="space-y-1.5 sm:space-y-2">
                       {typeAnomalies.map((anomaly, index) => (
                       <div
                         key={index}
-                        className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer transition-all hover:shadow-md"
+                        className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-2.5 sm:p-4 hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer transition-all hover:shadow-md"
                         onClick={() => handleAnomalyClick(anomaly.trip_id)}
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <span className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
+                        <div className="flex items-start justify-between gap-2 sm:gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mb-1.5 sm:mb-2">
+                              <span className="font-mono text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400 truncate">
                                 {anomaly.trip_serial_number}
                               </span>
-                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                              <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                                 {anomaly.vehicle_registration}
                               </span>
-                              <span className="text-xs text-gray-500 dark:text-gray-500">
-                                {anomaly.date}
+                              <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap">
+                                {isMobile ? anomaly.date.split(' ').slice(0, 2).join(' ') : anomaly.date}
                               </span>
                             </div>
                             
-                            <div className="grid grid-cols-3 gap-4 mb-2">
+                            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-1.5 sm:mb-2">
                               <div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">Mileage</div>
-                                <div className="font-semibold text-gray-900 dark:text-gray-100">
-                                  {anomaly.mileage.toFixed(2)} km/L
+                                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Mileage</div>
+                                <div className="font-semibold text-xs sm:text-base text-gray-900 dark:text-gray-100">
+                                  {anomaly.mileage.toFixed(2)}
                                 </div>
                               </div>
                               <div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">Distance</div>
-                                <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Distance</div>
+                                <div className="font-semibold text-xs sm:text-base text-gray-900 dark:text-gray-100">
                                   {anomaly.distance.toFixed(0)} km
                                 </div>
                               </div>
                               <div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">Fuel</div>
-                                <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Fuel</div>
+                                <div className="font-semibold text-xs sm:text-base text-gray-900 dark:text-gray-100">
                                   {anomaly.fuel.toFixed(1)} L
                                 </div>
                               </div>
                             </div>
                             
+                            {!isMobile && (
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
                                 {anomaly.issues[0]?.message}
                               </span>
                             </div>
+                            )}
                           </div>
                           
-                          <div className="flex flex-col items-end gap-2">
-                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                          <div className="flex flex-col items-end gap-1.5 sm:gap-2 flex-shrink-0">
+                            <span className={`px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full whitespace-nowrap ${
                               anomaly.issues.some(i => i.severity === 'critical')
                                 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                                 : anomaly.issues.some(i => i.severity === 'high')
@@ -1355,12 +1417,13 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                               {anomaly.issues.some(i => i.severity === 'critical') ? 'Critical' :
                                 anomaly.issues.some(i => i.severity === 'high') ? 'High' : 'Medium'}
                             </span>
-                            <ExternalLink className="w-4 h-4 text-gray-400" />
+                            {!isMobile && <ExternalLink className="w-4 h-4 text-gray-400" />}
                           </div>
                         </div>
                       </div>
                       ))}
                     </div>
+                  )}
                   </div>
                 );
               });
