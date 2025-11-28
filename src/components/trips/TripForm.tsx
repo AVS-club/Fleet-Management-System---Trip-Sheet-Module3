@@ -1048,21 +1048,27 @@ const TripForm: React.FC<TripFormProps> = ({
     // Map toll_expense to breakdown_expense for database compatibility and ensure required fields
     const submitData: any = { 
       ...data,
+      // Explicitly ensure all expense fields are numbers, not undefined/NaN
+      unloading_expense: Number(data.unloading_expense) || 0,
+      driver_expense: Number(data.driver_expense) || 0,
+      road_rto_expense: Number(data.road_rto_expense) || 0,
+      toll_expense: Number(data.toll_expense) || 0,
+      breakdown_expense: Number(data.breakdown_expense) || 0,
+      miscellaneous_expense: Number(data.miscellaneous_expense) || 0,
+      // Ensure total_fuel_cost is properly set from refuelings
+      total_fuel_cost: Number(data.total_fuel_cost) || 0,
       // Ensure destinations is an array of destination IDs (required by database)
       destinations: selectedDestinationObjects.map(d => d.id),
       // Ensure required fields are present
       trip_duration: data.trip_duration || 1,
       gross_weight: data.gross_weight || 0,
-      // Map breakdown_expense properly
-      breakdown_expense: data.breakdown_expense || 0,
       // Add GPS screenshots
       gps_screenshots: gpsScreenshots
     };
 
-    // Calculate and add total_expense
+    // Calculate and add total_expense with sanitized values
     submitData.total_expense = calculateTripTotalExpense({
-      ...submitData,
-      total_fuel_cost: submitData.total_fuel_cost || 0
+      ...submitData
     } as Trip);
 
     // Remove fields that don't exist in database schema
@@ -1200,28 +1206,58 @@ const TripForm: React.FC<TripFormProps> = ({
 
   const handleSaveWithoutFuel = useCallback(async (data: TripFormData) => {
     setShowFuelPrompt(false);
+    const hadFuelWarning = hasFuelWarning; // Capture current state before clearing
     setHasFuelWarning(false);
     setHasGrossWeightWarning(false);
     setHasExpensesWarning(false);
     try {
-      // Create submit data for saving without fuel
+      // IMPORTANT: Process refuelings array into legacy fields (same as handleFormSubmit)
+      let processedData = { ...data };
+      if (processedData.refuelings && processedData.refuelings.length > 0) {
+        const totalFuel = processedData.refuelings.reduce((sum, r) => sum + (r.fuel_quantity || 0), 0);
+        processedData.refueling_done = true;
+        processedData.fuel_quantity = totalFuel;
+        processedData.total_fuel_cost = processedData.refuelings.reduce((sum, r) => sum + (r.total_fuel_cost || 0), 0);
+        if (processedData.refuelings.length === 1) {
+          processedData.fuel_rate_per_liter = processedData.refuelings[0].fuel_rate_per_liter;
+        }
+      }
+
+      // Create submit data - only clear fuel if there was a fuel warning
       const submitData: any = { 
-        ...data,
+        ...processedData,
+        // Explicitly ensure all expense fields are numbers, not undefined/NaN
+        unloading_expense: Number(processedData.unloading_expense) || 0,
+        driver_expense: Number(processedData.driver_expense) || 0,
+        road_rto_expense: Number(processedData.road_rto_expense) || 0,
+        toll_expense: Number(processedData.toll_expense) || 0,
+        breakdown_expense: Number(processedData.breakdown_expense) || 0,
+        miscellaneous_expense: Number(processedData.miscellaneous_expense) || 0,
         destinations: selectedDestinationObjects.map(d => d.id),
-        trip_duration: data.trip_duration || 1,
-        gross_weight: data.gross_weight || 0,
-        breakdown_expense: data.breakdown_expense || 0,
-        refueling_done: false,
-        refuelings: [],
-        total_fuel_cost: 0,
-        fuel_quantity: 0,
-        fuel_rate_per_liter: 0
+        trip_duration: processedData.trip_duration || 1,
+        gross_weight: processedData.gross_weight || 0
       };
+
+      // Only clear fuel data if there was actually a fuel warning
+      // If only gross weight or expense warnings, preserve fuel data
+      if (hadFuelWarning) {
+        submitData.refueling_done = false;
+        submitData.refuelings = [];
+        submitData.total_fuel_cost = 0;
+        submitData.fuel_quantity = 0;
+        submitData.fuel_rate_per_liter = 0;
+      } else {
+        // Fuel data already processed above, just ensure it's preserved
+        submitData.refueling_done = processedData.refueling_done || false;
+        submitData.refuelings = processedData.refuelings || [];
+        submitData.total_fuel_cost = Number(processedData.total_fuel_cost) || 0;
+        submitData.fuel_quantity = Number(processedData.fuel_quantity) || 0;
+        submitData.fuel_rate_per_liter = Number(processedData.fuel_rate_per_liter) || 0;
+      }
 
       // Calculate and add total_expense
       submitData.total_expense = calculateTripTotalExpense({
-        ...submitData,
-        total_fuel_cost: 0
+        ...submitData
       } as Trip);
 
       // Remove fields that don't exist in database schema
@@ -1230,12 +1266,18 @@ const TripForm: React.FC<TripFormProps> = ({
       delete submitData.toll_expense;
 
       await onSubmit(submitData);
-      toast.success("Trip saved. You can add fuel anytime from Trips → Edit.");
+      
+      // Show appropriate success message
+      if (hadFuelWarning) {
+        toast.success("Trip saved. You can add fuel anytime from Trips → Edit.");
+      } else {
+        toast.success("Trip saved successfully!");
+      }
     } catch (error) {
-      logger.error('Error saving trip without fuel:', error);
+      logger.error('Error saving trip:', error);
       toast.error('Failed to save trip');
     }
-  }, [onSubmit, selectedDestinationObjects]);
+  }, [onSubmit, selectedDestinationObjects, hasFuelWarning]);
 
   const handleDismissFuelPrompt = useCallback(() => {
     setShowFuelPrompt(false);
@@ -1246,28 +1288,58 @@ const TripForm: React.FC<TripFormProps> = ({
 
   const handleConfirmSaveWithoutFuel = useCallback(async (data: TripFormData) => {
     setShowFuelPrompt(false);
+    const hadFuelWarning = hasFuelWarning; // Capture current state before clearing
     setHasFuelWarning(false);
     setHasGrossWeightWarning(false);
     setHasExpensesWarning(false);
     try {
-      // Create submit data for saving without fuel
+      // IMPORTANT: Process refuelings array into legacy fields (same as handleFormSubmit)
+      let processedData = { ...data };
+      if (processedData.refuelings && processedData.refuelings.length > 0) {
+        const totalFuel = processedData.refuelings.reduce((sum, r) => sum + (r.fuel_quantity || 0), 0);
+        processedData.refueling_done = true;
+        processedData.fuel_quantity = totalFuel;
+        processedData.total_fuel_cost = processedData.refuelings.reduce((sum, r) => sum + (r.total_fuel_cost || 0), 0);
+        if (processedData.refuelings.length === 1) {
+          processedData.fuel_rate_per_liter = processedData.refuelings[0].fuel_rate_per_liter;
+        }
+      }
+
+      // Create submit data - only clear fuel if there was a fuel warning
       const submitData: any = { 
-        ...data,
+        ...processedData,
+        // Explicitly ensure all expense fields are numbers, not undefined/NaN
+        unloading_expense: Number(processedData.unloading_expense) || 0,
+        driver_expense: Number(processedData.driver_expense) || 0,
+        road_rto_expense: Number(processedData.road_rto_expense) || 0,
+        toll_expense: Number(processedData.toll_expense) || 0,
+        breakdown_expense: Number(processedData.breakdown_expense) || 0,
+        miscellaneous_expense: Number(processedData.miscellaneous_expense) || 0,
         destinations: selectedDestinationObjects.map(d => d.id),
-        trip_duration: data.trip_duration || 1,
-        gross_weight: data.gross_weight || 0,
-        breakdown_expense: data.breakdown_expense || 0,
-        refueling_done: false,
-        refuelings: [],
-        total_fuel_cost: 0,
-        fuel_quantity: 0,
-        fuel_rate_per_liter: 0
+        trip_duration: processedData.trip_duration || 1,
+        gross_weight: processedData.gross_weight || 0
       };
+
+      // Only clear fuel data if there was actually a fuel warning
+      // If only gross weight or expense warnings, preserve fuel data
+      if (hadFuelWarning) {
+        submitData.refueling_done = false;
+        submitData.refuelings = [];
+        submitData.total_fuel_cost = 0;
+        submitData.fuel_quantity = 0;
+        submitData.fuel_rate_per_liter = 0;
+      } else {
+        // Fuel data already processed above, just ensure it's preserved
+        submitData.refueling_done = processedData.refueling_done || false;
+        submitData.refuelings = processedData.refuelings || [];
+        submitData.total_fuel_cost = Number(processedData.total_fuel_cost) || 0;
+        submitData.fuel_quantity = Number(processedData.fuel_quantity) || 0;
+        submitData.fuel_rate_per_liter = Number(processedData.fuel_rate_per_liter) || 0;
+      }
 
       // Calculate and add total_expense
       submitData.total_expense = calculateTripTotalExpense({
-        ...submitData,
-        total_fuel_cost: 0
+        ...submitData
       } as Trip);
 
       // Remove fields that don't exist in database schema
@@ -1276,12 +1348,18 @@ const TripForm: React.FC<TripFormProps> = ({
       delete submitData.toll_expense;
 
       await onSubmit(submitData);
-      toast.success("Trip saved. You can add fuel anytime from Trips → Edit.");
+      
+      // Show appropriate success message
+      if (hadFuelWarning) {
+        toast.success("Trip saved. You can add fuel anytime from Trips → Edit.");
+      } else {
+        toast.success("Trip saved successfully!");
+      }
     } catch (error) {
-      logger.error('Error saving trip without fuel:', error);
+      logger.error('Error saving trip:', error);
       toast.error('Failed to save trip');
     }
-  }, [onSubmit, selectedDestinationObjects]);
+  }, [onSubmit, selectedDestinationObjects, hasFuelWarning]);
 
 
   if (loading) {

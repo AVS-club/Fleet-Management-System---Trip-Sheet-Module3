@@ -7,13 +7,13 @@ import { Trip } from '../types';
  */
 export const calculateTripTotalExpense = (trip: Trip): number => {
   return (
-    (trip.total_fuel_cost || 0) +
-    (trip.driver_expense || 0) +
-    (trip.unloading_expense || 0) +
-    (trip.road_rto_expense || 0) +
-    (trip.toll_expense || 0) +
-    (trip.breakdown_expense || 0) +
-    (trip.miscellaneous_expense || 0)
+    (Number(trip.total_fuel_cost) || 0) +
+    (Number(trip.driver_expense) || 0) +
+    (Number(trip.unloading_expense) || 0) +
+    (Number(trip.road_rto_expense) || 0) +
+    (Number(trip.toll_expense) || 0) +
+    (Number(trip.breakdown_expense) || 0) +
+    (Number(trip.miscellaneous_expense) || 0)
   );
 };
 

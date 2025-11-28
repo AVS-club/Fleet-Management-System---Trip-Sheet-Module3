@@ -227,7 +227,11 @@ const FuelDetailsPrompt: React.FC<FuelDetailsPromptProps> = ({
               onClick={handleSaveWithoutFuel}
               className={`inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 font-medium text-emerald-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors ${hasFuelWarning ? '' : 'w-full sm:w-auto'}`}
             >
-              {hasFuelWarning ? 'Save without fuel' : 'Save trip'}
+              {hasFuelWarning 
+                ? 'Save without fuel' 
+                : (hasGrossWeightWarning || hasExpensesWarning) 
+                  ? 'Save anyway'
+                  : 'Save trip'}
             </button>
           </div>
 
@@ -235,6 +239,11 @@ const FuelDetailsPrompt: React.FC<FuelDetailsPromptProps> = ({
           {hasFuelWarning && (
             <p className="mt-3 text-[12px] text-slate-500 text-center">
               Adding fuel helps track vehicle efficiency & maintenance.
+            </p>
+          )}
+          {!hasFuelWarning && (hasGrossWeightWarning || hasExpensesWarning) && (
+            <p className="mt-3 text-[12px] text-slate-500 text-center">
+              Trip will be saved with the current data. You can edit it later if needed.
             </p>
           )}
         </div>
@@ -245,10 +254,12 @@ const FuelDetailsPrompt: React.FC<FuelDetailsPromptProps> = ({
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/20 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-t-2xl bg-white p-6 shadow-2xl animate-in slide-in-from-bottom-4 duration-200">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              Save without fuel?
+              {hasFuelWarning ? 'Save without fuel?' : 'Save trip anyway?'}
             </h3>
             <p className="text-sm text-slate-600 mb-6">
-              You can add fuel later from the trip.
+              {hasFuelWarning 
+                ? 'You can add fuel later from the trip.'
+                : 'Trip will be saved with the current data. You can edit it later if needed.'}
             </p>
             <div className="flex gap-3">
               <button

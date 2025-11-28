@@ -493,7 +493,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-600">Fuel Cost (per L)</p>
-              <p className="font-medium text-gray-900">{formatCurrency(trip.fuel_cost)}</p>
+              <p className="font-medium text-gray-900">{formatCurrency(trip.fuel_rate_per_liter)}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Fuel Cost</p>
