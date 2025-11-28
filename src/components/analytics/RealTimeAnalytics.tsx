@@ -15,6 +15,7 @@ import { Trip, Vehicle, Driver } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { getTrips, getVehicles } from '../../utils/storage';
 import { getDrivers } from '../../utils/api/drivers';
+import { supabase } from '../../utils/supabaseClient';
 
 interface RealTimeMetrics {
   activeTrips: number;
@@ -52,6 +53,22 @@ interface DuplicateRouteSummary {
 const RealTimeAnalytics: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedTimeframe, setSelectedTimeframe] = useState<'1h' | '6h' | '24h' | '7d'>('24h');
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Helper functions - moved before their usage to avoid hoisting issues
   const getTimeframeMs = (timeframe: string): number => {
@@ -98,23 +115,26 @@ const RealTimeAnalytics: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch data with React Query
+  // Fetch data with React Query - only when authenticated
   const { data: trips = [], isLoading: tripsLoading } = useQuery({
     queryKey: ['trips'],
     queryFn: getTrips,
     refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: isAuthenticated, // Only run when authenticated
   });
 
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({
     queryKey: ['vehicles'],
     queryFn: getVehicles,
     refetchInterval: 60000, // Refetch every minute
+    enabled: isAuthenticated, // Only run when authenticated
   });
 
   const { data: drivers = [], isLoading: driversLoading } = useQuery({
     queryKey: ['drivers'],
     queryFn: getDrivers,
     refetchInterval: 60000, // Refetch every minute
+    enabled: isAuthenticated, // Only run when authenticated
   });
 
   const loading = tripsLoading || vehiclesLoading || driversLoading;

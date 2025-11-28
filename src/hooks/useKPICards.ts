@@ -36,6 +36,12 @@ export const useKPICards = (options: UseKPICardsOptions = {}) => {
   return useQuery({
     queryKey: ['kpi-cards', period, limit],
     queryFn: async () => {
+      // Check auth before fetching
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
       let query = supabase
         .from('kpi_cards')
         .select('*')
@@ -61,6 +67,7 @@ export const useKPICards = (options: UseKPICardsOptions = {}) => {
     },
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    retry: false, // Don't retry if auth fails
   });
 };
 
@@ -69,6 +76,12 @@ export const useLatestKPIs = () => {
   return useQuery({
     queryKey: ['kpi-latest'],
     queryFn: async () => {
+      // Check auth before fetching
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('kpi_cards')
         .select('*')
@@ -89,5 +102,6 @@ export const useLatestKPIs = () => {
       return latestByTheme;
     },
     staleTime: 2 * 60 * 1000,
+    retry: false, // Don't retry if auth fails
   });
 };

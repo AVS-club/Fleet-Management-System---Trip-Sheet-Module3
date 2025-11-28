@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 import { usePermissions, clearPermissionsCache } from '../../hooks/usePermissions';
 import { LogOut, Truck } from 'lucide-react';
 import { createLogger } from '../../utils/logger';
+import { useQueryClient } from '@tanstack/react-query';
 
 const logger = createLogger('Header');
 
@@ -18,12 +19,17 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const { permissions, loading } = usePermissions();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
       localStorage.removeItem('user');
       clearPermissionsCache(); // Clear cached permissions
+      
+      // Clear all React Query cache to stop polling
+      queryClient.clear();
+      
       navigate('/login');
       toast.success('Logged out successfully');
     } catch (error) {
