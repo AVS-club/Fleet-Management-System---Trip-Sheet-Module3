@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Vehicle, Trip } from '@/types';
 import { Fuel, TrendingUp, Activity, Zap, Award, AlertCircle } from 'lucide-react';
 import { NumberFormatter } from '@/utils/numberFormatter';
@@ -12,6 +12,9 @@ interface VehicleStatsListProps {
 }
 
 const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [], onSelectVehicle }) => {
+  // Touch handling state for mobile scroll detection
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number; time: number } | null>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
   // Filter out archived vehicles
   const activeVehicles = Array.isArray(vehicles) ? vehicles.filter(v => v.status !== 'archived') : [];
   
@@ -82,6 +85,62 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
     if (score > 0) return { label: 'Fair', color: 'bg-error-50 text-error-700 dark:bg-error-900/30 dark:text-error-400' };
     return { label: 'No Data', color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400' };
   };
+
+  // Touch event handlers for mobile scroll vs tap detection
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setTouchStart({
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now()
+    });
+    setIsScrolling(false);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart) return;
+
+    const touch = e.touches[0];
+    const deltaY = Math.abs(touch.clientY - touchStart.y);
+
+    // If moved more than 5px vertically, consider it scrolling
+    if (deltaY > 5) {
+      setIsScrolling(true);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent, vehicle: Vehicle) => {
+    if (!touchStart || isScrolling) {
+      setTouchStart(null);
+      setIsScrolling(false);
+      return;
+    }
+
+    const touch = e.changedTouches[0];
+    const deltaX = Math.abs(touch.clientX - touchStart.x);
+    const deltaY = Math.abs(touch.clientY - touchStart.y);
+    const deltaTime = Date.now() - touchStart.time;
+
+    // Consider it a tap if:
+    // 1. Movement is less than 10px in any direction
+    // 2. Touch duration is less than 300ms
+    // 3. User wasn't scrolling
+    const isTap = deltaX < 10 && deltaY < 10 && deltaTime < 300 && !isScrolling;
+
+    if (isTap) {
+      e.preventDefault(); // Prevent any default behavior
+      onSelectVehicle(vehicle);
+    }
+
+    setTouchStart(null);
+    setIsScrolling(false);
+  };
+
+  const handleClick = (e: React.MouseEvent, vehicle: Vehicle) => {
+    // For mouse clicks (desktop), always trigger
+    e.stopPropagation();
+    onSelectVehicle(vehicle);
+  };
   
   return (
     <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-card border border-gray-200/80 dark:border-gray-700/80 overflow-hidden">
@@ -113,8 +172,7 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
           maxHeight: '500px',
           scrollbarWidth: 'thin',
           scrollbarColor: 'rgba(156, 163, 175, 0.3) transparent',
-          WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-y'
+          WebkitOverflowScrolling: 'touch'
         }}
       >
         <div className="space-y-2">
@@ -132,10 +190,10 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
                   hover:border-primary-300 dark:hover:border-primary-600
                   ${index === 0 && hasData ? 'ring-2 ring-primary-500/20 dark:ring-primary-400/20' : ''}
                 `}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectVehicle(vehicle);
-                }}
+                onClick={(e) => handleClick(e, vehicle)}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={(e) => handleTouchEnd(e, vehicle)}
               >
                 {/* Top performer badge */}
                 {index === 0 && hasData && (

@@ -8,6 +8,9 @@
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   will-change: scroll-position;
+  /* Prevent momentum scrolling from interfering with tap detection */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 /* For Webkit browsers (Chrome, Safari, Edge) */
