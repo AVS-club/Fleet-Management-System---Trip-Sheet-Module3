@@ -12,3 +12,24 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 # Anthropic (Claude) API Configuration
 VITE_ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# APIClub Credentials (for HMAC Authentication)
+# Required for RC Details, Driver License, and Challan APIs
+APICLUB_URL=https://prod.apiclub.in/api/v1/rc_info
+APICLUB_KEY=apclb_xZ7S4F2ngB8TUpH6vKNbGvL83a446d50
+APICLUB_XID=your_x_id_value_from_apiclub
+
+# Proxy Server Configuration (Optional - for local development)
+PORT=3001
+FRONTEND_URL=http://localhost:3000
+PROXY_AUTH_TOKEN=your_optional_proxy_auth_token
+
+# Driver License API URL
+DL_API_URL=https://uat.apiclub.in/api/v1/fetch_dl
+DL_API_KEY=apclb_xZ7S4F2ngB8TUpH6vKNbGvL83a446d50
+DL_PROXY_PORT=3002
+
+# Proxy URLs for frontend (Optional - if using proxy servers)
+VITE_RC_PROXY_URL=http://localhost:3001/api/fetch-rc-details
+VITE_DL_PROXY_URL=http://localhost:3001/api/fetch-dl-details
+VITE_CHALLAN_PROXY_URL=http://localhost:3001/api/fetch-challan-info

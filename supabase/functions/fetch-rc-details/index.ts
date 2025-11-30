@@ -49,11 +49,12 @@ serve(async (req) => {
       console.log('  - Key present:', !!apiKey);
       console.log('  - XID present:', !!apiXid);
 
-      if (!apiUrl || !apiKey) {
+      if (!apiUrl || !apiKey || !apiXid) {
         console.error('⚠️ Missing API Club credentials in environment');
         console.error('  - APICLUB_URL:', apiUrl ? 'Present' : 'MISSING');
         console.error('  - APICLUB_KEY:', apiKey ? 'Present' : 'MISSING');
-        throw new Error('API credentials not configured');
+        console.error('  - APICLUB_XID:', apiXid ? 'Present' : 'MISSING');
+        throw new Error('API credentials not configured - need URL, KEY, and XID for HMAC authentication');
       }
 
       console.log('📍 API URL:', apiUrl);
@@ -66,13 +67,49 @@ serve(async (req) => {
       console.log('📤 Request details:');
       console.log('  - Method: POST');
       console.log('  - Body:', JSON.stringify(requestBody));
-      console.log('  - Headers: Content-Type, secretKey, clientId');
-
+      
+      // ========================================
+      // HMAC Signature Authentication
+      // ========================================
+      // Step 1: Convert JSON to Base64
+      const jsonString = JSON.stringify(requestBody);
+      const base64Payload = btoa(jsonString);
+      console.log('🔐 Base64 Payload generated');
+      
+      // Step 2: Generate HMAC-SHA256 signature
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(apiKey);
+      const messageData = encoder.encode(base64Payload);
+      
+      // Import the key for HMAC
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      
+      // Generate the signature
+      const signatureBuffer = await crypto.subtle.sign(
+        'HMAC',
+        cryptoKey,
+        messageData
+      );
+      
+      // Convert signature to hex string
+      const signatureArray = Array.from(new Uint8Array(signatureBuffer));
+      const hmacSignature = signatureArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      console.log('✅ HMAC Signature generated');
+      console.log('  - Headers: x-signature, x-id, Content-Type');
+      
       const apiResponse = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey   // API expects lowercase x-api-key header (confirmed working in test)
+          'x-signature': hmacSignature,
+          'x-id': apiXid || ''
         },
         body: JSON.stringify(requestBody)
       });

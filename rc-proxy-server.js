@@ -5,6 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 // Load environment variables
 dotenv.config();
@@ -15,7 +16,8 @@ const PORT = process.env.PORT || 3001;
 // API Configuration - Using your actual credentials
 const API_CONFIG = {
   url: process.env.APICLUB_URL || 'https://prod.apiclub.in/api/v1/rc_info',
-  key: process.env.APICLUB_KEY || 'apclb_xZ7S4F2ngB8TUpH6vKNbGvL83a446d50'
+  key: process.env.APICLUB_KEY || 'apclb_xZ7S4F2ngB8TUpH6vKNbGvL83a446d50',
+  xid: process.env.APICLUB_XID || '' // X-ID for HMAC authentication
 };
 
 // CORS configuration - add your production domains here
@@ -94,11 +96,29 @@ app.post('/api/fetch-rc-details', async (req, res) => {
       vehicleId: cleanedRegNumber
     });
     
+    // ========================================
+    // HMAC Signature Authentication
+    // ========================================
+    // Step 1: Convert JSON to Base64
+    const jsonString = JSON.stringify(requestBody);
+    const base64Payload = Buffer.from(jsonString).toString('base64');
+    console.log('🔐 Base64 Payload generated');
+    
+    // Step 2: Generate HMAC-SHA256 signature
+    const hmacSignature = crypto
+      .createHmac('sha256', API_CONFIG.key)
+      .update(base64Payload)
+      .digest('hex');
+    
+    console.log('✅ HMAC Signature generated');
+    console.log('  - Headers: x-signature, x-id, Content-Type');
+    
     const response = await fetch(API_CONFIG.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_CONFIG.key
+        'x-signature': hmacSignature,
+        'x-id': API_CONFIG.xid
       },
       body: JSON.stringify(requestBody)
     });
@@ -178,6 +198,8 @@ const server = app.listen(PORT, () => {
   console.log(`🔗 RC Endpoint: http://localhost:${PORT}/api/fetch-rc-details`);
   console.log(`📋 API URL: ${API_CONFIG.url}`);
   console.log(`🔑 API Key: ${API_CONFIG.key.substring(0, 10)}...`);
+  console.log(`🆔 X-ID: ${API_CONFIG.xid ? API_CONFIG.xid.substring(0, 10) + '...' : 'NOT SET'}`);
+  console.log(`🔐 Auth Method: HMAC-SHA256 Signature`);
   console.log(`\n✅ Ready to handle requests!`);
   console.log(`${'='.repeat(60)}\n`);
 });
