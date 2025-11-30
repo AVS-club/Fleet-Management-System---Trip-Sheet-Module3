@@ -346,16 +346,28 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       
       // Use proxy server for local dev, Edge Function for production
       // Priority: env variable > Edge Function (production) > localhost (dev)
+      const isProduction = window.location.hostname !== 'localhost';
       const proxyUrl = import.meta.env.VITE_RC_PROXY_URL || 
-        (window.location.hostname === 'localhost' 
-          ? 'http://localhost:3001/api/fetch-rc-details'
-          : 'https://oosrmuqfcqtojflruhww.supabase.co/functions/v1/fetch-rc-details');
+        (isProduction
+          ? 'https://oosrmuqfcqtojflruhww.supabase.co/functions/v1/fetch-rc-details'
+          : 'http://localhost:3001/api/fetch-rc-details');
+      
+      // Add Authorization header for Edge Functions (production)
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (isProduction && !import.meta.env.VITE_RC_PROXY_URL) {
+        // Calling Edge Function - need authorization header
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (supabaseAnonKey) {
+          headers['Authorization'] = `Bearer ${supabaseAnonKey}`;
+        }
+      }
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           registration_number: regNumber
         }),

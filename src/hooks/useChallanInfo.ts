@@ -45,16 +45,28 @@ export const useChallanInfo = () => {
     try {
       // Use proxy server for local dev, Edge Function for production
       // Priority: env variable > Edge Function (production) > localhost (dev)
+      const isProduction = window.location.hostname !== 'localhost';
       const proxyUrl = import.meta.env.VITE_CHALLAN_PROXY_URL || 
-        (window.location.hostname === 'localhost' 
-          ? 'http://localhost:3001/api/fetch-challan-info'
-          : 'https://oosrmuqfcqtojflruhww.supabase.co/functions/v1/fetch-challan-info');
+        (isProduction
+          ? 'https://oosrmuqfcqtojflruhww.supabase.co/functions/v1/fetch-challan-info'
+          : 'http://localhost:3001/api/fetch-challan-info');
+      
+      // Add Authorization header for Edge Functions (production)
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (isProduction && !import.meta.env.VITE_CHALLAN_PROXY_URL) {
+        // Calling Edge Function - need authorization header
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (supabaseAnonKey) {
+          headers['Authorization'] = `Bearer ${supabaseAnonKey}`;
+        }
+      }
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(cleanedData),
       });
 
