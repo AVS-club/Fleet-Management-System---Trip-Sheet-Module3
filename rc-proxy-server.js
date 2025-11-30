@@ -67,6 +67,13 @@ const DL_API_CONFIG = {
   xid: process.env.APICLUB_XID || API_CONFIG.xid
 };
 
+// Challan API Configuration
+const CHALLAN_API_CONFIG = {
+  url: process.env.CHALLAN_API_URL || 'https://prod.apiclub.in/api/v1/challan_info_v2',
+  key: process.env.CHALLAN_API_KEY || process.env.APICLUB_KEY || API_CONFIG.key,
+  xid: process.env.APICLUB_XID || API_CONFIG.xid
+};
+
 // Main proxy endpoint for RC details
 app.post('/api/fetch-rc-details', async (req, res) => {
   const { registration_number } = req.body;
@@ -321,6 +328,116 @@ app.post('/api/fetch-dl-details', async (req, res) => {
   }
 });
 
+// Main proxy endpoint for Challan Info
+app.post('/api/fetch-challan-info', async (req, res) => {
+  const { vehicleId, chassis, engine_no } = req.body;
+  
+  // Optional: Add authentication
+  const authToken = req.headers['x-auth-token'];
+  if (process.env.PROXY_AUTH_TOKEN && authToken !== process.env.PROXY_AUTH_TOKEN) {
+    console.log('❌ Unauthorized Challan request attempt');
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized'
+    });
+  }
+  
+  if (!vehicleId || !chassis || !engine_no) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Vehicle ID, Chassis, and Engine Number are required'
+    });
+  }
+
+  console.log('🚨 Fetching Challan info for:', vehicleId);
+  
+  try {
+    // Clean inputs
+    const cleanVehicleId = vehicleId.replace(/\s+/g, '').toUpperCase();
+    const cleanChassis = chassis.replace(/\s+/g, '').toUpperCase();
+    const cleanEngineNo = engine_no.replace(/\s+/g, '').toUpperCase();
+    
+    // Build form data for challan API (uses form-urlencoded)
+    const formData = new URLSearchParams();
+    formData.append('vehicleId', cleanVehicleId);
+    formData.append('chassis', cleanChassis);
+    formData.append('engine_no', cleanEngineNo);
+    
+    console.log('📤 Challan API Request:', {
+      url: CHALLAN_API_CONFIG.url,
+      vehicleId: cleanVehicleId
+    });
+    
+    // ========================================
+    // HMAC Signature Authentication
+    // ========================================
+    // For Challan, we sign the JSON representation even though API uses form-urlencoded
+    const requestBodyJson = {
+      vehicleId: cleanVehicleId,
+      chassis: cleanChassis,
+      engine_no: cleanEngineNo
+    };
+    
+    // Step 1: Convert JSON to Base64
+    const jsonString = JSON.stringify(requestBodyJson);
+    const base64Payload = Buffer.from(jsonString).toString('base64');
+    console.log('🔐 Base64 Payload generated for Challan');
+    
+    // Step 2: Generate HMAC-SHA256 signature
+    const hmacSignature = crypto
+      .createHmac('sha256', CHALLAN_API_CONFIG.key)
+      .update(base64Payload)
+      .digest('hex');
+    
+    console.log('✅ HMAC Signature generated for Challan');
+    console.log('  - Headers: x-signature, x-id, content-type');
+    
+    const response = await fetch(CHALLAN_API_CONFIG.url, {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/x-www-form-urlencoded',
+        'x-signature': hmacSignature,
+        'x-id': CHALLAN_API_CONFIG.xid
+      },
+      body: formData.toString()
+    });
+    
+    const data = await response.json();
+    console.log('📥 Challan API Response:', {
+      code: data.code,
+      status: data.status,
+      total: data.response?.total || 0
+    });
+    
+    if (data.status === 'success' && data.response) {
+      console.log(`✅ Successfully fetched challan info - ${data.response.total} challan(s)`);
+      res.json(data);
+    } else if (data.code === 403) {
+      console.log('❌ IP not whitelisted for Challan:', req.ip);
+      res.status(403).json({
+        status: 'error',
+        message: 'IP not whitelisted',
+        error: data.message
+      });
+    } else {
+      console.log('❌ Challan API Error:', data);
+      res.json({
+        status: 'error',
+        message: data.message || 'Failed to fetch challan info',
+        error: data
+      });
+    }
+  } catch (error) {
+    console.error('❌ Challan Server error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
@@ -341,6 +458,7 @@ const server = app.listen(PORT, () => {
   console.log(`\n📋 Available Endpoints:`);
   console.log(`   🚗 RC Details: http://localhost:${PORT}/api/fetch-rc-details`);
   console.log(`   🪪 DL Details: http://localhost:${PORT}/api/fetch-dl-details`);
+  console.log(`   🚨 Challan Info: http://localhost:${PORT}/api/fetch-challan-info`);
   console.log(`\n🔐 Authentication:`);
   console.log(`   🔑 API Key: ${API_CONFIG.key.substring(0, 10)}...`);
   console.log(`   🆔 X-ID: ${API_CONFIG.xid ? API_CONFIG.xid.substring(0, 10) + '...' : 'NOT SET'}`);
@@ -348,7 +466,8 @@ const server = app.listen(PORT, () => {
   console.log(`\n📡 API URLs:`);
   console.log(`   RC: ${API_CONFIG.url}`);
   console.log(`   DL: ${DL_API_CONFIG.url}`);
-  console.log(`\n✅ Ready to handle RC & DL requests!`);
+  console.log(`   Challan: ${CHALLAN_API_CONFIG.url}`);
+  console.log(`\n✅ Ready to handle RC, DL & Challan requests!`);
   console.log(`${'='.repeat(60)}\n`);
 });
 
