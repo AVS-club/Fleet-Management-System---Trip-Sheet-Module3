@@ -205,9 +205,12 @@ const DriverForm: React.FC<DriverFormProps> = ({
 
       logger.info("Fetching driver details:", { licenseNumber, dob: dob_formatted });
 
-      // Use proxy server to avoid IP whitelisting issues
-      // Uses environment variable if set, otherwise falls back to local proxy
-      const proxyUrl = import.meta.env.VITE_DL_PROXY_URL || 'http://localhost:3001/api/fetch-dl-details';
+      // Use proxy server for local dev, Edge Function for production
+      // Priority: env variable > Edge Function (production) > localhost (dev)
+      const proxyUrl = import.meta.env.VITE_DL_PROXY_URL || 
+        (window.location.hostname === 'localhost' 
+          ? 'http://localhost:3001/api/fetch-dl-details'
+          : 'https://oosrmuqfcqtojflruhww.supabase.co/functions/v1/fetch-driver-details');
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
