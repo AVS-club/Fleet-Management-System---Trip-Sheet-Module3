@@ -57,14 +57,40 @@ export const MobileVehicleCard: React.FC<MobileVehicleCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Determine card urgency color
-  const getUrgencyColor = () => {
+  // Determine card border color (left indicator)
+  const getUrgencyBorderColor = () => {
     if (vehicle.__urg.score > 2) {
-      return 'border-l-error-500 bg-error-50';
+      return 'border-l-error-500';
     } else if (vehicle.__urg.meta.minDTX !== null && vehicle.__urg.meta.minDTX <= 30 && vehicle.__urg.meta.minDTX >= 0) {
-      return 'border-l-warning-500 bg-warning-50';
+      return 'border-l-warning-500';
     }
-    return 'border-l-success-500 bg-white';
+    return 'border-l-success-500';
+  };
+
+  // Determine header background color
+  const getUrgencyHeaderColor = () => {
+    if (vehicle.__urg.score > 2) {
+      return 'bg-error-50';
+    } else if (vehicle.__urg.meta.minDTX !== null && vehicle.__urg.meta.minDTX <= 30 && vehicle.__urg.meta.minDTX >= 0) {
+      return 'bg-warning-50';
+    }
+    return 'bg-white';
+  };
+
+  // Get background color for individual document row
+  const getDocumentRowColor = (status: 'expired' | 'expiring' | 'valid' | 'missing') => {
+    switch (status) {
+      case 'expired':
+        return 'bg-error-50/50';
+      case 'expiring':
+        return 'bg-warning-50/50';
+      case 'valid':
+        return 'bg-success-50/30';
+      case 'missing':
+        return 'bg-gray-50';
+      default:
+        return 'bg-white';
+    }
   };
 
   // Get summary status for collapsed view
@@ -95,11 +121,11 @@ export const MobileVehicleCard: React.FC<MobileVehicleCardProps> = ({
   ];
 
   return (
-    <div className={`mobile-vehicle-card border-l-4 rounded-lg shadow-sm mb-3 overflow-hidden ${getUrgencyColor()}`}>
+    <div className={`mobile-vehicle-card border-l-4 rounded-lg shadow-sm mb-3 overflow-hidden bg-white ${getUrgencyBorderColor()}`}>
       {/* Card Header - Always Visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 flex items-center justify-between touch-manipulation active:bg-gray-50 transition-colors"
+        className={`w-full px-4 py-3 flex items-center justify-between touch-manipulation active:opacity-90 transition-all ${getUrgencyHeaderColor()}`}
       >
         <div className="flex-1 text-left">
           <div className="flex items-center gap-2">
@@ -126,10 +152,11 @@ export const MobileVehicleCard: React.FC<MobileVehicleCardProps> = ({
                 onRefresh(vehicle.id);
               }}
               disabled={isRefreshing}
-              className="p-2 hover:bg-gray-100 rounded-full touch-manipulation"
-              title="Refresh document data"
+              className="p-2.5 hover:bg-primary-100 bg-primary-50 rounded-lg touch-manipulation active:scale-95 transition-all border border-primary-200"
+              title="Refresh this vehicle's data"
+              style={{ minWidth: '40px', minHeight: '40px' }}
             >
-              <RefreshCw className={`h-4 w-4 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-5 w-5 text-primary-600 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
           )}
           {isExpanded ? (
@@ -150,13 +177,16 @@ export const MobileVehicleCard: React.FC<MobileVehicleCardProps> = ({
             transition={{ duration: 0.2 }}
             className="border-t border-gray-200"
           >
-            <div className="px-4 py-3 space-y-3">
+            <div className="px-4 py-3 space-y-2">
               {documentTypes.map(({ key, label, urlKey }) => {
                 const docInfo = vehicle.documents[key as keyof typeof vehicle.documents];
                 const docPaths = vehicleData?.[urlKey as keyof Vehicle] as string[] | undefined;
 
                 return (
-                  <div key={key} className="flex items-center justify-between">
+                  <div 
+                    key={key} 
+                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors ${getDocumentRowColor(docInfo.status)}`}
+                  >
                     <span className="text-sm font-medium text-gray-700 min-w-[80px]">
                       {label}
                     </span>
