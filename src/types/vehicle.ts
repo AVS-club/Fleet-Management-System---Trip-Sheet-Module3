@@ -177,6 +177,19 @@ export interface Vehicle {
   rc_status?: string;
   vahan_last_fetched_at?: string;
   financer?: string;
+  
+  // Additional RC API fields (100% utilization)
+  blacklist_status?: string; // Critical: Vehicle blacklist status
+  owner_count?: string; // Number of previous owners
+  present_address?: string; // Owner's current address
+  permanent_address?: string; // Owner's permanent address
+  father_name?: string; // Owner's father name
+  rto_name?: string; // RTO office name
+  body_type?: string; // Vehicle body type
+  manufacturing_date?: string; // Original manufacturing date
+  wheelbase?: string; // Vehicle wheelbase
+  sleeper_capacity?: number; // Sleeper berth capacity
+  standing_capacity?: number; // Standing passenger capacity
 
   created_at?: string;
   updated_at?: string;

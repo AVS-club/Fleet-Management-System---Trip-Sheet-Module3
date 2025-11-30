@@ -463,7 +463,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         puc_expiry_date: isValidDate(rcData.pucc_upto) ? rcData.pucc_upto : undefined,
         puc_issue_date: isValidDate(rcData.pucc_upto) ? calculateStartDate(rcData.pucc_upto) : undefined,
         
-        // Additional fields
+        // Additional RC API fields (100% utilization - capturing ALL data!)
+        blacklist_status: rcData.blacklist_status || '', // Critical for compliance
+        owner_count: rcData.owner_count || '',
+        present_address: rcData.present_address || '',
+        permanent_address: rcData.permanent_address || '',
+        rto_name: rcData.rto_name || '',
+        body_type: rcData.body_type || '',
+        manufacturing_date: rcData.manufacturing_date || rcData.manufacturing_date_formatted || '',
+        wheelbase: rcData.wheelbase || '',
+        sleeper_capacity: rcData.sleeper_capacity ? parseInt(rcData.sleeper_capacity) : undefined,
+        standing_capacity: rcData.standing_capacity ? parseInt(rcData.standing_capacity) : undefined,
+        
+        // Metadata
         vahan_last_fetched_at: new Date().toISOString(),
       };
 
@@ -1120,6 +1132,52 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             disabled={isSubmitting}
             {...register('number_of_tyres', { valueAsNumber: true })}
           />
+
+          <Input
+            label="Body Type"
+            icon={<Truck className="h-4 w-4" />}
+            hideIconWhenFocused={true}
+            disabled={fieldsDisabled || isSubmitting}
+            placeholder="e.g., Closed Body, Open Body"
+            {...register('body_type')}
+          />
+
+          <Input
+            label="Manufacturing Date"
+            type="date"
+            icon={<Calendar className="h-4 w-4" />}
+            disabled={fieldsDisabled || isSubmitting}
+            {...register('manufacturing_date')}
+          />
+
+          <Input
+            label="Wheelbase"
+            icon={<Settings className="h-4 w-4" />}
+            hideIconWhenFocused={true}
+            disabled={fieldsDisabled || isSubmitting}
+            placeholder="e.g., 3350 mm"
+            {...register('wheelbase')}
+          />
+
+          <Input
+            label="Sleeper Capacity"
+            type="number"
+            icon={<Truck className="h-4 w-4" />}
+            hideIconWhenFocused={true}
+            disabled={fieldsDisabled || isSubmitting}
+            placeholder="Number of sleeper berths"
+            {...register('sleeper_capacity', { valueAsNumber: true })}
+          />
+
+          <Input
+            label="Standing Capacity"
+            type="number"
+            icon={<User className="h-4 w-4" />}
+            hideIconWhenFocused={true}
+            disabled={fieldsDisabled || isSubmitting}
+            placeholder="Standing passenger capacity"
+            {...register('standing_capacity', { valueAsNumber: true })}
+          />
         </div>
       </CollapsibleSection>
 
@@ -1188,6 +1246,52 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             disabled={fieldsDisabled || isSubmitting}
             {...register('noc_details')}
           />
+
+          <Input
+            label="Owner Count"
+            icon={<User className="h-4 w-4" />}
+            hideIconWhenFocused={true}
+            disabled={fieldsDisabled || isSubmitting}
+            placeholder="e.g., 1 (First Owner)"
+            {...register('owner_count')}
+          />
+
+          <Input
+            label="RTO Office Name"
+            icon={<FileText className="h-4 w-4" />}
+            hideIconWhenFocused={true}
+            disabled={fieldsDisabled || isSubmitting}
+            placeholder="e.g., RAIPUR RTO"
+            {...register('rto_name')}
+          />
+
+          <Input
+            label="Owner Present Address"
+            icon={<MapPin className="h-4 w-4" />}
+            hideIconWhenFocused={true}
+            disabled={fieldsDisabled || isSubmitting}
+            {...register('present_address')}
+          />
+
+          <Input
+            label="Owner Permanent Address"
+            icon={<MapPin className="h-4 w-4" />}
+            hideIconWhenFocused={true}
+            disabled={fieldsDisabled || isSubmitting}
+            {...register('permanent_address')}
+          />
+
+          {/* Blacklist Status Warning */}
+          {watch('blacklist_status') && watch('blacklist_status') !== 'NA' && watch('blacklist_status') !== '' && (
+            <div className="col-span-2 bg-red-50 border-2 border-red-500 rounded-lg p-4">
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+                <span className="font-semibold text-red-700">
+                  ⚠️ Blacklist Status: {watch('blacklist_status')}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </CollapsibleSection>
 
