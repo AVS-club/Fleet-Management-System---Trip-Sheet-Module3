@@ -5,6 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 // Load environment variables
 dotenv.config();
@@ -15,7 +16,8 @@ const PORT = process.env.DL_PROXY_PORT || 3002;
 // API Configuration
 const DL_API_CONFIG = {
   url: process.env.DL_API_URL || 'https://uat.apiclub.in/api/v1/fetch_dl',
-  key: process.env.DL_API_KEY || 'apclb_xZ7S4F2ngB8TUpH6vKNbGvL83a446d50' // Same API key works for DL
+  key: process.env.DL_API_KEY || 'apclb_xZ7S4F2ngB8TUpH6vKNbGvL83a446d50', // Same API key works for DL
+  xid: process.env.APICLUB_XID || process.env.DL_API_XID || '' // X-ID for HMAC authentication
 };
 
 // CORS configuration
@@ -92,12 +94,29 @@ app.post('/api/fetch-dl-details', async (req, res) => {
       dl_no: requestBody.dl_no
     });
     
+    // ========================================
+    // HMAC Signature Authentication
+    // ========================================
+    // Step 1: Convert JSON to Base64
+    const jsonString = JSON.stringify(requestBody);
+    const base64Payload = Buffer.from(jsonString).toString('base64');
+    console.log('🔐 Base64 Payload generated');
+    
+    // Step 2: Generate HMAC-SHA256 signature
+    const hmacSignature = crypto
+      .createHmac('sha256', DL_API_CONFIG.key)
+      .update(base64Payload)
+      .digest('hex');
+    
+    console.log('✅ HMAC Signature generated');
+    console.log('  - Headers: x-signature, x-id, Content-Type');
+    
     const response = await fetch(DL_API_CONFIG.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'X-API-KEY': DL_API_CONFIG.key,
-        'X-Request-Id': `dl_${Date.now()}`
+        'x-signature': hmacSignature,
+        'x-id': DL_API_CONFIG.xid
       },
       body: new URLSearchParams(requestBody).toString()
     });
@@ -195,6 +214,8 @@ const server = app.listen(PORT, () => {
   console.log(`🔗 DL Endpoint: http://localhost:${PORT}/api/fetch-dl-details`);
   console.log(`📋 API URL: ${DL_API_CONFIG.url}`);
   console.log(`🔑 API Key: ${DL_API_CONFIG.key.substring(0, 10)}...`);
+  console.log(`🆔 X-ID: ${DL_API_CONFIG.xid ? DL_API_CONFIG.xid.substring(0, 10) + '...' : 'NOT SET'}`);
+  console.log(`🔐 Auth Method: HMAC-SHA256 Signature`);
   console.log(`\n✅ Ready to handle DL verification requests!`);
   console.log(`${'='.repeat(60)}\n`);
 });
