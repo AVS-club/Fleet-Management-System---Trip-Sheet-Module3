@@ -141,7 +141,7 @@ serve(async (req) => {
       console.log('  - Has message:', 'message' in apiData);
       console.log('  - Message:', apiData.message);
 
-      if (apiData.code !== 100) {
+      if (apiData.code !== 200) {
         console.error('⚠️ API returned non-success code:', apiData.code);
         console.error('⚠️ Full response:', JSON.stringify(apiData, null, 2));
         throw new Error(apiData.message || 'Vehicle not found in database');
