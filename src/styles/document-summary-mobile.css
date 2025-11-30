@@ -27,12 +27,28 @@
   .touch-manipulation {
     touch-action: manipulation;
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05);
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   /* Ensure buttons are at least 44x44px for touch */
   button.touch-manipulation {
     min-height: 44px;
     min-width: 44px;
+  }
+
+  /* Back button styling */
+  .mobile-document-summary button:has(.lucide-arrow-left) {
+    background-color: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+
+  .mobile-document-summary button:has(.lucide-arrow-left):hover {
+    background-color: rgba(16, 185, 129, 0.15);
+  }
+
+  .mobile-document-summary button:has(.lucide-arrow-left):active {
+    background-color: rgba(16, 185, 129, 0.2);
   }
 
   /* Smooth scrolling */

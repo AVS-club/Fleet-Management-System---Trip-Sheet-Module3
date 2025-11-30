@@ -344,9 +344,18 @@ const DocumentSummaryPanelRefactored: React.FC<DocumentSummaryPanelProps> = ({ i
           setVehicleFilter={setVehicleFilter}
           setDocumentTypeFilter={setDocumentTypeFilter}
           onRefreshVehicle={handleIndividualRefresh}
+          onRefreshAll={handleBulkRefresh}
+          onCheckChallans={handleChallanRefresh}
           onExportExcel={exportToExcel}
           onExportPDF={handleDownload}
           onPrint={handlePrintClick}
+          isBulkRefreshing={isBulkRefreshing}
+          isBulkChallanLoading={isBulkChallanLoading}
+          challanRefreshProgress={challanRefreshProgress}
+          refreshProgress={refreshProgress}
+          showChallanModal={showChallanModal}
+          setShowChallanModal={setShowChallanModal}
+          currentChallanData={currentChallanData}
         />
       </div>
     );
