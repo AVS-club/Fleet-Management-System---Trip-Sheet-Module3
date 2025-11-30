@@ -15,7 +15,7 @@ const PORT = process.env.DL_PROXY_PORT || 3002;
 
 // API Configuration
 const DL_API_CONFIG = {
-  url: process.env.DL_API_URL || 'https://uat.apiclub.in/api/v1/fetch_dl',
+  url: process.env.DL_API_URL || 'https://prod.apiclub.in/api/v1/fetch_dl',  // Changed to PROD!
   key: process.env.DL_API_KEY || 'apclb_xZ7S4F2ngB8TUpH6vKNbGvL83a446d50', // Same API key works for DL
   xid: process.env.APICLUB_XID || process.env.DL_API_XID || '' // X-ID for HMAC authentication
 };
