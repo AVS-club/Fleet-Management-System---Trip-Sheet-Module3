@@ -69,10 +69,10 @@ export const useChallanInfo = () => {
         
         // Check if response contains mock data
         const hasMockData = data.response.challans?.some(challan => 
-          challan.challan_no.includes('XXXX') || 
-          challan.accused_name.includes('DUMMY') ||
-          challan.date.includes('XXXX') ||
-          challan.offence.includes('Custom offence')
+          challan.challan_no?.includes('XXXX') || 
+          challan.accused_name?.includes('DUMMY') ||
+          challan.date?.includes('XXXX') ||
+          challan.offence?.includes('Custom offence')
         );
         
         if (hasMockData) {
