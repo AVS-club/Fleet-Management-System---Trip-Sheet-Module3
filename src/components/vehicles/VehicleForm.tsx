@@ -455,8 +455,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         national_permit_upto: isValidDate(rcData.national_permit_upto) ? rcData.national_permit_upto : undefined,
         
         // Fitness Certificate
-        fitness_expiry_date: isValidDate(rcData.fitness_upto) ? rcData.fitness_upto : undefined,
-        fitness_issue_date: isValidDate(rcData.fitness_valid_from) ? rcData.fitness_valid_from : undefined,
+        fitness_expiry_date: isValidDate(rcData.fit_up_to) ? rcData.fit_up_to : undefined,  // ✅ Fixed: fit_up_to not fitness_upto!
+        fitness_issue_date: isValidDate(rcData.fitness_valid_from) ? rcData.fitness_valid_from : (isValidDate(rcData.fit_up_to) ? calculateStartDate(rcData.fit_up_to) : undefined),
         
         // PUC Details
         puc_certificate_number: rcData.pucc_number || '',
