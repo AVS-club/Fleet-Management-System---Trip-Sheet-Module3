@@ -344,9 +344,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     try {
       logger.info('Fetching RC details for:', regNumber);
       
-      // Use proxy server to avoid IP whitelisting issues
-      // Uses environment variable if set, otherwise falls back to local proxy
-      const proxyUrl = import.meta.env.VITE_RC_PROXY_URL || 'http://localhost:3001/api/fetch-rc-details';
+      // Use proxy server for local dev, Edge Function for production
+      // Priority: env variable > Edge Function (production) > localhost (dev)
+      const proxyUrl = import.meta.env.VITE_RC_PROXY_URL || 
+        (window.location.hostname === 'localhost' 
+          ? 'http://localhost:3001/api/fetch-rc-details'
+          : 'https://oosrmuqfcqtojflruhww.supabase.co/functions/v1/fetch-rc-details');
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
