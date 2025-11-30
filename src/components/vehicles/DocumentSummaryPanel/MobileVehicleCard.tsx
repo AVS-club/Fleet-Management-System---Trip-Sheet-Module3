@@ -10,7 +10,20 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, RefreshCw, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { 
+  ChevronDown, 
+  ChevronUp, 
+  RefreshCw, 
+  AlertCircle, 
+  CheckCircle, 
+  Clock,
+  Shield,
+  Heart,
+  FileText,
+  Wind,
+  Receipt,
+  Calendar
+} from 'lucide-react';
 import { Vehicle } from '@/types';
 import { MobileDocumentCell } from '../../documents/MobileDocumentCell';
 import { format, parseISO } from 'date-fns';
@@ -110,14 +123,56 @@ export const MobileVehicleCard: React.FC<MobileVehicleCardProps> = ({
 
   const summary = getDocumentSummary();
 
-  // Document type labels
+  // Document type labels with icons and colors
   const documentTypes = [
-    { key: 'insurance', label: 'Insurance', urlKey: 'insurance_document_url' },
-    { key: 'fitness', label: 'Fitness', urlKey: 'fitness_document_url' },
-    { key: 'permit', label: 'Permit', urlKey: 'permit_document_url' },
-    { key: 'puc', label: 'PUC', urlKey: 'puc_document_url' },
-    { key: 'tax', label: 'Tax', urlKey: 'tax_document_url' },
-    { key: 'rc', label: 'RC Expiry', urlKey: 'rc_document_url' }
+    { 
+      key: 'insurance', 
+      label: 'Insurance', 
+      urlKey: 'insurance_document_url',
+      icon: Shield,
+      iconColor: 'text-blue-600',
+      iconBg: 'bg-blue-100'
+    },
+    { 
+      key: 'fitness', 
+      label: 'Fitness', 
+      urlKey: 'fitness_document_url',
+      icon: Heart,
+      iconColor: 'text-pink-600',
+      iconBg: 'bg-pink-100'
+    },
+    { 
+      key: 'permit', 
+      label: 'Permit', 
+      urlKey: 'permit_document_url',
+      icon: FileText,
+      iconColor: 'text-purple-600',
+      iconBg: 'bg-purple-100'
+    },
+    { 
+      key: 'puc', 
+      label: 'PUC', 
+      urlKey: 'puc_document_url',
+      icon: Wind,
+      iconColor: 'text-teal-600',
+      iconBg: 'bg-teal-100'
+    },
+    { 
+      key: 'tax', 
+      label: 'Tax', 
+      urlKey: 'tax_document_url',
+      icon: Receipt,
+      iconColor: 'text-orange-600',
+      iconBg: 'bg-orange-100'
+    },
+    { 
+      key: 'rc', 
+      label: 'RC Expiry', 
+      urlKey: 'rc_document_url',
+      icon: Calendar,
+      iconColor: 'text-indigo-600',
+      iconBg: 'bg-indigo-100'
+    }
   ];
 
   return (
@@ -178,7 +233,7 @@ export const MobileVehicleCard: React.FC<MobileVehicleCardProps> = ({
             className="border-t border-gray-200"
           >
             <div className="px-4 py-3 space-y-2">
-              {documentTypes.map(({ key, label, urlKey }) => {
+              {documentTypes.map(({ key, label, urlKey, icon: Icon, iconColor, iconBg }) => {
                 const docInfo = vehicle.documents[key as keyof typeof vehicle.documents];
                 const docPaths = vehicleData?.[urlKey as keyof Vehicle] as string[] | undefined;
 
@@ -187,9 +242,14 @@ export const MobileVehicleCard: React.FC<MobileVehicleCardProps> = ({
                     key={key} 
                     className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors ${getDocumentRowColor(docInfo.status)}`}
                   >
-                    <span className="text-sm font-medium text-gray-700 min-w-[80px]">
-                      {label}
-                    </span>
+                    <div className="flex items-center gap-2 min-w-[120px]">
+                      <div className={`p-1.5 rounded-md ${iconBg}`}>
+                        <Icon className={`h-4 w-4 ${iconColor}`} />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">
+                        {label}
+                      </span>
+                    </div>
                     <div className="flex-1 flex justify-end">
                       <MobileDocumentCell
                         vehicleId={vehicle.id}
