@@ -236,6 +236,15 @@ const DriverForm: React.FC<DriverFormProps> = ({
       const driver = result.data || {};
       logger.info("Driver data received:", driver);
 
+      // Helper function to convert DD-MM-YYYY to YYYY-MM-DD
+      const convertDateFormat = (ddmmyyyy: string | undefined): string => {
+        if (!ddmmyyyy) return '';
+        const parts = ddmmyyyy.split('-');
+        if (parts.length !== 3) return '';
+        // Convert DD-MM-YYYY to YYYY-MM-DD
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      };
+
       // Convert base64 image to data URL if present
       const photoDataUrl = driver.image ? ensureImageDataUrl(driver.image) : undefined;
 
@@ -262,17 +271,17 @@ const DriverForm: React.FC<DriverFormProps> = ({
               ? "FEMALE"
           : "OTHER")) ||
           "MALE",
-        dob: driver.date_of_birth || dob,
+        dob: driver.date_of_birth ? convertDateFormat(driver.date_of_birth) : (dob || ''),
         blood_group:
           (driver?.blood_group && driver.blood_group.toUpperCase()) || "",
         address: driver?.permanent_address || driver?.temporary_address || "",
         contact_number: driver?.contact_number || "",
         email: driver?.email || "",
         license_number: driver?.license_number || licenseNumber,
-        vehicle_class: driver?.vehicle_classes || [],
-        valid_from: driver?.valid_from || "",
-        license_expiry_date: driver?.valid_upto || "",
-        license_issue_date: driver?.issue_date || "",
+        vehicle_class: driver?.vehicle_class || [],  // ✅ Fixed: singular not plural!
+        valid_from: driver?.valid_from ? convertDateFormat(driver.valid_from) : "",
+        license_expiry_date: driver?.valid_upto ? convertDateFormat(driver.valid_upto) : "",
+        license_issue_date: driver?.issue_date ? convertDateFormat(driver.issue_date) : "",
         rto_code: driver.rto_code || "",
         rto: driver.rto || "",
         state: driver.state || "",
