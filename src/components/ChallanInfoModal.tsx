@@ -91,7 +91,7 @@ export const ChallanInfoModal: React.FC<ChallanInfoModalProps> = ({
                       </p>
                       <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
                         <Calendar className="h-3 w-3" />
-                        {format(new Date(challan.date), 'dd MMM yyyy, hh:mm a')}
+                        {challan.date || 'Date not available'}
                       </p>
                     </div>
                     <div className="text-right">
