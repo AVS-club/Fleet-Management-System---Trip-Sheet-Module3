@@ -15,6 +15,7 @@ export const DOC_TYPE_COLORS = {
   permit: '#8b5cf6',    // purple
   puc: '#06b6d4',       // cyan
   tax: '#ef4444',       // red
+  other: '#6b7280',     // gray
 };
 
 /**

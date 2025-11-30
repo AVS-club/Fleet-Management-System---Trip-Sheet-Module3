@@ -46,7 +46,7 @@ import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
 import { toast } from "react-toastify";
 import StatCard from "../components/ui/StatCard";
-import DocumentSummaryPanel from "../components/vehicles/DocumentSummaryPanel";
+import DocumentSummaryPanel from "../components/vehicles/DocumentSummaryPanel/DocumentSummaryPanelRefactored";
 import VehicleWhatsAppShareModal from "../components/vehicles/VehicleWhatsAppShareModal";
 import TopDriversModal from "../components/vehicles/TopDriversModal";
 import VehicleActivityLogTable from "../components/admin/VehicleActivityLogTable";

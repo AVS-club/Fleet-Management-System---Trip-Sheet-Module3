@@ -1,0 +1,326 @@
+/**
+ * Mobile-specific styles for Document Summary Panel
+ * Optimized for touch interfaces and small screens
+ */
+
+/* Mobile Container - Full screen on mobile */
+@media (max-width: 767px) {
+  .document-summary-modal {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* Mobile Vehicle Card Styling */
+  .mobile-vehicle-card {
+    transition: all 0.2s ease;
+  }
+
+  .mobile-vehicle-card:active {
+    transform: scale(0.98);
+  }
+
+  /* Touch-friendly tap targets */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05);
+  }
+
+  /* Ensure buttons are at least 44x44px for touch */
+  button.touch-manipulation {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Smooth scrolling */
+  .overflow-y-auto,
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Hide scrollbar for horizontal scroll sections */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Snap scrolling for stats cards */
+  .snap-x {
+    scroll-snap-type: x mandatory;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  /* Mobile stats cards spacing */
+  .mobile-stats-container {
+    padding: 0;
+  }
+
+  /* Document cell adjustments for mobile */
+  .doc-cell-wrapper .doc-cell {
+    font-size: 13px !important;
+    padding: 6px 12px !important;
+    min-width: 85px !important;
+  }
+
+  /* Mobile popover adjustments */
+  .doc-popover {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+    margin: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
+    max-width: 100% !important;
+    padding: 16px !important;
+    animation: slideUp 0.3s ease !important;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .doc-popover::before {
+    display: none !important;
+  }
+
+  .doc-popover__btn {
+    padding: 14px 16px !important;
+    font-size: 15px !important;
+    min-height: 48px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Mobile filter drawer handle */
+  .filter-drawer-handle {
+    width: 48px;
+    height: 4px;
+    background: #d1d5db;
+    border-radius: 2px;
+    margin: 8px auto;
+  }
+
+  /* Mobile charts adjustments */
+  .mobile-charts-section {
+    margin-top: 1rem;
+  }
+
+  /* Reduce font sizes for compact mobile display */
+  .mobile-vehicle-card h3 {
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .mobile-vehicle-card .text-xs {
+    font-size: 11px;
+  }
+
+  /* Active state for cards */
+  .mobile-vehicle-card button:active {
+    background-color: #f9fafb;
+  }
+
+  /* Status badges mobile sizing */
+  .status-badge-mobile {
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  /* Mobile action menu */
+  .mobile-action-menu {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Safe area padding for notched devices */
+  .mobile-document-summary {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Header safe area */
+  .mobile-document-summary > div:first-child {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 374px) {
+  .mobile-vehicle-card h3 {
+    font-size: 14px;
+  }
+
+  .doc-cell-wrapper .doc-cell {
+    font-size: 12px !important;
+    padding: 5px 10px !important;
+    min-width: 75px !important;
+  }
+
+  .mobile-stats-container .stat-card {
+    width: 108px !important;
+    padding: 10px !important;
+  }
+
+  .doc-popover__btn {
+    padding: 12px 14px !important;
+    font-size: 14px !important;
+  }
+}
+
+/* Tablet breakpoint - Use hybrid layout */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .document-summary-modal {
+    max-width: 95% !important;
+    height: 95vh !important;
+    border-radius: 16px !important;
+  }
+
+  /* Show more columns on tablet */
+  .mobile-vehicle-card {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-width: 767px) and (orientation: landscape) {
+  .mobile-document-summary {
+    max-height: 100vh;
+    overflow: hidden;
+  }
+
+  .mobile-vehicle-card {
+    padding: 8px 16px;
+  }
+
+  .mobile-stats-container {
+    padding: 8px 0;
+  }
+}
+
+/* Dark mode support (future enhancement) */
+@media (prefers-color-scheme: dark) {
+  .mobile-vehicle-card {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+
+  .mobile-action-menu {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-vehicle-card,
+  .doc-popover,
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .mobile-vehicle-card {
+    border-width: 2px;
+  }
+
+  .doc-cell-wrapper .doc-cell {
+    border-width: 2px !important;
+  }
+
+  button {
+    border-width: 2px;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+.mobile-document-summary *:focus-visible {
+  outline: 3px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Loading states */
+.mobile-vehicle-card.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.mobile-vehicle-card.loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Prevent text selection on interactive elements */
+.mobile-vehicle-card button,
+.mobile-stats-container,
+.mobile-action-menu {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Improve tap response */
+.mobile-vehicle-card button:active,
+.touch-manipulation:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+
+/* Status indicator animations */
+@keyframes pulse-error {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.mobile-vehicle-card.urgent {
+  animation: pulse-error 2s ease-in-out infinite;
+}
+

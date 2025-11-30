@@ -14,7 +14,7 @@
  * 3. Rename this file to DocumentSummaryPanel.tsx
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   FileCheck,
@@ -41,6 +41,7 @@ import Select from '../../ui/Select';
 import { useDocumentSummary } from './useDocumentSummary';
 import { DocumentMatrix } from './DocumentMatrix';
 import { ExpenditureCharts } from './ExpenditureCharts';
+import { MobileDocumentSummary } from './MobileDocumentSummary';
 import { ChallanInfoModal } from '../../ChallanInfoModal';
 import { formatShortDate } from './utils';
 import { toast } from 'react-toastify';
@@ -49,6 +50,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import { createLogger } from '../../../utils/logger';
+import '../../../styles/document-summary-mobile.css';
 
 const logger = createLogger('DocumentSummaryPanelRefactored');
 
@@ -59,6 +61,20 @@ interface DocumentSummaryPanelProps {
 
 const DocumentSummaryPanelRefactored: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
+
+  // Responsive state - detect mobile view
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    checkMobileView();
+    window.addEventListener('resize', checkMobileView);
+
+    return () => window.removeEventListener('resize', checkMobileView);
+  }, []);
 
   // Use custom hook for all state management
   const {
@@ -304,9 +320,42 @@ const DocumentSummaryPanelRefactored: React.FC<DocumentSummaryPanelProps> = ({ i
 
   if (!isOpen) return null;
 
+  // Mobile view - Render mobile-optimized layout
+  if (isMobileView) {
+    return (
+      <div className="fixed inset-0 z-50 bg-white document-summary-modal">
+        <MobileDocumentSummary
+          onClose={onClose}
+          sortedDocumentMatrix={sortedDocumentMatrix}
+          vehicles={vehicles}
+          metrics={metrics}
+          monthlyExpenditure={monthlyExpenditure}
+          vehicleExpenditure={vehicleExpenditure}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          dateRange={dateRange}
+          customStartDate={customStartDate}
+          customEndDate={customEndDate}
+          vehicleFilter={vehicleFilter}
+          documentTypeFilter={documentTypeFilter}
+          setDateRange={setDateRange}
+          setCustomStartDate={setCustomStartDate}
+          setCustomEndDate={setCustomEndDate}
+          setVehicleFilter={setVehicleFilter}
+          setDocumentTypeFilter={setDocumentTypeFilter}
+          onRefreshVehicle={handleIndividualRefresh}
+          onExportExcel={exportToExcel}
+          onExportPDF={handleDownload}
+          onPrint={handlePrintClick}
+        />
+      </div>
+    );
+  }
+
+  // Desktop view - Original table layout
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 flex">
-      <div className="relative w-full max-w-7xl mx-auto bg-white shadow-xl rounded-lg flex flex-col h-[calc(100vh-40px)] my-5">
+      <div className="relative w-full max-w-7xl mx-auto bg-white shadow-xl rounded-lg flex flex-col h-[calc(100vh-40px)] my-5 document-summary-modal">
         {/* Panel Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-900 flex items-center">
