@@ -67,6 +67,21 @@ serve(async (req) => {
     const cleanChassis = chassis?.replace(/\s/g, '').toUpperCase();
     const cleanEngineNo = engine_no?.replace(/\s/g, '').toUpperCase();
 
+    // Get API credentials from environment
+    const apiKey = (globalThis as any).Deno?.env?.get?.('CHALLAN_API_KEY') || (globalThis as any).Deno?.env?.get?.('APICLUB_KEY');
+    const apiXid = (globalThis as any).Deno?.env?.get?.('CHALLAN_API_XID') || (globalThis as any).Deno?.env?.get?.('APICLUB_XID');
+    const apiUrl = (globalThis as any).Deno?.env?.get?.('CHALLAN_API_URL') || 'https://prod.apiclub.in/api/v1/challan_info_v2';
+
+    console.log('🔐 Credential check:');
+    console.log('  - API URL:', apiUrl);
+    console.log('  - API Key present:', !!apiKey);
+    console.log('  - X-ID present:', !!apiXid);
+
+    if (!apiKey || !apiXid) {
+      console.error('⚠️ Missing API credentials');
+      throw new Error('API credentials not configured - need KEY and XID for HMAC authentication');
+    }
+
     // Call the Challan Information API
     const formData = new URLSearchParams();
     formData.append('vehicleId', cleanVehicleId);
@@ -78,12 +93,56 @@ serve(async (req) => {
       cleaned: { cleanVehicleId, cleanChassis, cleanEngineNo }
     });
     
-    const response = await fetch('https://prod.apiclub.in/api/v1/challan_info_v2', {
+    // ========================================
+    // HMAC Signature Authentication
+    // ========================================
+    // Note: For form-urlencoded, we sign the JSON representation
+    const requestBodyJson = {
+      vehicleId: cleanVehicleId,
+      chassis: cleanChassis,
+      engine_no: cleanEngineNo
+    };
+    
+    // Step 1: Convert JSON to Base64
+    const jsonString = JSON.stringify(requestBodyJson);
+    const base64Payload = btoa(jsonString);
+    console.log('🔐 Base64 Payload generated');
+    
+    // Step 2: Generate HMAC-SHA256 signature
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(apiKey);
+    const messageData = encoder.encode(base64Payload);
+    
+    // Import the key for HMAC
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    // Generate the signature
+    const signatureBuffer = await crypto.subtle.sign(
+      'HMAC',
+      cryptoKey,
+      messageData
+    );
+    
+    // Convert signature to hex string
+    const signatureArray = Array.from(new Uint8Array(signatureBuffer));
+    const hmacSignature = signatureArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    console.log('✅ HMAC Signature generated');
+    console.log('  - Headers: x-signature, x-id, content-type');
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'accept': 'application/json',
         'content-type': 'application/x-www-form-urlencoded',
-        'x-api-key': 'apclb_xZ7S4F2ngB8TUpH6vKNbGvL83a446d50',
+        'x-signature': hmacSignature,
+        'x-id': apiXid,
         'X-Request-Id': crypto.randomUUID(),
         'X-Environment': 'production'  // Production environment
       },
