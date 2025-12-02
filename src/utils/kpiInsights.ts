@@ -401,3 +401,4 @@ export function getGroupInfo(groupKey: string): { title: string; icon: string; d
   return groupInfoMap[groupKey] || { title: 'Other', icon: '📊', description: 'Additional metrics' };
 }
 
+
