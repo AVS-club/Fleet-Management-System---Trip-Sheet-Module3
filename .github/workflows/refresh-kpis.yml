@@ -2,8 +2,8 @@ name: Refresh KPIs
 
 on:
   schedule:
-    # Runs every 15 minutes
-    - cron: '*/15 * * * *'
+    # Runs every 4 hours
+    - cron: '0 */4 * * *'
   workflow_dispatch: # Allows manual triggering from GitHub Actions UI
 
 jobs:
@@ -15,7 +15,7 @@ jobs:
       - name: Call Supabase Edge Function to Refresh KPIs
         run: |
           response=$(curl -X POST https://oosrmuqfcqtojflruhww.supabase.co/functions/v1/refresh-kpis \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY_2025 }}" \
             -H "Content-Type: application/json" \
             -w "\nHTTP_CODE:%{http_code}" \
             -s)

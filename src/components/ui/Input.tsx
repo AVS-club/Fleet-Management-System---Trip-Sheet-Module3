@@ -36,9 +36,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const [isFocused, setIsFocused] = useState(false);
 
     const sizeClasses = {
-      sm: 'px-3 py-2 text-sm',
-      md: 'px-3 py-2',
-      lg: 'px-4 py-3 text-lg'
+      sm: 'py-2 text-sm',
+      md: 'py-2',
+      lg: 'py-3 text-lg'
     };
 
     const iconSizeClasses = {
@@ -57,6 +57,17 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
     // Add additional padding for inputs with browser controls
     const needsRightPadding = type === 'number' || type === 'date' || type === 'time' || type === 'datetime-local';
+
+    // Keep horizontal padding calculations separate so icon padding isn't overridden
+    const horizontalPadding = (() => {
+      if (shouldShowIcon && iconPosition === 'left') {
+        return cn(iconSizeClasses[inputSize], 'pr-3');
+      }
+      if (shouldShowIcon && iconPosition === 'right') {
+        return 'pl-3 pr-12';
+      }
+      return 'px-3';
+    })();
 
     return (
       <div className={cn("form-group", fullWidth && "w-full")}>
@@ -95,7 +106,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             className={cn(
                 "block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
                 error && "border-error-500 dark:border-error-500 focus:ring-error-200 dark:focus:ring-error-800 focus:border-error-500 dark:focus:border-error-500",
-                shouldShowIcon && iconPosition === 'left' && iconSizeClasses[inputSize], // Always reserve space if icon exists
+                horizontalPadding,
                 shouldShowIcon && iconPosition === 'right' && "pr-14",
                 needsRightPadding && "pr-14",
                 sizeClasses[inputSize],
