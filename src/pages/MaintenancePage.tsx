@@ -135,54 +135,54 @@ const MaintenancePage = () => {
       <MaintenanceErrorBoundary>
         {/* Page Header */}
         <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
-          <div className="flex items-center group">
-            <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-            <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
-              {t("maintenance.title")}
-            </h1>
-          </div>
-          <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">
-            {t("maintenance.description")}
-          </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            onClick={() => navigate("/maintenance/new")}
-            icon={<PlusCircle className="h-4 w-4" />}
-            inputSize="sm"
-          >
-            {t("maintenance.newTask")}
-          </Button>
-          <Button
-            onClick={() => navigate("/parts-health-analytics")}
-            icon={<BarChart3 className="h-4 w-4" />}
-            variant="outline"
-            inputSize="sm"
-          >
-            {t("maintenance.partsHealthAnalytics")}
-          </Button>
-          {/* View Toggle */}
-          <div className="flex border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <Button
-              onClick={() => setViewMode("calendar")}
-              variant={viewMode === "calendar" ? "default" : "outline"}
-              inputSize="sm"
-              icon={<Calendar className="h-4 w-4" />}
-              className="rounded-none border-0"
-            >
-              {t("maintenance.calendar")}
-            </Button>
-            <Button
-              onClick={() => setViewMode("list")}
-              variant={viewMode === "list" ? "default" : "outline"}
-              inputSize="sm"
-              icon={<Wrench className="h-4 w-4" />}
-              className="rounded-none border-0"
-            >
-              Task List
-            </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center group">
+              <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+              <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
+                {t("maintenance.title")}
+              </h1>
+            </div>
+            {/* Action Buttons - All in one row */}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => navigate("/maintenance/new")}
+                icon={<PlusCircle className="h-4 w-4" />}
+                inputSize="sm"
+              >
+                {t("maintenance.newTask")}
+              </Button>
+              <Button
+                onClick={() => navigate("/parts-health-analytics")}
+                icon={<BarChart3 className="h-4 w-4" />}
+                variant="outline"
+                inputSize="sm"
+              >
+                {t("maintenance.partsHealthAnalytics")}
+              </Button>
+              {/* View Toggle */}
+              <div className="flex border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <Button
+                  onClick={() => setViewMode("calendar")}
+                  variant={viewMode === "calendar" ? "default" : "outline"}
+                  inputSize="sm"
+                  icon={<Calendar className="h-4 w-4" />}
+                  className="rounded-none border-0"
+                >
+                  {t("maintenance.calendar")}
+                </Button>
+                <Button
+                  onClick={() => setViewMode("list")}
+                  variant={viewMode === "list" ? "default" : "outline"}
+                  inputSize="sm"
+                  icon={<Wrench className="h-4 w-4" />}
+                  className="rounded-none border-0"
+                >
+                  Task List
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>

@@ -858,34 +858,41 @@ const MaintenanceTaskPage: React.FC = () => {
         <>
           {/* ========== FULL WIDTH HEADER ========== */}
           <div className="rounded-lg sm:rounded-xl border-0 sm:border bg-white dark:bg-white px-1 sm:px-4 py-1 sm:py-3 mb-0 sm:mb-6">
-            <div className="flex items-center group">
-              <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-              <h1 className="text-xl sm:text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
-                Maintenance Task
-              </h1>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center group">
+                <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+                <h1 className="text-xl sm:text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
+                  Maintenance Task
+                </h1>
+              </div>
+              {/* Compact Back Button - Icon Only on Mobile */}
+              <button
+                onClick={() => navigate("/maintenance")}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-300 dark:border-gray-600"
+                title="Back to Maintenance"
+                aria-label="Back to Maintenance"
+              >
+                <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              </button>
             </div>
-            <p className="text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 ml-7">
+            {/* Hide subtitle on mobile to save space */}
+            <p className="hidden sm:block text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 ml-7">
               Create and manage vehicle maintenance records
             </p>
-            <div className="mt-2 sm:mt-4 flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate("/maintenance")}
-                icon={<ChevronLeft className="h-4 w-4" />}
-              >
-                Back to Maintenance
-              </Button>
-              {!isViewMode && id !== "new" && (
+            {/* Delete button moved to top-right for edit mode */}
+            {!isViewMode && id !== "new" && (
+              <div className="mt-2 flex justify-end">
                 <Button
                   variant="danger"
+                  size="sm"
                   onClick={handleDelete}
-                  icon={<Trash2 className="h-4 w-4" />}
+                  icon={<Trash2 className="h-3.5 w-3.5" />}
                 >
-                  Delete Task
+                  <span className="hidden sm:inline">Delete Task</span>
+                  <span className="sm:hidden">Delete</span>
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
           {/* ========== END FULL WIDTH HEADER ========== */}
 
@@ -1711,8 +1718,8 @@ const MaintenanceTaskPage: React.FC = () => {
             )
           ) : (
             <>
-              {/* Edit Form */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              {/* Edit Form - Full Width on Mobile */}
+              <div className="bg-white rounded-lg shadow-sm p-2 sm:p-6">
                 <MaintenanceTaskForm
                   vehicles={vehicles}
                   initialData={transformedFormData}

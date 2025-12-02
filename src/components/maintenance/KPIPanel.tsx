@@ -27,7 +27,7 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
   previousPeriodComparison
 }) => {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
       <div className="bg-white rounded-lg shadow-sm p-3">
         <div className="flex items-center justify-between">
           <div>
