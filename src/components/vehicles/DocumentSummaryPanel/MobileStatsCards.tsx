@@ -63,20 +63,20 @@ export const MobileStatsCards: React.FC<MobileStatsCardsProps> = ({ metrics }) =
 
   return (
     <div className="mobile-stats-container">
-      <div className="flex gap-3 overflow-x-auto pb-2 px-4 scrollbar-hide snap-x snap-mandatory">
+      <div className="flex gap-2 overflow-x-auto pb-2 px-3 scrollbar-hide snap-x snap-mandatory">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div
               key={index}
-              className={`flex-shrink-0 snap-start w-28 p-3 rounded-lg border-2 ${stat.color} shadow-sm`}
+              className={`flex-shrink-0 snap-start w-20 p-2 rounded-lg border ${stat.color} shadow-sm`}
             >
               <div className="flex flex-col items-center text-center">
-                <Icon className={`h-5 w-5 mb-1 ${stat.iconColor}`} />
-                <div className="text-2xl font-bold mb-0.5">
+                <Icon className={`h-4 w-4 mb-0.5 ${stat.iconColor}`} />
+                <div className="text-lg font-bold mb-0">
                   {stat.value}
                 </div>
-                <div className="text-xs font-medium">
+                <div className="text-[10px] font-medium leading-tight">
                   {stat.label}
                 </div>
               </div>

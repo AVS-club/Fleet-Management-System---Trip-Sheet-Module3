@@ -761,6 +761,10 @@ const DocumentSummaryPanelRefactored: React.FC<DocumentSummaryPanelProps> = ({ i
                     documentTypeFilter={documentTypeFilter}
                     sort={sort}
                     onColumnSort={handleColumnSort}
+                    onRefreshVehicle={handleIndividualRefresh}
+                    onCheckChallan={handleIndividualChallan}
+                    refreshingVehicles={new Set(Object.keys(refreshProgress).filter(id => refreshProgress[id] === 'processing'))}
+                    challanLoadingVehicles={new Set()}
                   />
                 </div>
               </div>

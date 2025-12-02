@@ -177,22 +177,24 @@ export const MobileDocumentSummary: React.FC<MobileDocumentSummaryProps> = ({
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
         {/* Top Bar */}
         <div className="flex items-center justify-between px-3 py-3">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-2 p-2 -ml-2 hover:bg-gray-100 rounded-lg touch-manipulation active:scale-95 transition-transform"
-            style={{ minWidth: '44px', minHeight: '44px' }}
-          >
-            <ArrowLeft className="h-6 w-6 text-gray-700" />
-            <span className="text-sm font-medium text-gray-700">Back</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full touch-manipulation active:scale-95 transition-transform"
+              style={{ minWidth: '40px', minHeight: '40px' }}
+              title="Back"
+            >
+              <ArrowLeft className="h-5 w-5 text-gray-700" />
+            </button>
+          </div>
           <h2 className="text-base font-semibold text-gray-900 flex-1 text-center">
             Documents
           </h2>
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-2 -mr-2 hover:bg-gray-100 rounded-full touch-manipulation active:scale-95 transition-transform"
-              style={{ minWidth: '44px', minHeight: '44px' }}
+              className="p-2 hover:bg-gray-100 rounded-full touch-manipulation active:scale-95 transition-transform"
+              style={{ minWidth: '40px', minHeight: '40px' }}
             >
               <MoreVertical className="h-5 w-5 text-gray-700" />
             </button>
@@ -279,20 +281,20 @@ export const MobileDocumentSummary: React.FC<MobileDocumentSummaryProps> = ({
         </div>
 
         {/* Action Buttons Row */}
-        <div className="px-3 pb-3 flex gap-2">
+        <div className="px-3 pb-2 flex gap-2">
           {onCheckChallans && (
             <button
               onClick={onCheckChallans}
               disabled={isBulkChallanLoading || vehicles.length === 0}
-              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 font-medium text-sm transition-all touch-manipulation active:scale-95 ${
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border font-medium text-xs transition-all touch-manipulation active:scale-95 ${
                 isBulkChallanLoading 
                   ? 'bg-yellow-50 border-yellow-200 text-yellow-700 cursor-not-allowed' 
                   : 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100'
               }`}
-              style={{ minHeight: '44px' }}
+              style={{ minHeight: '36px' }}
             >
-              <AlertTriangle className={`h-4 w-4 ${isBulkChallanLoading ? 'animate-spin' : ''}`} />
-              <span>
+              <AlertTriangle className={`h-3.5 w-3.5 ${isBulkChallanLoading ? 'animate-spin' : ''}`} />
+              <span className="whitespace-nowrap">
                 {isBulkChallanLoading 
                   ? `${Math.round(challanRefreshProgress)}%` 
                   : `Challans${vehicles.length > 0 ? ` (${vehicles.length})` : ''}`
@@ -305,18 +307,18 @@ export const MobileDocumentSummary: React.FC<MobileDocumentSummaryProps> = ({
             <button
               onClick={onRefreshAll}
               disabled={isBulkRefreshing || vehicles.length === 0}
-              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 font-medium text-sm transition-all touch-manipulation active:scale-95 ${
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border font-medium text-xs transition-all touch-manipulation active:scale-95 ${
                 isBulkRefreshing 
                   ? 'bg-blue-50 border-blue-200 text-blue-700 cursor-not-allowed' 
                   : 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
               }`}
-              style={{ minHeight: '44px' }}
+              style={{ minHeight: '36px' }}
             >
-              <RefreshCw className={`h-4 w-4 ${isBulkRefreshing ? 'animate-spin' : ''}`} />
-              <span>
+              <RefreshCw className={`h-3.5 w-3.5 ${isBulkRefreshing ? 'animate-spin' : ''}`} />
+              <span className="whitespace-nowrap text-[11px]">
                 {isBulkRefreshing 
                   ? `${Object.values(refreshProgress).filter(s => s === 'success' || s === 'error').length}/${vehicles.length}` 
-                  : 'Refresh All'
+                  : 'Refresh All Dates'
                 }
               </span>
             </button>

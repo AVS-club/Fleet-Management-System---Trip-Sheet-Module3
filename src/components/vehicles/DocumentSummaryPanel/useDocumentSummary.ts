@@ -619,7 +619,13 @@ export const useDocumentSummary = (isOpen: boolean) => {
   };
 
   // Individual refresh handler
-  const handleIndividualRefresh = async (vehicle: Vehicle) => {
+  const handleIndividualRefresh = async (vehicleId: string) => {
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    if (!vehicle) {
+      toast.error('Vehicle not found');
+      return;
+    }
+    
     if (refreshProgress[vehicle.id!] === 'processing') return;
 
     const success = await refreshVehicleData(vehicle);
@@ -693,7 +699,13 @@ export const useDocumentSummary = (isOpen: boolean) => {
     setChallanRefreshProgress(0);
   };
 
-  const handleIndividualChallan = async (vehicle: Vehicle) => {
+  const handleIndividualChallan = async (vehicleId: string) => {
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    if (!vehicle) {
+      toast.error('Vehicle not found');
+      return;
+    }
+    
     const cleanedData = {
       vehicleId: vehicle.registration_number?.replace(/\s/g, '').toUpperCase(),
       chassis: vehicle.chassis_number?.replace(/\s/g, '').toUpperCase(),
