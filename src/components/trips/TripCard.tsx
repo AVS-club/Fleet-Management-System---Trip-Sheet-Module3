@@ -204,7 +204,7 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
         <div className="flex items-center gap-2">
           {/* P&L Button */}
           <button 
-            className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+            className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors flex items-center justify-center"
             onClick={(e) => {
               e.stopPropagation();
               if (onPnlClick) onPnlClick(e, trip);
@@ -216,7 +216,7 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
           
           {/* Camera Button */}
           <button 
-            className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors disabled:opacity-50"
+            className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors disabled:opacity-50 flex items-center justify-center"
             onClick={(e) => {
               e.stopPropagation();
               handleCameraClick();
@@ -234,7 +234,7 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
           {/* Edit Button */}
           {onEditClick && (
             <button 
-              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center justify-center"
               onClick={(e) => {
                 e.stopPropagation();
                 onEditClick(trip);
