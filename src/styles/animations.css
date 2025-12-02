@@ -208,3 +208,17 @@
 .stagger-delay-3 { animation-delay: 450ms; }
 .stagger-delay-4 { animation-delay: 600ms; }
 .stagger-delay-5 { animation-delay: 750ms; }
+
+/* Fade In animation for groups */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out forwards;
+}

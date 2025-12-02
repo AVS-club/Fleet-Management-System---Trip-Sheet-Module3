@@ -29,6 +29,7 @@ import {
 } from "@/hooks/useKPICards";
 import KPICard from "../components/kpi/KPICard";
 import AnimatedKPICard from "../components/kpi/AnimatedKPICard";
+import KPIFeed from "../components/kpi/KPIFeed";
 import CollapsibleHeader from "../components/ai/CollapsibleHeader";
 import CompactFilterBar from "../components/ai/CompactFilterBar";
 import { useYouTubeShorts, YouTubeShort } from "../hooks/useYouTubeShorts";
@@ -90,7 +91,7 @@ const AIAlertsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
   const [activeTab, setActiveTab] = useState<
-    "all-feed" | "alerts" | "driver-insights"
+    "all-feed" | "alerts" | "driver-insights" | "kpis"
   >("all-feed");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -2026,6 +2027,38 @@ const AIAlertsPage: React.FC = () => {
               </div>
             </div>
           </div>
+        ) : activeTab === "kpis" ? (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-sm p-6 border border-blue-100 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100 mb-2">
+                    📊 Business Intelligence Dashboard
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    AI-powered insights into your fleet's performance, trends, and opportunities
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    refetchKPIs();
+                    toast.info('Refreshing KPI metrics...');
+                  }}
+                  icon={<RefreshCw className="h-4 w-4" />}
+                  disabled={kpiLoading}
+                >
+                  Refresh
+                </Button>
+              </div>
+              
+              {/* Enhanced KPI Feed with Grouping and AI Insights */}
+              <KPIFeed 
+                kpis={kpiCards || []} 
+                loading={kpiLoading}
+              />
+            </div>
+          </div>
         ) : activeTab === "driver-insights" ? (
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-sm p-6">
@@ -2496,6 +2529,41 @@ const AIAlertsPage: React.FC = () => {
             alert={selectedAlert}
             onClose={() => setSelectedAlert(null)}
           />
+        )}
+
+        {/* Floating KPI Dashboard Button */}
+        {activeTab !== "kpis" && (
+          <button
+            onClick={() => setActiveTab("kpis")}
+            className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 group"
+            title="View KPI Dashboard"
+          >
+            <div className="flex items-center gap-2">
+              <BarChart2 className="h-6 w-6" />
+              <span className="hidden sm:inline-block font-semibold">
+                KPI Dashboard
+              </span>
+            </div>
+            <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+              {kpiCards?.length || 0}
+            </div>
+          </button>
+        )}
+
+        {/* Back to Feed Button when in KPI view */}
+        {activeTab === "kpis" && (
+          <button
+            onClick={() => setActiveTab("all-feed")}
+            className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110"
+            title="Back to Feed"
+          >
+            <div className="flex items-center gap-2">
+              <Bell className="h-6 w-6" />
+              <span className="hidden sm:inline-block font-semibold">
+                Back to Feed
+              </span>
+            </div>
+          </button>
         )}
       </Layout>
     </PermissionGuard>
