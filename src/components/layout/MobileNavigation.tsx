@@ -113,20 +113,20 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
           onClick={() => setIsOpen(false)}
         />
 
-        {/* Menu Panel - PUSH TO RIGHT TO AVOID HAMBURGER OVERLAP */}
-        <div className={`absolute left-12 top-0 h-full w-72 bg-white dark:bg-gray-900 shadow-xl transform transition-transform duration-300 rounded-r-2xl ${
+        {/* Menu Panel */}
+        <div className={`absolute left-0 top-0 h-full w-64 bg-white dark:bg-gray-900 shadow-xl transform transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
           {/* Header */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-3 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Menu</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Navigation</h2>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 aria-label="Close navigation menu"
               >
-                <X className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+                <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
           </div>
@@ -178,34 +178,34 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
                       setIsOpen(false);
                     }}
                     className={cn(
-                      'w-full flex items-center gap-4 px-5 py-4 transition-colors text-left rounded-lg mx-2',
+                      'w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left',
                       isActive(item.path)
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                     )}
                   >
-                    <Icon className={cn('h-7 w-7', isActive(item.path) ? '' : iconColor)} />
-                    <span className="text-base font-medium">{item.label}</span>
+                    <Icon className={cn('h-5 w-5', isActive(item.path) ? '' : iconColor)} />
+                    <span className="text-sm font-medium">{item.label}</span>
                   </button>
                 );
               })}
 
               {/* DIVIDER */}
-              <div className="my-4 border-t border-gray-200 dark:border-gray-700" />
+              <div className="my-3 border-t border-gray-200 dark:border-gray-700" />
 
               {/* APPEARANCE / THEME TOGGLE */}
               <button
                 onClick={() => {
                   setTheme(theme === 'light' ? 'dark' : 'light');
                 }}
-                className="w-full flex items-center gap-4 px-5 py-4 transition-colors text-left rounded-lg mx-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 {theme === 'light' ? (
-                  <Moon className="h-7 w-7 text-indigo-500" />
+                  <Moon className="h-5 w-5 text-indigo-500" />
                 ) : (
-                  <Sun className="h-7 w-7 text-amber-500" />
+                  <Sun className="h-5 w-5 text-amber-500" />
                 )}
-                <span className="text-base font-medium">
+                <span className="text-sm font-medium">
                   {theme === 'light' ? 'Dark Theme' : 'Light Theme'}
                 </span>
               </button>
@@ -213,12 +213,12 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
               {/* ANIMATED LANGUAGE SWITCHER */}
               <button
                 onClick={toggleLanguage}
-                className="w-full flex items-center gap-4 px-5 py-4 transition-colors text-left rounded-lg mx-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
               >
-                <Globe className="h-7 w-7 text-blue-500" />
-                <div className="flex flex-col">
-                  <span className="text-base font-medium">Language</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400 animate-fade">
+                <Globe className="h-5 w-5 text-blue-500" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium">Language</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 animate-fade">
                     {languages[currentLangIndex]}
                   </span>
                 </div>
@@ -235,13 +235,13 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
                 onLogout?.();
                 setIsOpen(false);
               }}
-              className="w-full flex items-center gap-4 px-5 py-4 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium rounded-lg mx-2"
+              className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
             >
-              <LogOut className="h-7 w-7" />
-              <span className="text-base">{t('settings.logout') || 'Logout'}</span>
+              <LogOut className="h-5 w-5" />
+              <span className="text-sm">{t('settings.logout') || 'Logout'}</span>
             </button>
             
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-3 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2 border-t border-gray-200 dark:border-gray-700">
               Fleet Management System
             </p>
           </div>
