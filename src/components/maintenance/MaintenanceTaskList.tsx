@@ -46,7 +46,10 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
   const [filterDateRange, setFilterDateRange] = useState<string>('all');
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE_TASKS);
   const listContainerRef = useRef<HTMLDivElement | null>(null);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  // Default to cards on mobile, table on desktop
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>(() => {
+    return window.innerWidth < 768 ? 'cards' : 'table';
+  });
   const [showBreakdown, setShowBreakdown] = useState<boolean>(false);
 
   // Use debounced search hook for better performance
@@ -657,23 +660,6 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
             </span>
           </button>
 
-          {/* Status Filter */}
-          <div className="flex gap-2 flex-wrap">
-            {['all', 'open', 'in_progress', 'resolved', 'escalated', 'rework'].map(status => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                  filterStatus === status
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {status === 'all' ? 'All' : status.replace('_', ' ')}
-              </button>
-            ))}
-          </div>
-
           {/* Spacer to push Filters to the right */}
           <div className="flex-grow"></div>
 
@@ -705,6 +691,7 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                     <h3 className="text-sm font-semibold text-gray-900">Advanced Filters</h3>
                     <button
                       onClick={() => {
+                        setFilterStatus('all');
                         setFilterPriority('all');
                         setFilterVehicle('all');
                         setFilterTaskType('all');
@@ -714,6 +701,23 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                     >
                       Clear All
                     </button>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="open">Open</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="resolved">Resolved</option>
+                      <option value="escalated">Escalated</option>
+                      <option value="rework">Rework</option>
+                    </select>
                   </div>
 
                   {/* Priority Filter */}
