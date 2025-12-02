@@ -118,9 +118,9 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
           {/* Header */}
-          <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-3 pl-14 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Navigation</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Menu</h2>
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -152,7 +152,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
                 if (item.customComponent) {
                   const CustomComponent = item.customComponent;
                   return (
-                    <div key={item.path} className="px-4 py-2">
+                    <div key={item.path} className="px-2 py-2 flex justify-center">
                       <CustomComponent
                         onClick={() => {
                           navigate(item.path);
@@ -161,7 +161,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
                         label={item.label}
                         variant="compact"
                         isActive={isActive(item.path)}
-                        className="w-full"
+                        className="scale-90"
                       />
                     </div>
                   );
@@ -241,8 +241,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
               <span className="text-sm">{t('settings.logout') || 'Logout'}</span>
             </button>
             
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2 border-t border-gray-200 dark:border-gray-700">
-              Fleet Management System
+            <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center py-1.5 border-t border-gray-200 dark:border-gray-700">
+              Fleet Management
             </p>
           </div>
         </div>
