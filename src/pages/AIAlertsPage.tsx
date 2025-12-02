@@ -2065,8 +2065,9 @@ const AIAlertsPage: React.FC = () => {
             )}
           </div>
         </div>
+        )}
 
-      {/* Action Modal */}
+        {/* Action Modal */}
       {actionModal && (
         <AlertActionModal
           type={actionModal.type}
