@@ -12,6 +12,7 @@ import { usePermissions, clearPermissionsCache } from '../../hooks/usePermission
 import { LogOut, Truck } from 'lucide-react';
 import { createLogger } from '../../utils/logger';
 import { useQueryClient } from '@tanstack/react-query';
+import AvsAiButton from '../ui/AvsAiButton';
 
 const logger = createLogger('Header');
 
@@ -130,15 +131,14 @@ const Header: React.FC = () => {
               </button>
             </div>
 
-            {/* Mobile Logout - Small button with red hint */}
-            <button
-              onClick={handleLogout}
-              className="flex sm:hidden p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800 transition-colors"
-              aria-label={t('settings.logout')}
-              title={t('settings.logout')}
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
+            {/* Mobile - AI Alerts Button (Animated) */}
+            <div className="flex sm:hidden">
+              <AvsAiButton
+                onClick={() => navigate('/ai-alerts')}
+                variant="compact"
+                className="scale-90"
+              />
+            </div>
           </div>
         </div>
 
