@@ -106,11 +106,15 @@ const Header: React.FC = () => {
               <OrganizationSelector size="sm" showLabel={false} />
             </div>
             
-            {/* Language Switcher */}
-            <LanguageSwitcher />
+            {/* Language Switcher - HIDE ON MOBILE */}
+            <div className="hidden md:block">
+              <LanguageSwitcher />
+            </div>
             
-            {/* Theme Toggle */}
-            <ThemeToggle />
+            {/* Theme Toggle - HIDE ON MOBILE */}
+            <div className="hidden md:block">
+              <ThemeToggle />
+            </div>
             
             {/* User Menu Dropdown (optional enhancement) */}
             <div className="hidden sm:flex items-center gap-2">
@@ -126,13 +130,14 @@ const Header: React.FC = () => {
               </button>
             </div>
 
-            {/* Mobile Logout - Icon only */}
+            {/* Mobile Logout - Small button with red hint */}
             <button
               onClick={handleLogout}
-              className="flex sm:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex sm:hidden p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800 transition-colors"
               aria-label={t('settings.logout')}
+              title={t('settings.logout')}
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>

@@ -12,22 +12,31 @@ import {
   BarChart3,
   Settings,
   Bell,
-  ShieldCheck
+  ShieldCheck,
+  LogOut,
+  Globe,
+  Moon,
+  Sun
 } from 'lucide-react';
 import AvsAiButton from '../ui/AvsAiButton';
 import { cn } from '../../utils/cn';
 import { usePermissions } from '../../hooks/usePermissions';
 import MobileNavSkeleton from './MobileNavSkeleton';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../utils/themeContext';
 
 interface MobileNavigationProps {
   className?: string;
+  onLogout?: () => void;
 }
 
-const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
+const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { permissions, loading } = usePermissions();
+  const { t, i18n } = useTranslation();
+  const { theme, setTheme } = useTheme();
 
   // Comprehensive navigation items for mobile hamburger menu
   const navigationItems = [
@@ -48,13 +57,19 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
     return location.pathname.startsWith(path);
   };
 
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'en' ? 'hi' : 'en';
+    i18n.changeLanguage(newLang);
+    localStorage.setItem('language', newLang);
+  };
+
   return (
     <>
-      {/* Mobile Menu Button */}
+      {/* Mobile Menu Button - HIGHER Z-INDEX */}
       <button
         onClick={() => setIsOpen(true)}
         className={cn(
-          'lg:hidden fixed top-4 left-3 z-[60] p-2 rounded-lg bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700',
+          'lg:hidden fixed top-4 left-3 z-[70] p-2 rounded-lg bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700',
           className
         )}
         aria-label="Open navigation menu"
@@ -62,8 +77,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
         <Menu className="h-5 w-5 text-gray-600 dark:text-gray-400" />
       </button>
 
-      {/* Mobile Menu Overlay */}
-      <div className={`lg:hidden fixed inset-0 z-50 ${isOpen ? '' : 'pointer-events-none'}`}>
+      {/* Mobile Menu Overlay - LOWER Z-INDEX */}
+      <div className={`lg:hidden fixed inset-0 z-[60] ${isOpen ? '' : 'pointer-events-none'}`}>
         {/* Backdrop */}
         <div
           className={`absolute inset-0 bg-black transition-opacity duration-300 ${
@@ -91,7 +106,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
           </div>
 
           {/* Navigation Items */}
-          <nav className="flex-1 overflow-y-auto">
+          <nav className="flex-1 overflow-y-auto pb-40">
             {loading ? (
               <MobileNavSkeleton />
             ) : (
@@ -146,13 +161,52 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                   </button>
                 );
               })}
+
+              {/* DIVIDER */}
+              <div className="my-4 border-t border-gray-200 dark:border-gray-700" />
+
+              {/* THEME TOGGLE */}
+              <button
+                onClick={() => {
+                  setTheme(theme === 'light' ? 'dark' : 'light');
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                {theme === 'light' ? (
+                  <Moon className="h-5 w-5" />
+                ) : (
+                  <Sun className="h-5 w-5" />
+                )}
+                <span>{theme === 'light' ? t('settings.darkMode') || 'Dark Mode' : t('settings.lightMode') || 'Light Mode'}</span>
+              </button>
+
+              {/* LANGUAGE SWITCHER */}
+              <button
+                onClick={toggleLanguage}
+                className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <Globe className="h-5 w-5" />
+                <span>{i18n.language === 'en' ? 'हिंदी' : 'English'}</span>
+              </button>
             </div>
             )}
           </nav>
 
-          {/* Footer */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          {/* Footer with Logout */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+            {/* Logout Button */}
+            <button
+              onClick={() => {
+                onLogout?.();
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>{t('settings.logout') || 'Logout'}</span>
+            </button>
+            
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-3 border-t border-gray-200 dark:border-gray-700">
               Fleet Management System
             </p>
           </div>

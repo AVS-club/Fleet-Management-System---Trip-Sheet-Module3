@@ -1,4 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../utils/supabaseClient';
+import { toast } from 'react-toastify';
+import { clearPermissionsCache } from '../../hooks/usePermissions';
+import { useQueryClient } from '@tanstack/react-query';
 import Header from './Header';
 import MobileNavigation from './MobileNavigation';
 
@@ -15,10 +20,27 @@ const Layout: React.FC<LayoutProps> = ({
   subtitle,
   actions
 }) => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('user');
+      clearPermissionsCache();
+      queryClient.clear();
+      navigate('/login');
+      toast.success('Logged out successfully');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Error signing out');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
       <Header />
-      <MobileNavigation />
+      <MobileNavigation onLogout={handleLogout} />
 
       <main className="mx-auto max-w-7xl px-0 sm:px-6 lg:px-8 py-2 sm:py-6 lg:py-8">
         {/* Page Header with Title and Actions */}
