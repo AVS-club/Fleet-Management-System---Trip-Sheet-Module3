@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../utils/supabaseClient';
 import { createLogger } from '../utils/logger';
+import { getUserActiveOrganization } from '../utils/supaHelpers';
 
 const logger = createLogger('useKPICards');
 
@@ -39,12 +40,25 @@ export const useKPICards = (options: UseKPICardsOptions = {}) => {
       // Check auth before fetching
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
+        logger.error('No active session found');
         throw new Error('Not authenticated');
       }
 
+      // Get user's active organization - CRITICAL for multi-org support
+      const organizationId = await getUserActiveOrganization(session.user.id);
+      
+      if (!organizationId) {
+        logger.error('No organization found for user:', session.user.id);
+        throw new Error('User is not associated with any organization');
+      }
+
+      logger.info(`Fetching KPI cards for organization: ${organizationId}`);
+
+      // Build query with organization filter - ALWAYS filter by organization!
       let query = supabase
         .from('kpi_cards')
         .select('*')
+        .eq('organization_id', organizationId) // Filter by user's organization
         .order('computed_at', { ascending: false });
 
       // Filter by period if specified
@@ -63,6 +77,7 @@ export const useKPICards = (options: UseKPICardsOptions = {}) => {
         throw error;
       }
 
+      logger.info(`Fetched ${data?.length || 0} KPI cards for organization ${organizationId}`);
       return (data || []) as KPICard[];
     },
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
@@ -79,16 +94,32 @@ export const useLatestKPIs = () => {
       // Check auth before fetching
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
+        logger.error('No active session found');
         throw new Error('Not authenticated');
       }
 
+      // Get user's active organization - CRITICAL for multi-org support
+      const organizationId = await getUserActiveOrganization(session.user.id);
+      
+      if (!organizationId) {
+        logger.error('No organization found for user:', session.user.id);
+        throw new Error('User is not associated with any organization');
+      }
+
+      logger.info(`Fetching latest KPIs by theme for organization: ${organizationId}`);
+
+      // Query with organization filter - ALWAYS filter by organization!
       const { data, error } = await supabase
         .from('kpi_cards')
         .select('*')
+        .eq('organization_id', organizationId) // Filter by user's organization
         .order('computed_at', { ascending: false })
         .limit(20);
 
-      if (error) throw error;
+      if (error) {
+        logger.error('Error fetching latest KPIs:', error);
+        throw error;
+      }
 
       // Group by theme and get the latest for each
       const latestByTheme: Record<string, KPICard> = {};
@@ -99,6 +130,7 @@ export const useLatestKPIs = () => {
         }
       });
 
+      logger.info(`Grouped ${Object.keys(latestByTheme).length} themes for organization ${organizationId}`);
       return latestByTheme;
     },
     staleTime: 2 * 60 * 1000,

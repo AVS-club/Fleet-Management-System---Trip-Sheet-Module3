@@ -1,6 +1,7 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabaseClient';
 import { createLogger } from '../utils/logger';
+import { getUserActiveOrganization } from '../utils/supaHelpers';
 
 const logger = createLogger('useHeroFeed');
 
@@ -52,9 +53,28 @@ export const useKPICards = () => {
     queryKey: ['kpi-cards'],
     queryFn: async () => {
       try {
+        // Get user session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          logger.error('No active session found');
+          return [];
+        }
+
+        // Get user's active organization - CRITICAL for multi-org support
+        const organizationId = await getUserActiveOrganization(session.user.id);
+        
+        if (!organizationId) {
+          logger.error('No organization found for user:', session.user.id);
+          return [];
+        }
+
+        logger.info(`Fetching KPI cards for organization: ${organizationId}`);
+
+        // Query with organization filter - ALWAYS filter by organization!
         const { data, error } = await supabase
           .from('kpi_cards')
           .select('*')
+          .eq('organization_id', organizationId) // Filter by user's organization
           .order('computed_at', { ascending: false })
           .limit(20);
         
@@ -62,10 +82,11 @@ export const useKPICards = () => {
         
         // Return empty array if no data in database
         if (!data || data.length === 0) {
-          logger.info('No KPI cards in database');
+          logger.info('No KPI cards in database for organization:', organizationId);
           return [];
         }
         
+        logger.info(`Fetched ${data.length} KPI cards for organization ${organizationId}`);
         return data as KPICard[];
       } catch (error) {
         logger.error('Error fetching KPI cards:', error);
