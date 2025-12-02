@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { MaintenanceTask, Vehicle } from '@/types';
 import { format, parseISO } from 'date-fns';
-import { Eye, Edit, Calendar, Truck, IndianRupee, Clock, Wrench, AlertTriangle, CheckCircle, FileText, FileImage, File, X, ZoomIn, CircleDot } from 'lucide-react';
+import { 
+  Eye, Edit, Calendar, Truck, IndianRupee, Clock, Wrench, AlertTriangle, 
+  CheckCircle, FileText, FileImage, File, X, ZoomIn, CircleDot, Package,
+  Shield, Bell, StickyNote, Image as ImageIcon, FileCheck
+} from 'lucide-react';
 import VehicleTagBadges from '../vehicles/VehicleTagBadges';
 
 interface MaintenanceCardProps {
@@ -92,7 +96,7 @@ const MaintenanceCard: React.FC<MaintenanceCardProps> = ({
   };
 
   const taskTypeBadge = getTaskTypeBadge(task.task_type || '');
-  const totalCost = task.service_groups?.reduce((sum, group) => sum + (group.service_cost || 0), 0) || 0;
+  const totalCost = task.total_cost || task.service_groups?.reduce((sum, group) => sum + (group.service_cost || 0), 0) || 0;
   const downtimeHours = (task.downtime_days || 0) * 24 + (task.downtime_hours || 0);
 
   // Get odometer image for preview
@@ -100,6 +104,12 @@ const MaintenanceCard: React.FC<MaintenanceCardProps> = ({
 
   // Get supporting documents
   const supportingDocs = task.attachments || [];
+
+  // Get parts count
+  const partsCount = task.parts_required?.length || 0;
+
+  // Get all bills from service groups
+  const allBills = task.service_groups?.flatMap(group => group.bills || []).filter(b => b) || [];
 
   return (
     <>
@@ -152,142 +162,292 @@ const MaintenanceCard: React.FC<MaintenanceCardProps> = ({
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="p-4 space-y-3">
-        {/* Task Type Badge */}
-        <div className="flex items-center justify-between">
-          <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${taskTypeBadge.color}`}>
-            <Wrench className="h-3.5 w-3.5 mr-1.5" />
-            {taskTypeBadge.label}
-          </span>
-        </div>
+       {/* Main Content */}
+       <div className="p-4 space-y-3">
+         {/* Task Type Badge */}
+         <div className="flex items-center justify-between">
+           <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${taskTypeBadge.color}`}>
+             <Wrench className="h-3.5 w-3.5 mr-1.5" />
+             {taskTypeBadge.label}
+           </span>
+         </div>
 
-        {/* Complaint Description */}
-        {task.complaint_description && (
-          <div className="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r-lg">
-            <p className="text-sm text-gray-700 line-clamp-2">
-              <span className="font-medium text-amber-900">Issue: </span>
-              {task.complaint_description}
-            </p>
-          </div>
-        )}
+         {/* Title - if exists */}
+         {task.title && task.title.length > 0 && (
+           <div className="bg-purple-50 border-l-4 border-purple-400 p-2.5 rounded-r-lg">
+             <div className="flex items-start gap-2">
+               <FileCheck className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+               <div className="flex-1">
+                 <p className="text-xs font-medium text-purple-900 mb-1">Tasks:</p>
+                 <div className="flex flex-wrap gap-1">
+                   {task.title.map((t, i) => (
+                     <span key={i} className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                       {t}
+                     </span>
+                   ))}
+                 </div>
+               </div>
+             </div>
+           </div>
+         )}
 
-        {/* Resolution Summary */}
-        {task.resolution_summary && (
-          <div className="bg-green-50 border-l-4 border-green-400 p-3 rounded-r-lg">
-            <p className="text-sm text-gray-700 line-clamp-2">
-              <span className="font-medium text-green-900">Resolution: </span>
-              {task.resolution_summary}
-            </p>
-          </div>
-        )}
+         {/* Complaint Description */}
+         {task.complaint_description && (
+           <div className="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r-lg">
+             <p className="text-sm text-gray-700">
+               <span className="font-medium text-amber-900">Issue: </span>
+               {task.complaint_description}
+             </p>
+           </div>
+         )}
 
-        {/* Tire-related Services Indicator */}
-        {task.service_groups && task.service_groups.some(group => 
-          group.tasks?.some((task: any) => 
-            task.description?.toLowerCase().includes('tyre') || 
-            task.description?.toLowerCase().includes('tire') ||
-            task.description?.toLowerCase().includes('wheel')
-          )
-        ) && (
-          <div className="bg-blue-50 border border-blue-200 p-2 rounded-lg flex items-center gap-2">
-            <CircleDot className="h-4 w-4 text-blue-600" />
-            <span className="text-sm text-blue-800 font-medium">
-              Includes tire/wheel services
-            </span>
-          </div>
-        )}
+         {/* Resolution Summary */}
+         {task.resolution_summary && (
+           <div className="bg-green-50 border-l-4 border-green-400 p-3 rounded-r-lg">
+             <p className="text-sm text-gray-700">
+               <span className="font-medium text-green-900">Resolution: </span>
+               {task.resolution_summary}
+             </p>
+           </div>
+         )}
 
-        {/* Odometer Image Preview */}
-        {odometerImage && (
-          <div className="relative h-32 bg-gray-100 rounded-lg overflow-hidden">
-            <img
-              src={odometerImage}
-              alt="Odometer"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium">
-              Odometer Reading
-            </div>
-          </div>
-        )}
+         {/* Notes - if exists */}
+         {task.notes && (
+           <div className="bg-gray-50 border-l-4 border-gray-400 p-3 rounded-r-lg">
+             <div className="flex items-start gap-2">
+               <StickyNote className="h-4 w-4 text-gray-600 flex-shrink-0 mt-0.5" />
+               <p className="text-sm text-gray-700 flex-1">{task.notes}</p>
+             </div>
+           </div>
+         )}
 
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center gap-2 text-gray-600">
-            <Calendar className="h-4 w-4 text-blue-500" />
-            <div>
-              <div className="text-xs text-gray-500">Start</div>
-              <div className="font-medium text-gray-900">{formatDate(task.start_date)}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-gray-600">
-            <Calendar className="h-4 w-4 text-green-500" />
-            <div>
-              <div className="text-xs text-gray-500">End</div>
-              <div className="font-medium text-gray-900">{formatDate(task.end_date)}</div>
-            </div>
-          </div>
-          {downtimeHours > 0 && (
-            <div className="flex items-center gap-2 text-gray-600">
-              <Clock className="h-4 w-4 text-orange-500" />
-              <div>
-                <div className="text-xs text-gray-500">Downtime</div>
-                <div className="font-medium text-gray-900">{downtimeHours}h</div>
-              </div>
-            </div>
-          )}
-          {totalCost > 0 && (
-            <div className="flex items-center gap-2 text-gray-600">
-              <IndianRupee className="h-4 w-4 text-green-600" />
-              <div>
-                <div className="text-xs text-gray-500">Total Cost</div>
-                <div className="font-bold text-green-700">{formatCurrency(totalCost)}</div>
-              </div>
-            </div>
-          )}
-        </div>
+         {/* Odometer Reading & Image */}
+         {(task.odometer_reading || odometerImage) && (
+           <div className="space-y-2">
+             {task.odometer_reading && (
+               <div className="flex items-center gap-2 text-sm">
+                 <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-medium">
+                   📍 Odometer: {task.odometer_reading.toLocaleString()} km
+                 </div>
+               </div>
+             )}
+             {odometerImage && (
+               <div className="relative h-32 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                 <img
+                   src={odometerImage}
+                   alt="Odometer"
+                   className="w-full h-full object-cover cursor-pointer"
+                   onClick={() => setSelectedFile(odometerImage)}
+                 />
+                 <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                   <ImageIcon className="h-3 w-3" />
+                   Odometer Photo
+                 </div>
+                 <button
+                   onClick={() => setSelectedFile(odometerImage)}
+                   className="absolute top-2 right-2 bg-white/90 hover:bg-white p-1.5 rounded-full transition-colors"
+                 >
+                   <ZoomIn className="h-3.5 w-3.5 text-gray-700" />
+                 </button>
+               </div>
+             )}
+           </div>
+         )}
 
-        {/* Vendor Info */}
-        {vendorName && vendorName !== 'Unknown Vendor' && (
-          <div className="pt-2 border-t border-gray-200">
-            <div className="text-xs text-gray-500">Primary Vendor</div>
-            <div className="text-sm font-medium text-gray-900">{vendorName}</div>
-          </div>
-        )}
+         {/* Parts Required */}
+         {partsCount > 0 && (
+           <div className="bg-indigo-50 border border-indigo-200 p-3 rounded-lg">
+             <div className="flex items-start gap-2">
+               <Package className="h-4 w-4 text-indigo-600 flex-shrink-0 mt-0.5" />
+               <div className="flex-1">
+                 <p className="text-xs font-medium text-indigo-900 mb-1">
+                   Parts Required ({partsCount}):
+                 </p>
+                 <div className="space-y-1">
+                   {task.parts_required?.slice(0, 5).map((part: string, i: number) => (
+                     <div key={i} className="text-xs text-indigo-800 flex items-center gap-1">
+                       <span className="text-indigo-400">•</span>
+                       {part}
+                     </div>
+                   ))}
+                   {partsCount > 5 && (
+                     <div className="text-xs text-indigo-600 font-medium">
+                       +{partsCount - 5} more parts
+                     </div>
+                   )}
+                 </div>
+               </div>
+             </div>
+           </div>
+         )}
 
-        {/* Supporting Documents */}
-        {supportingDocs.length > 0 && (
-          <div className="pt-3 border-t border-gray-200">
-            <div className="text-xs text-gray-500 mb-2">Supporting Documents</div>
-            <div className="flex flex-wrap gap-2">
-              {supportingDocs
-                .filter(url => url && typeof url === 'string' && url.trim() !== '')
-                .slice(0, 4)
-                .map((docUrl, index) => {
-                  const fileType = getFileType(docUrl);
-                  const fileName = docUrl.split('/').pop() || `Doc ${index + 1}`;
+         {/* Service Groups with full details */}
+         {task.service_groups && task.service_groups.length > 0 && (
+           <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg">
+             <p className="text-xs font-semibold text-slate-700 mb-2">
+               Service Details ({task.service_groups.length} vendor{task.service_groups.length > 1 ? 's' : ''}):
+             </p>
+             <div className="space-y-2">
+               {task.service_groups.map((group: any, i: number) => (
+                 <div key={i} className="bg-white border border-slate-200 rounded p-2 text-xs">
+                   <div className="font-medium text-slate-900 mb-1">
+                     Vendor {i + 1}: {group.vendor_name || vendorName || 'Unknown'}
+                   </div>
+                   {group.tasks && group.tasks.length > 0 && (
+                     <div className="text-slate-600 space-y-0.5 mb-1">
+                       {group.tasks.slice(0, 3).map((t: any, ti: number) => (
+                         <div key={ti} className="flex items-start gap-1">
+                           <span className="text-slate-400">-</span>
+                           <span>{t.description || t}</span>
+                         </div>
+                       ))}
+                       {group.tasks.length > 3 && (
+                         <div className="text-slate-500 italic">+{group.tasks.length - 3} more tasks</div>
+                       )}
+                     </div>
+                   )}
+                   {group.service_cost > 0 && (
+                     <div className="text-green-700 font-semibold">
+                       Cost: {formatCurrency(group.service_cost)}
+                     </div>
+                   )}
+                 </div>
+               ))}
+             </div>
+           </div>
+         )}
 
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedFile(docUrl)}
-                      className="group relative flex flex-col items-center justify-center w-16 h-16 bg-gray-50 hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-400 rounded-lg transition-all cursor-pointer"
-                      title={fileName}
-                    >
-                      {getFileIcon(fileType)}
-                      <ZoomIn className="absolute top-1 right-1 h-3 w-3 text-gray-400 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
-                  );
-                })}
-              {supportingDocs.filter(url => url && typeof url === 'string' && url.trim() !== '').length > 4 && (
-                <div className="flex items-center justify-center w-16 h-16 bg-gray-100 border-2 border-gray-300 rounded-lg text-xs font-medium text-gray-600">
-                  +{supportingDocs.filter(url => url && typeof url === 'string' && url.trim() !== '').length - 4}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+         {/* Warranty Information */}
+         {(task.warranty_claimed || task.warranty_expiry) && (
+           <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg flex items-center gap-2">
+             <Shield className="h-4 w-4 text-emerald-600" />
+             <div className="text-xs text-emerald-800">
+               {task.warranty_claimed && <span className="font-medium">Warranty Claimed</span>}
+               {task.warranty_claimed && task.warranty_expiry && <span className="text-emerald-600"> • </span>}
+               {task.warranty_expiry && <span>Expires: {formatDate(task.warranty_expiry)}</span>}
+             </div>
+           </div>
+         )}
+
+         {/* Next Service Reminder */}
+         {(task.next_service_km || task.next_service_date) && (
+           <div className="bg-cyan-50 border border-cyan-200 p-2.5 rounded-lg flex items-center gap-2">
+             <Bell className="h-4 w-4 text-cyan-600" />
+             <div className="text-xs text-cyan-800">
+               <span className="font-medium">Next Service: </span>
+               {task.next_service_km && <span>@ {task.next_service_km.toLocaleString()} km</span>}
+               {task.next_service_km && task.next_service_date && <span> or </span>}
+               {task.next_service_date && <span>{formatDate(task.next_service_date)}</span>}
+             </div>
+           </div>
+         )}
+
+         {/* Info Grid */}
+         <div className="grid grid-cols-2 gap-3 text-sm border-t pt-3">
+           <div className="flex items-center gap-2 text-gray-600">
+             <Calendar className="h-4 w-4 text-blue-500" />
+             <div>
+               <div className="text-xs text-gray-500">Start</div>
+               <div className="font-medium text-gray-900">{formatDate(task.start_date)}</div>
+             </div>
+           </div>
+           <div className="flex items-center gap-2 text-gray-600">
+             <Calendar className="h-4 w-4 text-green-500" />
+             <div>
+               <div className="text-xs text-gray-500">End</div>
+               <div className="font-medium text-gray-900">{formatDate(task.end_date)}</div>
+             </div>
+           </div>
+           {downtimeHours > 0 && (
+             <div className="flex items-center gap-2 text-gray-600">
+               <Clock className="h-4 w-4 text-orange-500" />
+               <div>
+                 <div className="text-xs text-gray-500">Downtime</div>
+                 <div className="font-medium text-gray-900">{downtimeHours}h</div>
+               </div>
+             </div>
+           )}
+           {totalCost > 0 && (
+             <div className="flex items-center gap-2 text-gray-600">
+               <IndianRupee className="h-4 w-4 text-green-600" />
+               <div>
+                 <div className="text-xs text-gray-500">Total Cost</div>
+                 <div className="font-bold text-green-700">{formatCurrency(totalCost)}</div>
+               </div>
+             </div>
+           )}
+         </div>
+
+         {/* Bills Section */}
+         {allBills.length > 0 && (
+           <div className="pt-3 border-t border-gray-200">
+             <div className="flex items-center gap-2 mb-2">
+               <FileText className="h-4 w-4 text-purple-600" />
+               <div className="text-xs font-medium text-gray-700">Bills ({allBills.length})</div>
+             </div>
+             <div className="flex flex-wrap gap-2">
+               {allBills.slice(0, 4).map((billUrl: string, index: number) => {
+                 const fileType = getFileType(billUrl);
+                 const fileName = billUrl.split('/').pop() || `Bill ${index + 1}`;
+                 return (
+                   <button
+                     key={index}
+                     onClick={() => setSelectedFile(billUrl)}
+                     className="group relative flex flex-col items-center justify-center w-16 h-16 bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 hover:border-purple-400 rounded-lg transition-all cursor-pointer"
+                     title={fileName}
+                   >
+                     {getFileIcon(fileType)}
+                     <div className="absolute bottom-1 left-1 right-1 text-center">
+                       <span className="text-[9px] bg-purple-600 text-white px-1 rounded">Bill</span>
+                     </div>
+                     <ZoomIn className="absolute top-1 right-1 h-3 w-3 text-purple-400 group-hover:text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                   </button>
+                 );
+               })}
+               {allBills.length > 4 && (
+                 <div className="flex items-center justify-center w-16 h-16 bg-purple-100 border-2 border-purple-300 rounded-lg text-xs font-medium text-purple-700">
+                   +{allBills.length - 4}
+                 </div>
+               )}
+             </div>
+           </div>
+         )}
+
+         {/* Supporting Documents */}
+         {supportingDocs.length > 0 && (
+           <div className="pt-3 border-t border-gray-200">
+             <div className="flex items-center gap-2 mb-2">
+               <File className="h-4 w-4 text-blue-600" />
+               <div className="text-xs font-medium text-gray-700">Documents ({supportingDocs.length})</div>
+             </div>
+             <div className="flex flex-wrap gap-2">
+               {supportingDocs
+                 .filter(url => url && typeof url === 'string' && url.trim() !== '')
+                 .slice(0, 4)
+                 .map((docUrl, index) => {
+                   const fileType = getFileType(docUrl);
+                   const fileName = docUrl.split('/').pop() || `Doc ${index + 1}`;
+
+                   return (
+                     <button
+                       key={index}
+                       onClick={() => setSelectedFile(docUrl)}
+                       className="group relative flex flex-col items-center justify-center w-16 h-16 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 hover:border-blue-400 rounded-lg transition-all cursor-pointer"
+                       title={fileName}
+                     >
+                       {getFileIcon(fileType)}
+                       <ZoomIn className="absolute top-1 right-1 h-3 w-3 text-blue-400 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                     </button>
+                   );
+                 })}
+               {supportingDocs.filter(url => url && typeof url === 'string' && url.trim() !== '').length > 4 && (
+                 <div className="flex items-center justify-center w-16 h-16 bg-blue-100 border-2 border-blue-300 rounded-lg text-xs font-medium text-blue-700">
+                   +{supportingDocs.filter(url => url && typeof url === 'string' && url.trim() !== '').length - 4}
+                 </div>
+               )}
+             </div>
+           </div>
+         )}
       </div>
 
       {/* Footer Actions */}
