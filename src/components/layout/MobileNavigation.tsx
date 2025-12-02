@@ -18,7 +18,6 @@ import {
   Moon,
   Sun
 } from 'lucide-react';
-import AvsAiButton from '../ui/AvsAiButton';
 import { cn } from '../../utils/cn';
 import { usePermissions } from '../../hooks/usePermissions';
 import MobileNavSkeleton from './MobileNavSkeleton';
@@ -72,7 +71,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
     { path: '/trips', label: 'Trips', icon: MapPin },
     { path: '/trip-pnl-reports', label: 'Reports', icon: BarChart3, requiresPermission: 'canAccessReports' },
     { path: '/maintenance', label: 'Maintenance', icon: Wrench },
-    { path: '/ai-alerts', label: 'AI Alerts', icon: Bell, customComponent: AvsAiButton, requiresPermission: 'canAccessAlerts' },
+    { path: '/ai-alerts', label: 'AI Alerts', icon: Bell, requiresPermission: 'canAccessAlerts' },
     { path: '/admin', label: 'Settings', icon: Settings, requiresPermission: 'canAccessAdmin' },
   ];
 
@@ -118,9 +117,9 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
           {/* Header */}
-          <div className="p-3 pl-14 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-4 pl-16 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Menu</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Navigation</h2>
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -136,7 +135,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
             {loading ? (
               <MobileNavSkeleton />
             ) : (
-            <div className="py-4">
+            <div className="py-4 px-2">
               {navigationItems.map((item) => {
                 // Hide permission-restricted items by default while loading
                 if (item.requiresPermission && loading) {
@@ -146,25 +145,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
                 // Check if user has permission to view this nav item after loading
                 if (item.requiresPermission && permissions && !(permissions as any)[item.requiresPermission]) {
                   return null;
-                }
-
-                // Special handling for custom components (like AI Alerts Button)
-                if (item.customComponent) {
-                  const CustomComponent = item.customComponent;
-                  return (
-                    <div key={item.path} className="px-2 py-2 flex justify-center">
-                      <CustomComponent
-                        onClick={() => {
-                          navigate(item.path);
-                          setIsOpen(false);
-                        }}
-                        label={item.label}
-                        variant="compact"
-                        isActive={isActive(item.path)}
-                        className="scale-90"
-                      />
-                    </div>
-                  );
                 }
 
                 const Icon = item.icon;
@@ -178,9 +158,9 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
                       setIsOpen(false);
                     }}
                     className={cn(
-                      'w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left',
+                      'w-full flex items-center gap-3 px-4 py-3 transition-colors text-left rounded-lg',
                       isActive(item.path)
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-2 border-blue-600 dark:border-blue-400'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                     )}
                   >
@@ -191,14 +171,14 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
               })}
 
               {/* DIVIDER */}
-              <div className="my-3 border-t border-gray-200 dark:border-gray-700" />
+              <div className="my-4 border-t border-gray-200 dark:border-gray-700" />
 
               {/* APPEARANCE / THEME TOGGLE */}
               <button
                 onClick={() => {
                   setTheme(theme === 'light' ? 'dark' : 'light');
                 }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 {theme === 'light' ? (
                   <Moon className="h-5 w-5 text-indigo-500" />
@@ -213,7 +193,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
               {/* ANIMATED LANGUAGE SWITCHER */}
               <button
                 onClick={toggleLanguage}
-                className="w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 <Globe className="h-5 w-5 text-blue-500" />
                 <div className="flex flex-col gap-0.5">
@@ -230,18 +210,20 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className, onLogout
           {/* Footer with Logout */}
           <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
             {/* Logout Button */}
-            <button
-              onClick={() => {
-                onLogout?.();
-                setIsOpen(false);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
-            >
-              <LogOut className="h-5 w-5" />
-              <span className="text-sm">{t('settings.logout') || 'Logout'}</span>
-            </button>
+            <div className="px-2 py-3">
+              <button
+                onClick={() => {
+                  onLogout?.();
+                  setIsOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
+              >
+                <LogOut className="h-5 w-5" />
+                <span className="text-sm">{t('settings.logout') || 'Logout'}</span>
+              </button>
+            </div>
             
-            <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center py-1.5 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center py-2 border-t border-gray-200 dark:border-gray-700">
               Fleet Management
             </p>
           </div>
