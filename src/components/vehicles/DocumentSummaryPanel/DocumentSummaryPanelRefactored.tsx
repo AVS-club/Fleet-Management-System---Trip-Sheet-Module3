@@ -344,11 +344,19 @@ const DocumentSummaryPanelRefactored: React.FC<DocumentSummaryPanelProps> = ({ i
           setVehicleFilter={setVehicleFilter}
           setDocumentTypeFilter={setDocumentTypeFilter}
           onRefreshVehicle={handleIndividualRefresh}
+          onRefreshChallan={handleIndividualChallan}
           onRefreshAll={handleBulkRefresh}
           onCheckChallans={handleChallanRefresh}
           onExportExcel={exportToExcel}
           onExportPDF={handleDownload}
           onPrint={handlePrintClick}
+          onViewChallanDetails={(vehicleId) => {
+            // Find vehicle and show challan modal
+            const veh = vehicles.find(v => v.id === vehicleId);
+            if (veh) {
+              handleIndividualChallan(vehicleId);
+            }
+          }}
           isBulkRefreshing={isBulkRefreshing}
           isBulkChallanLoading={isBulkChallanLoading}
           challanRefreshProgress={challanRefreshProgress}

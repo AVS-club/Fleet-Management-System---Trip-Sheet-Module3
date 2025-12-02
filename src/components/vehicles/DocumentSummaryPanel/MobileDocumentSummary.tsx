@@ -12,6 +12,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Search, Filter, MoreVertical, FileSpreadsheet, Printer, Download, RefreshCw, AlertTriangle } from 'lucide-react';
 import { MobileVehicleCard } from './MobileVehicleCard';
+import { MobileVehicleCardNew } from './MobileVehicleCardNew';
 import { MobileStatsCards } from './MobileStatsCards';
 import { MobileFilterDrawer } from './MobileFilterDrawer';
 import { MobileChartsView } from './MobileChartsView';
@@ -100,11 +101,13 @@ interface MobileDocumentSummaryProps {
   
   // Actions
   onRefreshVehicle?: (vehicleId: string) => void;
+  onRefreshChallan?: (vehicleId: string) => void;
   onRefreshAll?: () => void;
   onCheckChallans?: () => void;
   onExportExcel?: () => void;
   onExportPDF?: () => void;
   onPrint?: () => void;
+  onViewChallanDetails?: (vehicleId: string) => void;
   
   // Loading states
   isBulkRefreshing?: boolean;
@@ -138,11 +141,13 @@ export const MobileDocumentSummary: React.FC<MobileDocumentSummaryProps> = ({
   setVehicleFilter,
   setDocumentTypeFilter,
   onRefreshVehicle,
+  onRefreshChallan,
   onRefreshAll,
   onCheckChallans,
   onExportExcel,
   onExportPDF,
   onPrint,
+  onViewChallanDetails,
   isBulkRefreshing = false,
   isBulkChallanLoading = false,
   challanRefreshProgress = 0,
@@ -154,6 +159,8 @@ export const MobileDocumentSummary: React.FC<MobileDocumentSummaryProps> = ({
   const [showFilters, setShowFilters] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [chartsExpanded, setChartsExpanded] = useState(false);
+  const [refreshingVehicles, setRefreshingVehicles] = useState<{[key: string]: boolean}>({});
+  const [refreshingChallans, setRefreshingChallans] = useState<{[key: string]: boolean}>({});
 
   const handleResetFilters = () => {
     setDateRange('allTime' as any);
@@ -371,11 +378,15 @@ export const MobileDocumentSummary: React.FC<MobileDocumentSummaryProps> = ({
               {sortedDocumentMatrix.map((vehicle) => {
                 const vehicleData = vehicles.find(v => v.id === vehicle.id);
                 return (
-                  <MobileVehicleCard
+                  <MobileVehicleCardNew
                     key={vehicle.id}
                     vehicle={vehicle}
                     vehicleData={vehicleData!}
-                    onRefresh={onRefreshVehicle}
+                    onRefreshDocs={onRefreshVehicle}
+                    onRefreshChallan={onRefreshChallan}
+                    isRefreshingDocs={refreshingVehicles[vehicle.id] || false}
+                    isRefreshingChallan={refreshingChallans[vehicle.id] || false}
+                    onViewChallanDetails={onViewChallanDetails}
                   />
                 );
               })}

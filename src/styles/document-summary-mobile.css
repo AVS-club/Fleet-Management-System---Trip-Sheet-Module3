@@ -23,6 +23,49 @@
     transform: scale(0.98);
   }
 
+  /* New Mobile Vehicle Card Design */
+  .mobile-vehicle-card-new {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .mobile-vehicle-card-new:active {
+    transform: scale(0.98);
+  }
+
+  /* Glass-morphism effects */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Enhanced shadows */
+  .shadow-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+
+  .shadow-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Gradient backgrounds */
+  .gradient-urgent {
+    background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+  }
+
+  .gradient-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #eab308 100%);
+  }
+
+  .gradient-success {
+    background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+  }
+
+  .gradient-info {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  }
+
   /* Individual Refresh Button Enhancement */
   .mobile-vehicle-card button:has(.lucide-refresh-cw) {
     box-shadow: 0 1px 3px rgba(16, 185, 129, 0.2);
