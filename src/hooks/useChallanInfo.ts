@@ -30,7 +30,8 @@ export const useChallanInfo = () => {
   const fetchChallanInfo = async (vehicleId: string, chassis: string, engine_no: string) => {
     // Validate before calling
     if (!vehicleId || !chassis || !engine_no) {
-      toast.error('Vehicle ID, Chassis, and Engine Number are required for challan check');
+      logger.warn('Missing required data for challan check:', { vehicleId, chassis: !!chassis, engine_no: !!engine_no });
+      toast.error('📋 We need vehicle details (chassis & engine numbers) to check challans!');
       return null;
     }
 
@@ -73,6 +74,8 @@ export const useChallanInfo = () => {
       const data = await response.json();
 
       if (!response.ok) {
+        // Log technical error for debugging
+        logger.error('Challan API Error:', { status: response.status, message: data.message, data });
         throw new Error(data.message || 'Failed to fetch challan info');
       }
       
@@ -111,12 +114,14 @@ export const useChallanInfo = () => {
         return data.response;
       } else {
         logger.debug('API Error Response:', data);
-        toast.error(data.message || 'Failed to fetch challan information');
+        // Friendly user message
+        toast.error('🔍 Unable to check challans right now. Our team is looking into it!');
         return null;
       }
     } catch (error) {
       logger.error('Error fetching challan info:', error);
-      toast.error('Failed to fetch challan information');
+      // Friendly user message
+      toast.error('😔 Oops! Challan service is taking a break. Please try again in a bit!');
       return null;
     } finally {
       setLoading(false);

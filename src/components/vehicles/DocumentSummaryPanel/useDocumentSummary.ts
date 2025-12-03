@@ -622,7 +622,8 @@ export const useDocumentSummary = (isOpen: boolean) => {
   const handleIndividualRefresh = async (vehicleId: string) => {
     const vehicle = vehicles.find(v => v.id === vehicleId);
     if (!vehicle) {
-      toast.error('Vehicle not found');
+      logger.error('Vehicle not found for refresh:', vehicleId);
+      toast.error('🚗 Hmm, we can\'t find that vehicle. Try refreshing the page!');
       return;
     }
     
@@ -660,7 +661,8 @@ export const useDocumentSummary = (isOpen: boolean) => {
     );
 
     if (validVehicles.length === 0) {
-      toast.error('No vehicles have complete chassis and engine information for challan check');
+      logger.warn('No vehicles with complete chassis/engine data for bulk challan check');
+      toast.error('📋 Looks like vehicle details are incomplete. Add chassis & engine numbers first!');
       return;
     }
 
@@ -702,7 +704,8 @@ export const useDocumentSummary = (isOpen: boolean) => {
   const handleIndividualChallan = async (vehicleId: string) => {
     const vehicle = vehicles.find(v => v.id === vehicleId);
     if (!vehicle) {
-      toast.error('Vehicle not found');
+      logger.error('Vehicle not found for challan check:', vehicleId);
+      toast.error('🚗 Hmm, we can\'t find that vehicle. Try refreshing the page!');
       return;
     }
     
@@ -713,7 +716,8 @@ export const useDocumentSummary = (isOpen: boolean) => {
     };
 
     if (!cleanedData.chassis || !cleanedData.engine) {
-      toast.error(`Cannot check challans: Missing chassis or engine number for ${vehicle.registration_number}`);
+      logger.warn(`Missing chassis/engine for challan check: ${vehicle.registration_number}`);
+      toast.error(`📋 ${vehicle.registration_number} needs chassis & engine numbers to check challans!`);
       return;
     }
 
