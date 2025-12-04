@@ -506,15 +506,30 @@ export const useDocumentSummary = (isOpen: boolean) => {
     try {
       setRefreshProgress(prev => ({ ...prev, [vehicle.id!]: 'processing' }));
 
-      // Use proxy server to avoid IP whitelisting issues
-      // Uses environment variable if set, otherwise falls back to local proxy
-      const proxyUrl = import.meta.env.VITE_RC_PROXY_URL || 'http://localhost:3001/api/fetch-rc-details';
+      // Use proxy server for local dev, Edge Function for production
+      // Priority: env variable > Edge Function (production) > localhost (dev)
+      const isProduction = window.location.hostname !== 'localhost';
+      const proxyUrl = import.meta.env.VITE_RC_PROXY_URL || 
+        (isProduction
+          ? 'https://oosrmuqfcqtojflruhww.supabase.co/functions/v1/fetch-rc-details'
+          : 'http://localhost:3001/api/fetch-rc-details');
+      
+      // Add Authorization header for Edge Functions (production)
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (isProduction && !import.meta.env.VITE_RC_PROXY_URL) {
+        // Calling Edge Function - need authorization header
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (supabaseAnonKey) {
+          headers['Authorization'] = `Bearer ${supabaseAnonKey}`;
+        }
+      }
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           registration_number: vehicle.registration_number
         }),
