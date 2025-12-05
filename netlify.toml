@@ -8,7 +8,7 @@
 
 [build.environment]
   # Node version for building
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
 
 # Headers for security and CORS
 [[headers]]
