@@ -524,8 +524,16 @@ export const useDocumentSummary = (isOpen: boolean) => {
         const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
         if (supabaseAnonKey) {
           headers['Authorization'] = `Bearer ${supabaseAnonKey}`;
+        } else {
+          logger.error('VITE_SUPABASE_ANON_KEY not found in environment');
         }
       }
+      
+      logger.info(`🔄 Refreshing ${vehicle.registration_number}`, {
+        isProduction,
+        url: proxyUrl,
+        hasAuth: !!headers['Authorization']
+      });
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
@@ -536,8 +544,16 @@ export const useDocumentSummary = (isOpen: boolean) => {
       });
       
       const result = await response.json();
+      
+      logger.debug(`📥 Response for ${vehicle.registration_number}:`, {
+        status: response.status,
+        ok: response.ok,
+        success: result?.success,
+        message: result?.message
+      });
 
       if (!response.ok || !result?.success) {
+        logger.error(`❌ Failed to refresh ${vehicle.registration_number}:`, result);
         throw new Error(result?.message || 'Failed to fetch vehicle details');
       }
 
