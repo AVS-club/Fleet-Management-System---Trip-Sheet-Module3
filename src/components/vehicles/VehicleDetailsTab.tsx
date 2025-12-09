@@ -344,6 +344,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   const handlePhotoChange = async () => {
     const input = document.createElement('input');
     input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/jpg,image/gif'; // Allow images and GIFs
     input.accept = 'image/png,image/jpeg,image/jpg,image/gif';
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
