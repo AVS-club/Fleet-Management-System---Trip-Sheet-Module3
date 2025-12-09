@@ -562,6 +562,7 @@ const VehiclePage: React.FC = () => {
               <div className="md:hidden">
                 <VehicleDetailsTabMobile
                   vehicle={vehicle}
+                  onUpdate={(updates: Partial<Vehicle>) => setVehicle(prev => prev ? { ...prev, ...updates } : null)}
                   signedDocUrls={signedDocUrls}
                 />
               </div>

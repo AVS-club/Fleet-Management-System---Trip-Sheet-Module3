@@ -13,18 +13,22 @@ import {
   XCircle,
   Clock,
   X,
-  Loader2
+  Loader2,
+  Camera,
+  Truck
 } from 'lucide-react';
 import WhatsAppIcon from '../ui/WhatsAppIcon';
 import { Vehicle } from '@/types';
 import { toast } from 'react-toastify';
 import { supabase } from '../../utils/supabaseClient';
 import { createLogger } from '../../utils/logger';
+import { uploadVehiclePhoto, getSignedVehiclePhotoUrl } from '../../utils/supabaseStorage';
 
 const logger = createLogger('VehicleDetailsTabMobile');
 
 interface VehicleDetailsTabProps {
   vehicle: Vehicle;
+  onUpdate: (updates: Partial<Vehicle>) => void;
   signedDocUrls: {
     rc?: string[];
     insurance?: string[];
@@ -36,7 +40,7 @@ interface VehicleDetailsTabProps {
   };
 }
 
-const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, signedDocUrls }) => {
+const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, onUpdate, signedDocUrls }) => {
   const { t } = useTranslation();
   const [viewingDocument, setViewingDocument] = React.useState<{url: string; type: string; label: string} | null>(null);
   const [isLoadingDocument, setIsLoadingDocument] = React.useState(false);
@@ -343,6 +347,56 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
     setViewingDocument(null);
   };
 
+  // Handle vehicle photo upload
+  const handlePhotoChange = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment'; // Use rear camera on mobile
+
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          logger.debug('📸 Uploading vehicle photo:', file.name);
+          const photoPath = await uploadVehiclePhoto(vehicle.id, file);
+          
+          if (photoPath) {
+            logger.debug('✅ Photo uploaded successfully:', photoPath);
+            const signedUrl = await getSignedVehiclePhotoUrl(photoPath);
+            
+            if (signedUrl) {
+              logger.debug('✅ Generated signed URL:', signedUrl);
+              
+              // Update vehicle in database
+              const { error } = await supabase
+                .from('vehicles')
+                .update({ vehicle_photo_url: photoPath })
+                .eq('id', vehicle.id);
+
+              if (error) {
+                logger.error('❌ Error updating vehicle photo URL:', error);
+                toast.error('Failed to update vehicle photo');
+              } else {
+                // Update local state
+                onUpdate({ photo_url: signedUrl, vehicle_photo_url: photoPath });
+                toast.success('Vehicle photo updated successfully');
+              }
+            }
+          }
+        } catch (error) {
+          logger.error('❌ Error uploading vehicle photo:', error);
+          toast.error('Failed to upload vehicle photo');
+        } finally {
+          input.remove();
+        }
+      } else {
+        input.remove();
+      }
+    };
+    input.click();
+  };
+
   return (
     <div className="space-y-4 pb-20 md:pb-6">
       {/* Vehicle Profile Card - Mobile Optimized */}
@@ -359,10 +413,18 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
-                  <Settings className="h-10 w-10 md:h-12 md:w-12" />
+                  <Truck className="h-10 w-10 md:h-12 md:w-12" />
                 </div>
               )}
             </div>
+            {/* Camera Button - Mobile Optimized */}
+            <button
+              onClick={handlePhotoChange}
+              className="absolute bottom-0 right-0 p-2.5 bg-primary-500 text-white rounded-full hover:bg-primary-600 shadow-lg active:scale-95 transition-transform"
+              aria-label="Upload vehicle photo"
+            >
+              <Camera className="h-5 w-5" />
+            </button>
           </div>
 
           {/* Vehicle Info - Larger Text */}

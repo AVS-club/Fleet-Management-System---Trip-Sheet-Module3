@@ -419,9 +419,10 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
             </div>
             <button
               onClick={handlePhotoChange}
-              className="absolute bottom-0 right-0 p-1 sm:p-1.5 bg-primary-500 text-white rounded-full hover:bg-primary-600"
+              className="absolute bottom-0 right-0 p-2 sm:p-1.5 bg-primary-500 text-white rounded-full hover:bg-primary-600 shadow-lg active:scale-95 transition-transform"
+              aria-label="Upload vehicle photo"
             >
-              <Camera className="h-3 w-3" />
+              <Camera className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
             </button>
           </div>
 
