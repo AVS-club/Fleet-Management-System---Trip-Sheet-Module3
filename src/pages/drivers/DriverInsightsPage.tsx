@@ -30,6 +30,7 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  Printer,
 } from "lucide-react";
 import {
   BarChart,
@@ -557,6 +558,263 @@ const DriverInsightsPage: React.FC = () => {
     }
   };
 
+  // Print driver performance data
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Please allow pop-ups to print');
+      return;
+    }
+
+    const activeDrivers = driverPerformance.filter((d) => d.totalTrips > 0);
+    const dateRangeText = `${format(effectiveStart, 'dd MMM yyyy')} - ${format(effectiveEnd, 'dd MMM yyyy')}`;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Driver Performance Report - ${format(new Date(), 'dd MMM yyyy')}</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              padding: 20px;
+              color: #1f2937;
+            }
+            .header {
+              background: linear-gradient(135deg, #0d9488 0%, #10b981 100%);
+              color: white;
+              padding: 30px;
+              border-radius: 10px;
+              margin-bottom: 30px;
+            }
+            .header h1 {
+              font-size: 28px;
+              margin-bottom: 5px;
+            }
+            .header p {
+              font-size: 14px;
+              opacity: 0.9;
+            }
+            .company-info {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 10px;
+            }
+            .company-name {
+              font-size: 20px;
+              font-weight: 600;
+            }
+            .report-date {
+              font-size: 12px;
+              opacity: 0.8;
+            }
+            .summary-cards {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 15px;
+              margin-bottom: 30px;
+            }
+            .summary-card {
+              background: #f0fdfa;
+              border: 2px solid #5eead4;
+              border-radius: 8px;
+              padding: 15px;
+            }
+            .summary-card h3 {
+              font-size: 12px;
+              color: #0f766e;
+              margin-bottom: 5px;
+              text-transform: uppercase;
+            }
+            .summary-card p {
+              font-size: 20px;
+              font-weight: bold;
+              color: #115e59;
+            }
+            .filter-info {
+              background: #f9fafb;
+              border-left: 4px solid #14b8a6;
+              padding: 15px;
+              margin-bottom: 20px;
+              border-radius: 4px;
+            }
+            .filter-info h3 {
+              font-size: 14px;
+              color: #0f766e;
+              margin-bottom: 8px;
+            }
+            .filter-info p {
+              font-size: 13px;
+              color: #374151;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 30px;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+            thead {
+              background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%);
+              color: white;
+            }
+            th {
+              padding: 12px;
+              text-align: left;
+              font-size: 11px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            th.text-center {
+              text-align: center;
+            }
+            td {
+              padding: 12px;
+              border-bottom: 1px solid #e5e7eb;
+              font-size: 13px;
+            }
+            td.text-center {
+              text-align: center;
+            }
+            tbody tr:nth-child(even) {
+              background: #f9fafb;
+            }
+            tbody tr:hover {
+              background: #f0fdfa;
+            }
+            .cost-excellent {
+              color: #059669;
+              font-weight: 600;
+            }
+            .cost-good {
+              color: #d97706;
+              font-weight: 600;
+            }
+            .cost-poor {
+              color: #dc2626;
+              font-weight: 600;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 2px solid #e5e7eb;
+              text-align: center;
+              color: #6b7280;
+              font-size: 11px;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+              .header {
+                background: #14b8a6 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+              thead {
+                background: #14b8a6 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+              .summary-card {
+                background: #f0fdfa !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="company-info">
+              <div class="company-name">🚛 Auto Vital Solution</div>
+              <div class="report-date">Generated: ${format(new Date(), 'dd MMM yyyy, HH:mm')}</div>
+            </div>
+            <h1>Driver Performance Report</h1>
+            <p>Intelligent Fleet Management</p>
+          </div>
+
+          <div class="filter-info">
+            <h3>Report Period</h3>
+            <p>${dateRangeText}</p>
+            ${activeFiltersCount > 0 ? `<p style="margin-top: 5px; font-size: 12px; color: #0d9488;">Filters Applied: ${activeFiltersCount} active filter${activeFiltersCount > 1 ? 's' : ''}</p>` : ''}
+          </div>
+
+          <div class="summary-cards">
+            <div class="summary-card">
+              <h3>Total Drivers</h3>
+              <p>${activeDrivers.length} of ${summaryMetrics.totalDrivers}</p>
+            </div>
+            <div class="summary-card">
+              <h3>Avg KM/Day</h3>
+              <p>${Math.round(summaryMetrics.avgKmPerDay)} km</p>
+            </div>
+            <div class="summary-card">
+              <h3>Avg Cost/KM</h3>
+              <p>₹${summaryMetrics.avgCostPerKm.toFixed(2)}</p>
+            </div>
+            <div class="summary-card">
+              <h3>Avg Load/Trip</h3>
+              <p>${summaryMetrics.avgLoadPerTrip.toFixed(1)} tons</p>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Driver Name</th>
+                <th class="text-center">Total Trips</th>
+                <th class="text-center">Distance</th>
+                <th class="text-center">Fuel</th>
+                <th class="text-center">Mileage</th>
+                <th class="text-center">Total Expenses</th>
+                <th class="text-center">Cost/KM</th>
+                <th class="text-center">Last Trip</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${activeDrivers.map(driver => {
+                const costClass = driver.costPerKm < 10 ? 'cost-excellent' : driver.costPerKm < 15 ? 'cost-good' : 'cost-poor';
+                return `
+                  <tr>
+                    <td><strong>${driver.name}</strong></td>
+                    <td class="text-center">${driver.totalTrips}</td>
+                    <td class="text-center">${driver.totalDistance.toLocaleString()} km</td>
+                    <td class="text-center">${driver.totalFuel.toFixed(2)} L</td>
+                    <td class="text-center">${driver.avgMileage > 0 ? driver.avgMileage.toFixed(2) + ' km/L' : '-'}</td>
+                    <td class="text-center">₹${driver.totalExpenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                    <td class="text-center ${costClass}">₹${driver.costPerKm.toFixed(2)}</td>
+                    <td class="text-center">${driver.lastTripDate ? format(new Date(driver.lastTripDate), 'dd MMM yyyy') : '-'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <p>Auto Vital Solution - Intelligent Fleet Management System</p>
+            <p>This report is generated automatically. For any queries, please contact your fleet administrator.</p>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+  };
+
   return (
     <>
       <LoadingScreen isLoading={loading} />
@@ -863,15 +1121,26 @@ const DriverInsightsPage: React.FC = () => {
                 </p>
               </div>
 
-              <Button
-                variant="outline"
-                inputSize="sm"
-                onClick={handleResetFilters}
-                icon={<RefreshCw className="h-4 w-4" />}
-                disabled={activeFiltersCount === 0}
-              >
-                Reset Filters
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  inputSize="sm"
+                  onClick={handlePrint}
+                  icon={<Printer className="h-4 w-4" />}
+                  disabled={driverPerformance.filter((d) => d.totalTrips > 0).length === 0}
+                >
+                  Print Report
+                </Button>
+                <Button
+                  variant="outline"
+                  inputSize="sm"
+                  onClick={handleResetFilters}
+                  icon={<RefreshCw className="h-4 w-4" />}
+                  disabled={activeFiltersCount === 0}
+                >
+                  Reset Filters
+                </Button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
