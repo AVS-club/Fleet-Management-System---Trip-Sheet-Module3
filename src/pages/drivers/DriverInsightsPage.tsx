@@ -55,9 +55,9 @@ import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import StatCard from "../../components/ui/StatCard";
 import { cn } from "../../utils/cn";
-import { getTrips, getVehicles } from "../../utils/storage";
+import { getTrips, getVehicles, getWarehouses } from "../../utils/storage";
 import { getDrivers } from "../../utils/api/drivers";
-import type { Driver, Trip, Vehicle } from "@/types";
+import type { Driver, Trip, Vehicle, Warehouse } from "@/types";
 import { createLogger } from '../../utils/logger';
 
 const logger = createLogger('DriverInsightsPage');
@@ -84,6 +84,7 @@ const DriverInsightsPage: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
 
@@ -152,15 +153,17 @@ const DriverInsightsPage: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [driversData, tripsData, vehiclesData] = await Promise.all([
+        const [driversData, tripsData, vehiclesData, warehousesData] = await Promise.all([
           getDrivers(),
           getTrips(),
           getVehicles(),
+          getWarehouses(),
         ]);
 
         setDrivers(driversData);
         setTrips(tripsData);
         setVehicles(vehiclesData);
+        setWarehouses(warehousesData);
       } catch (error) {
         logger.error("Error fetching data:", error);
         toast.error("Failed to load driver analytics data");
@@ -258,9 +261,14 @@ const DriverInsightsPage: React.FC = () => {
         return false;
       }
 
+      // Filter by warehouse if selected
+      if (selectedWarehouse !== "all" && trip.warehouse_id !== selectedWarehouse) {
+        return false;
+      }
+
       return true;
     });
-  }, [trips, effectiveStart, effectiveEnd, selectedDriver, selectedVehicle]);
+  }, [trips, effectiveStart, effectiveEnd, selectedDriver, selectedVehicle, selectedWarehouse]);
 
   // Calculate driver performance metrics
   const driverPerformance = useMemo(() => {
@@ -775,9 +783,11 @@ const DriverInsightsPage: React.FC = () => {
                       onChange={(e) => setSelectedWarehouse(e.target.value)}
                     >
                       <option value="all">All Warehouses</option>
-                      <option value="warehouse1">Warehouse 1 - Mumbai</option>
-                      <option value="warehouse2">Warehouse 2 - Delhi</option>
-                      <option value="warehouse3">Warehouse 3 - Bangalore</option>
+                      {warehouses.map((warehouse) => (
+                        <option key={warehouse.id} value={warehouse.id}>
+                          {warehouse.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
