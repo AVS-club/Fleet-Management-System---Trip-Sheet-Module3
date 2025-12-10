@@ -54,7 +54,7 @@ import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import StatCard from "../../components/ui/StatCard";
 import { cn } from "../../utils/cn";
-import { getTrips, getVehicles, getWarehouses } from "../../utils/storage";
+import { getTrips, getVehicles, getWarehouses, getDriverPhotoPublicUrl } from "../../utils/storage";
 import { getDrivers } from "../../utils/api/drivers";
 import type { Driver, Trip, Vehicle, Warehouse } from "@/types";
 import { createLogger } from '../../utils/logger';
@@ -946,19 +946,28 @@ const DriverInsightsPage: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                                {drivers.find(d => d.id === driver.driverId)?.photo_url ? (
-                                  <img 
-                                    src={drivers.find(d => d.id === driver.driverId)?.photo_url} 
-                                    alt={driver.name}
-                                    className="h-full w-full object-cover"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                      e.currentTarget.parentElement!.innerHTML = '<svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>';
-                                    }}
-                                  />
-                                ) : (
+                                {(() => {
+                                  const driverData = drivers.find(d => d.id === driver.driverId);
+                                  const photoUrl = driverData?.driver_photo_url 
+                                    ? getDriverPhotoPublicUrl(driverData.driver_photo_url) || driverData.driver_photo_url
+                                    : null;
+                                  
+                                  return photoUrl ? (
+                                    <img 
+                                      src={photoUrl} 
+                                      alt={driver.name}
+                                      className="h-full w-full object-cover"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                        if (fallback) fallback.classList.remove('hidden');
+                                      }}
+                                    />
+                                  ) : null;
+                                })()}
+                                <div className={`${drivers.find(d => d.id === driver.driverId)?.driver_photo_url ? 'hidden' : ''} w-full h-full flex items-center justify-center`}>
                                   <User className="h-6 w-6 text-gray-400" />
-                                )}
+                                </div>
                               </div>
                               <div className="ml-4">
                                 <div className="text-sm font-medium text-gray-900">
