@@ -685,7 +685,7 @@ const DriverInsightsPage: React.FC = () => {
 
           {/* Filters */}
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-4">
+            <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-4 py-4">
               <div className="flex flex-wrap gap-4 justify-between items-center">
                 <div className="flex items-center gap-3">
                   <h2 className="text-lg font-medium text-white flex items-center">
@@ -725,9 +725,9 @@ const DriverInsightsPage: React.FC = () => {
                 {/* Date and Basic Filters */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Time Period</label>
+                    <label className="block text-sm font-semibold text-teal-700 mb-2">Time Period</label>
                     <select
-                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      className="w-full px-3 py-2 border-2 border-teal-400 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-600 transition-all shadow-sm"
                       value={dateRange}
                       onChange={(e) => setDateRange(e.target.value as any)}
                     >
@@ -744,9 +744,9 @@ const DriverInsightsPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Driver</label>
+                    <label className="block text-sm font-semibold text-teal-700 mb-2">Driver</label>
                     <select
-                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      className="w-full px-3 py-2 border-2 border-teal-400 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-600 transition-all shadow-sm"
                       value={selectedDriver}
                       onChange={(e) => setSelectedDriver(e.target.value)}
                     >
@@ -760,9 +760,9 @@ const DriverInsightsPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Vehicle</label>
+                    <label className="block text-sm font-semibold text-teal-700 mb-2">Vehicle</label>
                     <select
-                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      className="w-full px-3 py-2 border-2 border-teal-400 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-600 transition-all shadow-sm"
                       value={selectedVehicle}
                       onChange={(e) => setSelectedVehicle(e.target.value)}
                     >
@@ -776,9 +776,9 @@ const DriverInsightsPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Warehouse Destination</label>
+                    <label className="block text-sm font-semibold text-teal-700 mb-2">Warehouse Destination</label>
                     <select
-                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      className="w-full px-3 py-2 border-2 border-teal-400 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-600 transition-all shadow-sm"
                       value={selectedWarehouse}
                       onChange={(e) => setSelectedWarehouse(e.target.value)}
                     >
@@ -813,9 +813,9 @@ const DriverInsightsPage: React.FC = () => {
                 {/* Advanced Filters */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Driver Status</label>
+                    <label className="block text-sm font-semibold text-teal-700 mb-2">Driver Status</label>
                     <select
-                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      className="w-full px-3 py-2 border-2 border-teal-400 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-600 transition-all shadow-sm"
                       value={driverStatus}
                       onChange={(e) => setDriverStatus(e.target.value as any)}
                     >
@@ -826,9 +826,9 @@ const DriverInsightsPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Performance Rating</label>
+                    <label className="block text-sm font-semibold text-teal-700 mb-2">Performance Rating</label>
                     <select
-                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      className="w-full px-3 py-2 border-2 border-teal-400 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-600 transition-all shadow-sm"
                       value={performanceRating}
                       onChange={(e) => setPerformanceRating(e.target.value as any)}
                     >
@@ -841,22 +841,22 @@ const DriverInsightsPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Min Trips</label>
+                    <label className="block text-sm font-semibold text-teal-700 mb-2">Min Trips</label>
                     <input
                       type="number"
                       placeholder="Min trips"
-                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      className="w-full px-3 py-2 border-2 border-teal-400 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-600 transition-all shadow-sm"
                       value={tripCountMin}
                       onChange={(e) => setTripCountMin(e.target.value)}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Max Trips</label>
+                    <label className="block text-sm font-semibold text-teal-700 mb-2">Max Trips</label>
                     <input
                       type="number"
                       placeholder="Max trips"
-                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      className="w-full px-3 py-2 border-2 border-teal-400 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-600 transition-all shadow-sm"
                       value={tripCountMax}
                       onChange={(e) => setTripCountMax(e.target.value)}
                     />
@@ -865,7 +865,7 @@ const DriverInsightsPage: React.FC = () => {
 
                 {/* Search */}
                 <div className="grid grid-cols-1">
-                  <label className="block text-sm font-semibold text-indigo-700 mb-2">Search by Name</label>
+                  <label className="block text-sm font-semibold text-teal-700 mb-2">Search by Name</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Search className="h-4 w-4 text-gray-400" />
@@ -873,7 +873,7 @@ const DriverInsightsPage: React.FC = () => {
                     <input
                       type="text"
                       placeholder="Search drivers by name..."
-                      className="w-full pl-10 px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      className="w-full pl-10 px-3 py-2 border-2 border-teal-400 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-600 transition-all shadow-sm"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -984,15 +984,24 @@ const DriverInsightsPage: React.FC = () => {
                         >
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
-                                <User className="h-6 w-6 text-gray-400" />
+                              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                                {drivers.find(d => d.id === driver.driverId)?.photo_url ? (
+                                  <img 
+                                    src={drivers.find(d => d.id === driver.driverId)?.photo_url} 
+                                    alt={driver.name}
+                                    className="h-full w-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      e.currentTarget.parentElement!.innerHTML = '<svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>';
+                                    }}
+                                  />
+                                ) : (
+                                  <User className="h-6 w-6 text-gray-400" />
+                                )}
                               </div>
                               <div className="ml-4">
                                 <div className="text-sm font-medium text-gray-900">
                                   {driver.name}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  ID: {driver.driverId.slice(0, 8)}...
                                 </div>
                               </div>
                             </div>
