@@ -94,6 +94,7 @@ const DriverInsightsPage: React.FC = () => {
   const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
   const [selectedDriver, setSelectedDriver] = useState<string>("all");
   const [selectedVehicle, setSelectedVehicle] = useState<string>("all");
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const [tripCountMin, setTripCountMin] = useState<string>("");
   const [tripCountMax, setTripCountMax] = useState<string>("");
   const [driverStatus, setDriverStatus] = useState<"all" | "active" | "inactive">("all");
@@ -126,12 +127,13 @@ const DriverInsightsPage: React.FC = () => {
     if (dateRange !== "thisMonth") count++;
     if (selectedDriver !== "all") count++;
     if (selectedVehicle !== "all") count++;
+    if (selectedWarehouse !== "all") count++;
     if (tripCountMin || tripCountMax) count++;
     if (driverStatus !== "all") count++;
     if (performanceRating !== "all") count++;
     if (searchTerm) count++;
     return count;
-  }, [dateRange, selectedDriver, selectedVehicle, tripCountMin, tripCountMax, driverStatus, performanceRating, searchTerm]);
+  }, [dateRange, selectedDriver, selectedVehicle, selectedWarehouse, tripCountMin, tripCountMax, driverStatus, performanceRating, searchTerm]);
 
   // Reset all filters
   const handleResetFilters = () => {
@@ -139,6 +141,7 @@ const DriverInsightsPage: React.FC = () => {
     setCustomDateRange({ start: "", end: "" });
     setSelectedDriver("all");
     setSelectedVehicle("all");
+    setSelectedWarehouse("all");
     setTripCountMin("");
     setTripCountMax("");
     setDriverStatus("all");
@@ -636,26 +639,26 @@ const DriverInsightsPage: React.FC = () => {
 
           {/* Driver of the Month Highlight */}
           {summaryMetrics.topDriver && (
-            <div className="bg-gradient-to-r from-primary-50 to-blue-50 border-l-4 border-primary-500 p-6 rounded-lg shadow-sm">
+            <div className="bg-gradient-to-r from-primary-50 to-blue-50 border-l-4 border-primary-500 p-4 rounded-lg shadow-sm scale-90 origin-top">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0 bg-primary-500 p-3 rounded-full">
-                    <Award className="h-8 w-8 text-white" />
+                <div className="flex items-center space-x-3">
+                  <div className="flex-shrink-0 bg-primary-500 p-2 rounded-full">
+                    <Award className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                    <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">
                       Driver of the Month
                     </h3>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                    <p className="text-lg font-bold text-gray-900 mt-0.5">
                       {summaryMetrics.topDriver.name}
                     </p>
-                    <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                    <div className="flex items-center space-x-3 mt-1 text-xs text-gray-600">
                       <span className="flex items-center">
-                        <IndianRupee className="h-4 w-4 mr-1" />
+                        <IndianRupee className="h-3 w-3 mr-0.5" />
                         {summaryMetrics.topDriver.costPerKm.toFixed(2)}/km
                       </span>
                       <span className="flex items-center">
-                        <TrendingUp className="h-4 w-4 mr-1" />
+                        <TrendingUp className="h-3 w-3 mr-0.5" />
                         {summaryMetrics.topDriver.totalTrips} trips
                       </span>
                     </div>
@@ -673,90 +676,110 @@ const DriverInsightsPage: React.FC = () => {
           )}
 
           {/* Filters */}
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <div className="flex flex-wrap gap-4 justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center border-l-2 border-blue-500 pl-2">
-                  <h2 className="text-lg font-medium text-gray-900 flex items-center">
-                    <Filter className="h-5 w-5 mr-2 text-primary-500" />
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-4">
+              <div className="flex flex-wrap gap-4 justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-medium text-white flex items-center">
+                    <Filter className="h-5 w-5 mr-2" />
                     Filters
                   </h2>
+                  {activeFiltersCount > 0 && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm">
+                      {activeFiltersCount} active
+                    </span>
+                  )}
                 </div>
-                {activeFiltersCount > 0 && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                    {activeFiltersCount} active
-                  </span>
-                )}
-              </div>
 
-              <div className="flex gap-2">
-                {activeFiltersCount > 0 && (
-                  <Button
-                    variant="outline"
-                    inputSize="sm"
-                    onClick={handleResetFilters}
-                    icon={<X className="h-4 w-4" />}
+                <div className="flex gap-2">
+                  {activeFiltersCount > 0 && (
+                    <button
+                      onClick={handleResetFilters}
+                      className="inline-flex items-center px-3 py-1.5 border border-white/30 rounded-lg text-sm font-medium text-white bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Clear All
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="inline-flex items-center px-3 py-1.5 border border-white/30 rounded-lg text-sm font-medium text-white bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
                   >
-                    Clear All
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  inputSize="sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                  icon={showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                >
-                  {showFilters ? "Hide Filters" : "Show Filters"}
-                </Button>
+                    {showFilters ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
+                    {showFilters ? "Hide Filters" : "Show Filters"}
+                  </button>
+                </div>
               </div>
             </div>
 
             {showFilters && (
-              <div className="mt-4 space-y-4 animate-slide-down">
+              <div className="p-4 space-y-4 animate-slide-down">
                 {/* Date and Basic Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Select
-                    label="Time Period"
-                    options={[
-                      { value: "thisWeek", label: "This Week" },
-                      { value: "thisMonth", label: "This Month" },
-                      { value: "lastMonth", label: "Last Month" },
-                      { value: "lastThreeMonths", label: "Last 3 Months" },
-                      { value: "lastSixMonths", label: "Last 6 Months" },
-                      { value: "lastYear", label: "Last 12 Months" },
-                      { value: "thisYear", label: "This Year" },
-                      { value: "allTime", label: "All Time" },
-                      { value: "custom", label: "Custom Range" },
-                    ]}
-                    value={dateRange}
-                    onChange={(e) => setDateRange(e.target.value as any)}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Time Period</label>
+                    <select
+                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      value={dateRange}
+                      onChange={(e) => setDateRange(e.target.value as any)}
+                    >
+                      <option value="thisWeek">This Week</option>
+                      <option value="thisMonth">This Month</option>
+                      <option value="lastMonth">Last Month</option>
+                      <option value="lastThreeMonths">Last 3 Months</option>
+                      <option value="lastSixMonths">Last 6 Months</option>
+                      <option value="lastYear">Last 12 Months</option>
+                      <option value="thisYear">This Year</option>
+                      <option value="allTime">All Time</option>
+                      <option value="custom">Custom Range</option>
+                    </select>
+                  </div>
 
-                  <Select
-                    label="Driver"
-                    options={[
-                      { value: "all", label: "All Drivers" },
-                      ...drivers.map((driver) => ({
-                        value: driver.id || "",
-                        label: driver.name,
-                      })),
-                    ]}
-                    value={selectedDriver}
-                    onChange={(e) => setSelectedDriver(e.target.value)}
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Driver</label>
+                    <select
+                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      value={selectedDriver}
+                      onChange={(e) => setSelectedDriver(e.target.value)}
+                    >
+                      <option value="all">All Drivers</option>
+                      {drivers.map((driver) => (
+                        <option key={driver.id} value={driver.id || ""}>
+                          {driver.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                  <Select
-                    label="Vehicle"
-                    options={[
-                      { value: "all", label: "All Vehicles" },
-                      ...vehicles.map((vehicle) => ({
-                        value: vehicle.id || "",
-                        label: vehicle.registration_number,
-                      })),
-                    ]}
-                    value={selectedVehicle}
-                    onChange={(e) => setSelectedVehicle(e.target.value)}
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Vehicle</label>
+                    <select
+                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      value={selectedVehicle}
+                      onChange={(e) => setSelectedVehicle(e.target.value)}
+                    >
+                      <option value="all">All Vehicles</option>
+                      {vehicles.map((vehicle) => (
+                        <option key={vehicle.id} value={vehicle.id || ""}>
+                          {vehicle.registration_number}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Warehouse Destination</label>
+                    <select
+                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      value={selectedWarehouse}
+                      onChange={(e) => setSelectedWarehouse(e.target.value)}
+                    >
+                      <option value="all">All Warehouses</option>
+                      <option value="warehouse1">Warehouse 1 - Mumbai</option>
+                      <option value="warehouse2">Warehouse 2 - Delhi</option>
+                      <option value="warehouse3">Warehouse 3 - Bangalore</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Custom Date Range */}
@@ -779,56 +802,72 @@ const DriverInsightsPage: React.FC = () => {
 
                 {/* Advanced Filters */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Select
-                    label="Driver Status"
-                    options={[
-                      { value: "all", label: "All Status" },
-                      { value: "active", label: "Active" },
-                      { value: "inactive", label: "Inactive" },
-                    ]}
-                    value={driverStatus}
-                    onChange={(e) => setDriverStatus(e.target.value as any)}
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Driver Status</label>
+                    <select
+                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      value={driverStatus}
+                      onChange={(e) => setDriverStatus(e.target.value as any)}
+                    >
+                      <option value="all">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
 
-                  <Select
-                    label="Performance Rating"
-                    options={[
-                      { value: "all", label: "All Ratings" },
-                      { value: "excellent", label: "Excellent (< ₹8/km)" },
-                      { value: "good", label: "Good (₹8-10/km)" },
-                      { value: "average", label: "Average (₹10-12/km)" },
-                      { value: "poor", label: "Poor (> ₹12/km)" },
-                    ]}
-                    value={performanceRating}
-                    onChange={(e) => setPerformanceRating(e.target.value as any)}
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Performance Rating</label>
+                    <select
+                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      value={performanceRating}
+                      onChange={(e) => setPerformanceRating(e.target.value as any)}
+                    >
+                      <option value="all">All Ratings</option>
+                      <option value="excellent">Excellent (&lt; ₹8/km)</option>
+                      <option value="good">Good (₹8-10/km)</option>
+                      <option value="average">Average (₹10-12/km)</option>
+                      <option value="poor">Poor (&gt; ₹12/km)</option>
+                    </select>
+                  </div>
 
-                  <Input
-                    label="Min Trips"
-                    type="number"
-                    placeholder="Min trips"
-                    value={tripCountMin}
-                    onChange={(e) => setTripCountMin(e.target.value)}
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Min Trips</label>
+                    <input
+                      type="number"
+                      placeholder="Min trips"
+                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      value={tripCountMin}
+                      onChange={(e) => setTripCountMin(e.target.value)}
+                    />
+                  </div>
 
-                  <Input
-                    label="Max Trips"
-                    type="number"
-                    placeholder="Max trips"
-                    value={tripCountMax}
-                    onChange={(e) => setTripCountMax(e.target.value)}
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold text-indigo-700 mb-2">Max Trips</label>
+                    <input
+                      type="number"
+                      placeholder="Max trips"
+                      className="w-full px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      value={tripCountMax}
+                      onChange={(e) => setTripCountMax(e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 {/* Search */}
                 <div className="grid grid-cols-1">
-                  <Input
-                    label="Search by Name"
-                    placeholder="Search drivers by name..."
-                    icon={<Search className="h-4 w-4" />}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+                  <label className="block text-sm font-semibold text-indigo-700 mb-2">Search by Name</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search drivers by name..."
+                      className="w-full pl-10 px-3 py-2 border-2 border-indigo-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-600 transition-all shadow-sm"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             )}
