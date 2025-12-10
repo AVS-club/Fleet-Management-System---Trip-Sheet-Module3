@@ -30,7 +30,6 @@ import {
   ChevronDown,
   ChevronUp,
   X,
-  Award,
 } from "lucide-react";
 import {
   BarChart,
@@ -644,44 +643,6 @@ const DriverInsightsPage: React.FC = () => {
               icon={<User className="h-5 w-5 text-primary-600" />}
             />
           </div>
-
-          {/* Driver of the Month Highlight */}
-          {summaryMetrics.topDriver && (
-            <div className="bg-gradient-to-r from-primary-50 to-blue-50 border-l-4 border-primary-500 p-4 rounded-lg shadow-sm scale-90 origin-top">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0 bg-primary-500 p-2 rounded-full">
-                    <Award className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                      Driver of the Month
-                    </h3>
-                    <p className="text-lg font-bold text-gray-900 mt-0.5">
-                      {summaryMetrics.topDriver.name}
-                    </p>
-                    <div className="flex items-center space-x-3 mt-1 text-xs text-gray-600">
-                      <span className="flex items-center">
-                        <IndianRupee className="h-3 w-3 mr-0.5" />
-                        {summaryMetrics.topDriver.costPerKm.toFixed(2)}/km
-                      </span>
-                      <span className="flex items-center">
-                        <TrendingUp className="h-3 w-3 mr-0.5" />
-                        {summaryMetrics.topDriver.totalTrips} trips
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  inputSize="sm"
-                  onClick={() => handleViewDriverDetails(summaryMetrics.topDriver!.driverId)}
-                >
-                  View Details
-                </Button>
-              </div>
-            </div>
-          )}
 
           {/* Filters */}
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
