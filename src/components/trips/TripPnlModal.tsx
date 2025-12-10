@@ -284,6 +284,7 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
                 )}
               </div>
             </div>
+
           </div>
 
           {/* Expenses Section */}

@@ -48,6 +48,7 @@ import MaintenanceTasksAdmin from "./pages/admin/MaintenanceTasksAdmin";
 import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
 import CompanySettings from "./pages/admin/CompanySettings";
 import CompleteFixedReportingDashboard from "./pages/admin/CompleteFixedReportingDashboard";
+import TripSerialValidationPage from "./pages/admin/TripSerialValidationPage";
 import DocumentRedirect from "./pages/DocumentRedirect";
 import UploadPhotos from "./pages/UploadPhotos";
 import TermsAndConditionsPage from "./pages/TermsAndConditionsPage";
@@ -170,6 +171,7 @@ const App: React.FC = () => {
             <Route path="/admin/message-templates" element={<ProtectedRoute session={session} loading={loading}><MessageTemplatesPage /></ProtectedRoute>} />
             <Route path="/admin/company-settings" element={<ProtectedRoute session={session} loading={loading}><CompanySettings /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute session={session} loading={loading}><CompleteFixedReportingDashboard /></ProtectedRoute>} />
+            <Route path="/admin/trip-serial-validation" element={<ProtectedRoute session={session} loading={loading}><TripSerialValidationPage /></ProtectedRoute>} />
             <Route path="/terms-and-conditions" element={<TermsAndConditionsPage />} />
             <Route path="/doc/:shortId" element={<DocumentRedirect />} />
             {/* Public route for photo uploads - no authentication required */}

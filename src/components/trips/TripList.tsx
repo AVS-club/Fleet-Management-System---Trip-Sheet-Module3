@@ -12,6 +12,7 @@ interface TripListProps {
   onEditTrip?: (trip: Trip) => void;
   searchTerm?: string;
   highlightTripId?: string | null;
+  canViewRevenue?: boolean;
 }
 
 const TripList: React.FC<TripListProps> = ({ 
@@ -22,7 +23,8 @@ const TripList: React.FC<TripListProps> = ({
   onPnlClick,
   onEditTrip,
   searchTerm,
-  highlightTripId
+  highlightTripId,
+  canViewRevenue = true
 }) => {
   
   const vehiclesMap = useMemo(() => {
@@ -54,6 +56,7 @@ const TripList: React.FC<TripListProps> = ({
               onPnlClick={onPnlClick}
               onEditClick={onEditTrip}
               searchTerm={searchTerm}
+              canViewRevenue={canViewRevenue}
               highlightTripId={highlightTripId}
             />
           ))}

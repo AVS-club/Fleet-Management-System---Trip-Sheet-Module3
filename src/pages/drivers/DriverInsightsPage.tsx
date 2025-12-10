@@ -7,6 +7,10 @@ import {
   startOfMonth,
   subMonths,
   differenceInDays,
+  startOfWeek,
+  endOfWeek,
+  startOfYear,
+  endOfMonth,
 } from "date-fns";
 import {
   ChevronLeft,
@@ -23,6 +27,10 @@ import {
   Download,
   RefreshCw,
   User,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Award,
 } from "lucide-react";
 import {
   BarChart,
@@ -81,11 +89,17 @@ const DriverInsightsPage: React.FC = () => {
 
   // Filters
   const [dateRange, setDateRange] = useState<
-    "thisMonth" | "lastThreeMonths" | "lastSixMonths" | "lastYear" | "allTime"
-  >("allTime");
+    "thisWeek" | "thisMonth" | "lastMonth" | "lastThreeMonths" | "lastSixMonths" | "lastYear" | "thisYear" | "allTime" | "custom"
+  >("thisMonth");
+  const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
   const [selectedDriver, setSelectedDriver] = useState<string>("all");
+  const [selectedVehicle, setSelectedVehicle] = useState<string>("all");
+  const [tripCountMin, setTripCountMin] = useState<string>("");
+  const [tripCountMax, setTripCountMax] = useState<string>("");
+  const [driverStatus, setDriverStatus] = useState<"all" | "active" | "inactive">("all");
+  const [performanceRating, setPerformanceRating] = useState<"all" | "excellent" | "good" | "average" | "poor">("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedDriverForModal, setSelectedDriverForModal] = useState<Driver | null>(null);
   const [showDriverModal, setShowDriverModal] = useState(false);
 
@@ -96,6 +110,40 @@ const DriverInsightsPage: React.FC = () => {
       setSelectedDriverForModal(driver);
       setShowDriverModal(true);
     }
+  };
+
+  // Helper function to get performance rating based on cost per km
+  const getPerformanceRating = (costPerKm: number): "excellent" | "good" | "average" | "poor" => {
+    if (costPerKm < 8) return "excellent";
+    if (costPerKm < 10) return "good";
+    if (costPerKm < 12) return "average";
+    return "poor";
+  };
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (dateRange !== "thisMonth") count++;
+    if (selectedDriver !== "all") count++;
+    if (selectedVehicle !== "all") count++;
+    if (tripCountMin || tripCountMax) count++;
+    if (driverStatus !== "all") count++;
+    if (performanceRating !== "all") count++;
+    if (searchTerm) count++;
+    return count;
+  }, [dateRange, selectedDriver, selectedVehicle, tripCountMin, tripCountMax, driverStatus, performanceRating, searchTerm]);
+
+  // Reset all filters
+  const handleResetFilters = () => {
+    setDateRange("thisMonth");
+    setCustomDateRange({ start: "", end: "" });
+    setSelectedDriver("all");
+    setSelectedVehicle("all");
+    setTripCountMin("");
+    setTripCountMax("");
+    setDriverStatus("all");
+    setPerformanceRating("all");
+    setSearchTerm("");
   };
   useEffect(() => {
     const fetchData = async () => {
@@ -126,10 +174,21 @@ const DriverInsightsPage: React.FC = () => {
     const now = new Date();
 
     switch (dateRange) {
+      case "thisWeek":
+        return {
+          start: startOfWeek(now, { weekStartsOn: 1 }), // Monday start
+          end: endOfWeek(now, { weekStartsOn: 1 }),
+        };
       case "thisMonth":
         return {
           start: startOfMonth(now),
           end: now,
+        };
+      case "lastMonth":
+        const lastMonth = subMonths(now, 1);
+        return {
+          start: startOfMonth(lastMonth),
+          end: endOfMonth(lastMonth),
         };
       case "lastThreeMonths":
         return {
@@ -146,13 +205,30 @@ const DriverInsightsPage: React.FC = () => {
           start: subMonths(now, 12),
           end: now,
         };
+      case "thisYear":
+        return {
+          start: startOfYear(now),
+          end: now,
+        };
+      case "custom":
+        if (customDateRange.start && customDateRange.end) {
+          return {
+            start: new Date(customDateRange.start),
+            end: new Date(customDateRange.end),
+          };
+        }
+        // Fallback to this month if custom dates not set
+        return {
+          start: startOfMonth(now),
+          end: now,
+        };
       case "allTime":
         return {
           start: new Date(0), // January 1, 1970
           end: now,
         };
     }
-  }, [dateRange]);
+  }, [dateRange, customDateRange]);
   const effectiveStart = effectiveDateRange.start;
   const effectiveEnd = effectiveDateRange.end;
 
@@ -174,9 +250,14 @@ const DriverInsightsPage: React.FC = () => {
         return false;
       }
 
+      // Filter by vehicle if selected
+      if (selectedVehicle !== "all" && trip.vehicle_id !== selectedVehicle) {
+        return false;
+      }
+
       return true;
     });
-  }, [trips, effectiveStart, effectiveEnd, selectedDriver]);
+  }, [trips, effectiveStart, effectiveEnd, selectedDriver, selectedVehicle]);
 
   // Calculate driver performance metrics
   const driverPerformance = useMemo(() => {
@@ -277,15 +358,42 @@ const DriverInsightsPage: React.FC = () => {
           : 0;
     });
 
-    // Convert to array and filter by search term
+    // Convert to array and apply all filters
     return Array.from(performanceMap.values())
       .filter((performance) => {
-        if (!searchTerm) return true;
-        const lowerSearch = searchTerm.toLowerCase();
-        return performance.name.toLowerCase().includes(lowerSearch);
+        // Filter by search term
+        if (searchTerm) {
+          const lowerSearch = searchTerm.toLowerCase();
+          if (!performance.name.toLowerCase().includes(lowerSearch)) {
+            return false;
+          }
+        }
+
+        // Filter by trip count range
+        if (tripCountMin && performance.totalTrips < parseInt(tripCountMin)) {
+          return false;
+        }
+        if (tripCountMax && performance.totalTrips > parseInt(tripCountMax)) {
+          return false;
+        }
+
+        // Filter by driver status
+        if (driverStatus !== "all") {
+          const isActive = performance.totalTrips > 0;
+          if (driverStatus === "active" && !isActive) return false;
+          if (driverStatus === "inactive" && isActive) return false;
+        }
+
+        // Filter by performance rating
+        if (performanceRating !== "all" && performance.costPerKm > 0) {
+          const rating = getPerformanceRating(performance.costPerKm);
+          if (rating !== performanceRating) return false;
+        }
+
+        return true;
       })
       .sort((a, b) => b.totalTrips - a.totalTrips);
-  }, [drivers, filteredTrips, searchTerm, effectiveStart, effectiveEnd]);
+  }, [drivers, filteredTrips, searchTerm, tripCountMin, tripCountMax, driverStatus, performanceRating, effectiveStart, effectiveEnd]);
 
   // Calculate summary metrics
   const summaryMetrics = useMemo(() => {
@@ -526,60 +634,202 @@ const DriverInsightsPage: React.FC = () => {
             />
           </div>
 
+          {/* Driver of the Month Highlight */}
+          {summaryMetrics.topDriver && (
+            <div className="bg-gradient-to-r from-primary-50 to-blue-50 border-l-4 border-primary-500 p-6 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-shrink-0 bg-primary-500 p-3 rounded-full">
+                    <Award className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+                      Driver of the Month
+                    </h3>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                      {summaryMetrics.topDriver.name}
+                    </p>
+                    <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                      <span className="flex items-center">
+                        <IndianRupee className="h-4 w-4 mr-1" />
+                        {summaryMetrics.topDriver.costPerKm.toFixed(2)}/km
+                      </span>
+                      <span className="flex items-center">
+                        <TrendingUp className="h-4 w-4 mr-1" />
+                        {summaryMetrics.topDriver.totalTrips} trips
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  inputSize="sm"
+                  onClick={() => handleViewDriverDetails(summaryMetrics.topDriver!.driverId)}
+                >
+                  View Details
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Filters */}
           <div className="bg-white p-4 rounded-lg shadow-sm">
-            <div className="flex flex-wrap gap-4 justify-between">
-              <div className="flex items-center border-l-2 border-blue-500 pl-2">
-                <h2 className="text-lg font-medium text-gray-900 flex items-center">
-                  <Filter className="h-5 w-5 mr-2 text-primary-500" />
-                  Filters
-                </h2>
+            <div className="flex flex-wrap gap-4 justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center border-l-2 border-blue-500 pl-2">
+                  <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                    <Filter className="h-5 w-5 mr-2 text-primary-500" />
+                    Filters
+                  </h2>
+                </div>
+                {activeFiltersCount > 0 && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                    {activeFiltersCount} active
+                  </span>
+                )}
               </div>
 
-              <Button
-                variant="outline"
-                inputSize="sm"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                {showFilters ? "Hide Filters" : "Show Filters"}
-              </Button>
+              <div className="flex gap-2">
+                {activeFiltersCount > 0 && (
+                  <Button
+                    variant="outline"
+                    inputSize="sm"
+                    onClick={handleResetFilters}
+                    icon={<X className="h-4 w-4" />}
+                  >
+                    Clear All
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  inputSize="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                  icon={showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                >
+                  {showFilters ? "Hide Filters" : "Show Filters"}
+                </Button>
+              </div>
             </div>
 
             {showFilters && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Select
-                  label="Time Period"
-                  options={[
-                    { value: "thisMonth", label: "This Month" },
-                    { value: "lastThreeMonths", label: "Last 3 Months" },
-                    { value: "lastSixMonths", label: "Last 6 Months" },
-                    { value: "lastYear", label: "Last 12 Months" },
-                    { value: "allTime", label: "All Time" },
-                  ]}
-                  value={dateRange}
-                  onChange={(e) => setDateRange(e.target.value as any)}
-                />
+              <div className="mt-4 space-y-4 animate-slide-down">
+                {/* Date and Basic Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Select
+                    label="Time Period"
+                    options={[
+                      { value: "thisWeek", label: "This Week" },
+                      { value: "thisMonth", label: "This Month" },
+                      { value: "lastMonth", label: "Last Month" },
+                      { value: "lastThreeMonths", label: "Last 3 Months" },
+                      { value: "lastSixMonths", label: "Last 6 Months" },
+                      { value: "lastYear", label: "Last 12 Months" },
+                      { value: "thisYear", label: "This Year" },
+                      { value: "allTime", label: "All Time" },
+                      { value: "custom", label: "Custom Range" },
+                    ]}
+                    value={dateRange}
+                    onChange={(e) => setDateRange(e.target.value as any)}
+                  />
 
-                <Select
-                  label="Driver"
-                  options={[
-                    { value: "all", label: "All Drivers" },
-                    ...drivers.map((driver) => ({
-                      value: driver.id || "",
-                      label: driver.name,
-                    })),
-                  ]}
-                  value={selectedDriver}
-                  onChange={(e) => setSelectedDriver(e.target.value)}
-                />
+                  <Select
+                    label="Driver"
+                    options={[
+                      { value: "all", label: "All Drivers" },
+                      ...drivers.map((driver) => ({
+                        value: driver.id || "",
+                        label: driver.name,
+                      })),
+                    ]}
+                    value={selectedDriver}
+                    onChange={(e) => setSelectedDriver(e.target.value)}
+                  />
 
-                <Input
-                  label="Search"
-                  placeholder="Search drivers..."
-                  icon={<Search className="h-4 w-4" />}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                  <Select
+                    label="Vehicle"
+                    options={[
+                      { value: "all", label: "All Vehicles" },
+                      ...vehicles.map((vehicle) => ({
+                        value: vehicle.id || "",
+                        label: vehicle.registration_number,
+                      })),
+                    ]}
+                    value={selectedVehicle}
+                    onChange={(e) => setSelectedVehicle(e.target.value)}
+                  />
+                </div>
+
+                {/* Custom Date Range */}
+                {dateRange === "custom" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <Input
+                      label="Start Date"
+                      type="date"
+                      value={customDateRange.start}
+                      onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
+                    />
+                    <Input
+                      label="End Date"
+                      type="date"
+                      value={customDateRange.end}
+                      onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
+                    />
+                  </div>
+                )}
+
+                {/* Advanced Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Select
+                    label="Driver Status"
+                    options={[
+                      { value: "all", label: "All Status" },
+                      { value: "active", label: "Active" },
+                      { value: "inactive", label: "Inactive" },
+                    ]}
+                    value={driverStatus}
+                    onChange={(e) => setDriverStatus(e.target.value as any)}
+                  />
+
+                  <Select
+                    label="Performance Rating"
+                    options={[
+                      { value: "all", label: "All Ratings" },
+                      { value: "excellent", label: "Excellent (< ₹8/km)" },
+                      { value: "good", label: "Good (₹8-10/km)" },
+                      { value: "average", label: "Average (₹10-12/km)" },
+                      { value: "poor", label: "Poor (> ₹12/km)" },
+                    ]}
+                    value={performanceRating}
+                    onChange={(e) => setPerformanceRating(e.target.value as any)}
+                  />
+
+                  <Input
+                    label="Min Trips"
+                    type="number"
+                    placeholder="Min trips"
+                    value={tripCountMin}
+                    onChange={(e) => setTripCountMin(e.target.value)}
+                  />
+
+                  <Input
+                    label="Max Trips"
+                    type="number"
+                    placeholder="Max trips"
+                    value={tripCountMax}
+                    onChange={(e) => setTripCountMax(e.target.value)}
+                  />
+                </div>
+
+                {/* Search */}
+                <div className="grid grid-cols-1">
+                  <Input
+                    label="Search by Name"
+                    placeholder="Search drivers by name..."
+                    icon={<Search className="h-4 w-4" />}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -594,19 +844,21 @@ const DriverInsightsPage: React.FC = () => {
                 <p className="mt-1 text-sm text-gray-500">
                   Showing{" "}
                   {driverPerformance.filter((d) => d.totalTrips > 0).length}{" "}
-                  active drivers
+                  of {drivers.length} drivers
+                  {activeFiltersCount > 0 && (
+                    <span className="ml-1 text-primary-600 font-medium">
+                      ({activeFiltersCount} filter{activeFiltersCount !== 1 ? 's' : ''} active)
+                    </span>
+                  )}
                 </p>
               </div>
 
               <Button
                 variant="outline"
                 inputSize="sm"
-                onClick={() => {
-                  setDateRange("allTime");
-                  setSelectedDriver("all");
-                  setSearchTerm("");
-                }}
+                onClick={handleResetFilters}
                 icon={<RefreshCw className="h-4 w-4" />}
+                disabled={activeFiltersCount === 0}
               >
                 Reset Filters
               </Button>
@@ -896,29 +1148,6 @@ const DriverInsightsPage: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* Driver of the Month */}
-          {summaryMetrics.topDriver && (
-            <div className="fixed bottom-6 right-6 bg-white p-4 rounded-lg shadow-lg border-l-4 border-primary-500 max-w-xs animate-slide-up z-10">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0 bg-primary-100 p-2 rounded-full">
-                  <User className="h-6 w-6 text-primary-600" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-gray-900">
-                    Driver of the Month
-                  </h3>
-                  <p className="text-lg font-bold text-primary-600">
-                    {summaryMetrics.topDriver.name}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    ₹{summaryMetrics.topDriver.costPerKm.toFixed(2)}/km •{" "}
-                    {summaryMetrics.topDriver.totalTrips} trips
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </Layout>
       

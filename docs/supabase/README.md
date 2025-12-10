@@ -36,6 +36,8 @@
 
 ## 📖 Documentation Files
 
+### Core Schema & Structure
+
 | File | Purpose | When to Reference |
 |------|---------|-------------------|
 | **[ACTUAL_TABLES_QUICK_REFERENCE.md](./ACTUAL_TABLES_QUICK_REFERENCE.md)** | ⭐ **Complete list of all 40+ tables** with key columns | **START HERE** - Quick lookup of table names and columns |
@@ -44,8 +46,20 @@
 | **[RLS_POLICIES.md](./RLS_POLICIES.md)** | Row Level Security policies | When debugging access issues or adding new tables |
 | **[EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md)** | Edge functions reference | When using API endpoints (⚠️ DO NOT MODIFY) |
 | **[TRIGGERS_AND_VIEWS.md](./TRIGGERS_AND_VIEWS.md)** | Database triggers, materialized views, ENUMs | When understanding automated behaviors or using views |
-| **[TEMPLATE_FOR_UPDATES.md](./TEMPLATE_FOR_UPDATES.md)** | Instructions for updating this documentation | When adding/removing tables or making backend changes |
+
+### User Management & Auth
+
+| File | Purpose | When to Reference |
+|------|---------|-------------------|
+| **[CREATE_USER_AND_ORGANIZATION_GUIDE.md](./CREATE_USER_AND_ORGANIZATION_GUIDE.md)** | 🎯 **BULLETPROOF guide** for creating users + organizations via SQL | **When creating demo users, test accounts, or initial org owners** - Works on first try! |
+| **[QUICK_CREATE_USER_CHEATSHEET.md](./QUICK_CREATE_USER_CHEATSHEET.md)** | ⚡ **One-page cheat sheet** with copy-paste scripts | **When you need it fast** - Minimal explanation, just change 4 variables and run |
+
+### Testing & Maintenance
+
+| File | Purpose | When to Reference |
+|------|---------|-------------------|
 | **[QUICK_TEST_GUIDE.md](./QUICK_TEST_GUIDE.md)** | ⭐ **Quick data isolation testing** with your actual org UUIDs | **Before production** - Verify no data leakage (15 min test) |
+| **[TEMPLATE_FOR_UPDATES.md](./TEMPLATE_FOR_UPDATES.md)** | Instructions for updating this documentation | When adding/removing tables or making backend changes |
 
 ---
 
@@ -149,6 +163,6 @@ Migration files are referenced throughout this documentation to show which file 
 
 ---
 
-**Last Updated:** 2025-11-02
-**Documentation Version:** 1.0
-**Total Documentation Files:** 7
+**Last Updated:** 2025-12-09
+**Documentation Version:** 2.0
+**Total Documentation Files:** 10 (added user creation guides)

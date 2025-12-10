@@ -23,6 +23,7 @@ interface TripTableProps {
   onEditTrip?: (trip: Trip) => void;
   highlightTripId?: string | null;
   onTripUpdate?: (updatedTrip: Trip) => void;
+  canViewRevenue?: boolean;
 }
 
 type SortField = 'serial' | 'date' | 'vehicle' | 'driver' | 'distance' | 'expense' | 'mileage';
@@ -120,7 +121,8 @@ const TripTable: React.FC<TripTableProps> = ({
   onPnlClick,
   onEditTrip,
   highlightTripId,
-  onTripUpdate
+  onTripUpdate,
+  canViewRevenue = true
 }) => {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -788,7 +790,7 @@ const TripTable: React.FC<TripTableProps> = ({
                         </button>
                       )}
                       
-                      {onPnlClick && (
+                      {canViewRevenue && onPnlClick && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

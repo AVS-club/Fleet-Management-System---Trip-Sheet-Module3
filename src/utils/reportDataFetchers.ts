@@ -210,6 +210,13 @@ export const fetchWeeklyComparisonData = async (
     const currentWeekRange = getWeekDateRange(currentWeek, year);
     const previousWeekRange = getWeekDateRange(currentWeek - 1, year);
 
+    // Get count for current week
+    const { count: currentCount } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true })
+      .gte('start_time', currentWeekRange.start)
+      .lte('start_time', currentWeekRange.end);
+    
     // Fetch current week data
     const { data: currentWeekData, error: currentError } = await supabase
       .from('trips')
@@ -229,10 +236,18 @@ export const fetchWeeklyComparisonData = async (
         )
       `)
       .gte('start_time', currentWeekRange.start)
-      .lte('start_time', currentWeekRange.end);
+      .lte('start_time', currentWeekRange.end)
+      .range(0, (currentCount || 10000) - 1);
 
     if (currentError) throw currentError;
 
+    // Get count for previous week
+    const { count: previousCount } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true })
+      .gte('start_time', previousWeekRange.start)
+      .lte('start_time', previousWeekRange.end);
+    
     // Fetch previous week data
     const { data: previousWeekData, error: previousError } = await supabase
       .from('trips')
@@ -245,7 +260,8 @@ export const fetchWeeklyComparisonData = async (
         end_time
       `)
       .gte('start_time', previousWeekRange.start)
-      .lte('start_time', previousWeekRange.end);
+      .lte('start_time', previousWeekRange.end)
+      .range(0, (previousCount || 10000) - 1);
 
     if (previousError) throw previousError;
 
@@ -340,6 +356,13 @@ export const fetchMonthlyComparisonData = async (
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
 
+    // Get count for the month
+    const { count } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true })
+      .gte('start_time', startDateStr)
+      .lte('start_time', endDateStr);
+    
     // Fetch trips data for the month
     const { data: tripsData, error: tripsError } = await supabase
       .from('trips')
@@ -360,7 +383,8 @@ export const fetchMonthlyComparisonData = async (
         )
       `)
       .gte('start_time', startDateStr)
-      .lte('start_time', endDateStr);
+      .lte('start_time', endDateStr)
+      .range(0, (count || 10000) - 1);
 
     if (tripsError) throw tripsError;
 
@@ -451,6 +475,13 @@ export const fetchTripSummaryData = async (
   dateRange: { start: string; end: string }
 ): Promise<TripSummaryData> => {
   try {
+    // Get count for trip summary
+    const { count } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true })
+      .gte('start_time', dateRange.start)
+      .lte('start_time', dateRange.end);
+    
     const { data: tripsData, error: tripsError } = await supabase
       .from('trips')
       .select(`
@@ -470,7 +501,8 @@ export const fetchTripSummaryData = async (
       `)
       .gte('start_time', dateRange.start)
       .lte('start_time', dateRange.end)
-      .order('start_time', { ascending: false });
+      .order('start_time', { ascending: false })
+      .range(0, (count || 10000) - 1);
 
     if (tripsError) throw tripsError;
 
@@ -588,6 +620,13 @@ export const fetchVehicleUtilizationData = async (
 
     if (vehiclesError) throw vehiclesError;
 
+    // Get count for vehicle utilization
+    const { count } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true })
+      .gte('start_time', startDateStr)
+      .lte('start_time', endDateStr);
+    
     const { data: tripsData, error: tripsError } = await supabase
       .from('trips')
       .select(`
@@ -599,7 +638,8 @@ export const fetchVehicleUtilizationData = async (
         end_time
       `)
       .gte('start_time', startDateStr)
-      .lte('start_time', endDateStr);
+      .lte('start_time', endDateStr)
+      .range(0, (count || 10000) - 1);
 
     if (tripsError) throw tripsError;
 
@@ -712,6 +752,13 @@ export const fetchDriverPerformanceData = async (
 
     if (driversError) throw driversError;
 
+    // Get count for driver performance
+    const { count } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true })
+      .gte('start_time', startDateStr)
+      .lte('start_time', endDateStr);
+    
     const { data: tripsData, error: tripsError } = await supabase
       .from('trips')
       .select(`
@@ -724,7 +771,8 @@ export const fetchDriverPerformanceData = async (
         end_time
       `)
       .gte('start_time', startDateStr)
-      .lte('start_time', endDateStr);
+      .lte('start_time', endDateStr)
+      .range(0, (count || 10000) - 1);
 
     if (tripsError) throw tripsError;
 

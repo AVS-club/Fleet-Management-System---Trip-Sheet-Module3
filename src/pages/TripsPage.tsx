@@ -513,7 +513,10 @@ const TripsPage: React.FC = () => {
 
   const handlePnlClick = (e: React.MouseEvent, trip: Trip) => {
     e.stopPropagation();
-    setSelectedTripForPnl(trip);
+    // Only allow P&L viewing for users with revenue permissions
+    if (permissions?.canViewRevenue) {
+      setSelectedTripForPnl(trip);
+    }
   };
 
   const handleTripUpdate = (updatedTrip: Trip) => {
@@ -711,10 +714,11 @@ const TripsPage: React.FC = () => {
                   drivers={drivers}
                   warehouses={warehouses}
                   onSelectTrip={handleTripSelect}
-                  onPnlClick={handlePnlClick}
+                  onPnlClick={permissions?.canViewRevenue ? handlePnlClick : undefined}
                   onEditTrip={handleEditTrip}
                   highlightTripId={highlightTripId}
                   onTripUpdate={handleTripUpdate}
+                  canViewRevenue={permissions?.canViewRevenue}
                 />
               ) : viewMode === 'list' ? (
                 <TripListView
@@ -723,9 +727,10 @@ const TripsPage: React.FC = () => {
                   drivers={drivers}
                   warehouses={warehouses}
                   onSelectTrip={handleTripSelect}
-                  onPnlClick={handlePnlClick}
+                  onPnlClick={permissions?.canViewRevenue ? handlePnlClick : undefined}
                   onEditTrip={handleEditTrip}
                   highlightTripId={highlightTripId}
+                  canViewRevenue={permissions?.canViewRevenue}
                 />
               ) : (
                 <TripList 
@@ -733,10 +738,11 @@ const TripsPage: React.FC = () => {
                   vehicles={vehicles} 
                   drivers={drivers}
                   onSelectTrip={handleTripSelect}
-                  onPnlClick={handlePnlClick}
+                  onPnlClick={permissions?.canViewRevenue ? handlePnlClick : undefined}
                   onEditTrip={handleEditTrip}
                   highlightTripId={highlightTripId}
                   searchTerm={filters.search}
+                  canViewRevenue={permissions?.canViewRevenue}
                 />
               )}
               

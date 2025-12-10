@@ -1538,41 +1538,62 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <EnhancedInput
-            label="Vehicle"
-            required
-            icon={Truck}
-            isVehicle
-            value={vehicleInputValue}
-            onChange={(inputValue) => {
-              setVehicleInputValue(inputValue);
-              if (inputValue === '') {
-                setSelectedVehicle(null);
-                setValue('vehicle_id', '');
-              }
-            }}
-            placeholder="Type vehicle number..."
-            isDropdown
-            dropdownOptions={filteredVehicles.map(vehicle => ({
-              id: vehicle.id,
-              label: vehicle.registration_number,
-              value: vehicle.registration_number,
-              subtitle: `${vehicle.make} ${vehicle.model}`,
-              status: vehicle.status as any
-            }))}
-            onDropdownSelect={(option) => {
-              const vehicle = vehicles.find(v => v.id === option.id);
-              if (vehicle) {
-                setSelectedVehicle(vehicle);
-                setVehicleInputValue(vehicle.registration_number);
-                setValue('vehicle_id', vehicle.id);
-                vehicleJustChanged.current = true; // Mark that vehicle was just changed
-                handleVehicleSelection(vehicle.id);
-              }
-            }}
-            dropdownSearchable
-            dropdownPlaceholder="Search vehicles..."
-          />
+          <div className="relative">
+            <EnhancedInput
+              label="Vehicle"
+              required
+              icon={Truck}
+              isVehicle
+              value={vehicleInputValue}
+              onChange={(inputValue) => {
+                // Prevent vehicle changes on existing trips
+                if (initialData?.id) {
+                  toast.warning('Cannot change vehicle on existing trip. This would break odometer continuity and mileage calculations.');
+                  return;
+                }
+                setVehicleInputValue(inputValue);
+                if (inputValue === '') {
+                  setSelectedVehicle(null);
+                  setValue('vehicle_id', '');
+                }
+              }}
+              placeholder={initialData?.id ? "Vehicle locked for data integrity" : "Type vehicle number..."}
+              isDropdown
+              disabled={!!initialData?.id}
+              dropdownOptions={filteredVehicles.map(vehicle => ({
+                id: vehicle.id,
+                label: vehicle.registration_number,
+                value: vehicle.registration_number,
+                subtitle: `${vehicle.make} ${vehicle.model}`,
+                status: vehicle.status as any
+              }))}
+              onDropdownSelect={(option) => {
+                // Prevent vehicle changes on existing trips
+                if (initialData?.id) {
+                  toast.error('⚠️ Vehicle Change Not Allowed\n\nChanging the vehicle on an existing trip would cause:\n• Serial number mismatch\n• Odometer continuity violations\n• Incorrect mileage calculations\n\nTo change the vehicle, delete this trip and create a new one.', {
+                    autoClose: 8000
+                  });
+                  return;
+                }
+                const vehicle = vehicles.find(v => v.id === option.id);
+                if (vehicle) {
+                  setSelectedVehicle(vehicle);
+                  setVehicleInputValue(vehicle.registration_number);
+                  setValue('vehicle_id', vehicle.id);
+                  vehicleJustChanged.current = true; // Mark that vehicle was just changed
+                  handleVehicleSelection(vehicle.id);
+                }
+              }}
+              dropdownSearchable
+              dropdownPlaceholder="Search vehicles..."
+            />
+            {initialData?.id && (
+              <div className="mt-1 flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <span>Vehicle cannot be changed to maintain data integrity (odometer continuity & mileage calculations)</span>
+              </div>
+            )}
+          </div>
 
           <EnhancedInput
             label="Driver"
@@ -1967,6 +1988,7 @@ const TripForm: React.FC<TripFormProps> = ({
                   </p>
                 )}
               </div>
+
             </div>
           </CollapsibleSection>
         </div>

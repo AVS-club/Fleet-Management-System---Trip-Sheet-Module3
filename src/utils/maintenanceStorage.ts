@@ -540,11 +540,38 @@ export const updateTask = async (
       // Already URLs, preserve them
       console.log('ℹ️ Preserving existing supporting document URLs:', updateData.attachments);
       attachmentsUrls = updateData.attachments as string[];
+    } else if (typeof firstItem === 'object' && firstItem !== null) {
+      // ✅ FIX: Handle objects (extract URLs from objects)
+      console.log('⚠️ Attachments are objects, extracting URLs:', updateData.attachments);
+      attachmentsUrls = updateData.attachments
+        .map((item: any) => {
+          // Try common property names for URLs
+          return item?.url || item?.signedUrl || item?.publicUrl || item?.file_path || null;
+        })
+        .filter((url): url is string => typeof url === 'string' && url.length > 0);
+      console.log('✅ Extracted URLs:', attachmentsUrls);
     }
   } else if (updateData.attachments === undefined) {
     // Preserve existing attachments if not provided
     console.log('ℹ️ No new attachments, preserving old:', oldTask.attachments);
-    attachmentsUrls = oldTask.attachments || [];
+    
+    // ✅ FIX: Handle case where oldTask.attachments might be objects
+    if (Array.isArray(oldTask.attachments) && oldTask.attachments.length > 0) {
+      const firstOldItem = oldTask.attachments[0];
+      if (typeof firstOldItem === 'string') {
+        // Already strings, use as-is
+        attachmentsUrls = oldTask.attachments as string[];
+      } else if (typeof firstOldItem === 'object' && firstOldItem !== null) {
+        // Extract URLs from objects
+        console.log('⚠️ Old attachments are objects, extracting URLs');
+        attachmentsUrls = oldTask.attachments
+          .map((item: any) => {
+            return item?.url || item?.signedUrl || item?.publicUrl || item?.file_path || null;
+          })
+          .filter((url): url is string => typeof url === 'string' && url.length > 0);
+        console.log('✅ Extracted URLs from old attachments:', attachmentsUrls);
+      }
+    }
   } else {
     console.log('⚠️ Attachments is empty array or null');
   }

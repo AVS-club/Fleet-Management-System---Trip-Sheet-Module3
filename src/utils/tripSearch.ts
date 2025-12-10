@@ -18,6 +18,8 @@ export interface TripFilters {
   materials?: string[];
   routeDeviation?: boolean;
   sortBy?: 'date-desc' | 'date-asc' | 'distance-desc' | 'distance-asc' | 'cost-desc' | 'cost-asc';
+  minWeight?: number;
+  maxWeight?: number;
 }
 
 export interface TripSearchResult {
@@ -1081,6 +1083,21 @@ function applyAdditionalFilters(trips: Trip[], filters: TripFilters): Trip[] {
       return filters.materials!.some(materialId => 
         trip.material_type_ids?.includes(materialId)
       );
+    });
+  }
+  
+  // Gross weight range filter
+  if (filters.minWeight !== undefined && filters.minWeight > 0) {
+    filtered = filtered.filter(trip => {
+      const weight = trip.gross_weight || 0;
+      return weight >= filters.minWeight!;
+    });
+  }
+  
+  if (filters.maxWeight !== undefined && filters.maxWeight > 0) {
+    filtered = filtered.filter(trip => {
+      const weight = trip.gross_weight || 0;
+      return weight <= filters.maxWeight!;
     });
   }
   

@@ -4,7 +4,7 @@ import Layout from '../../components/layout/Layout';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Navigate } from 'react-router-dom';
 import LoadingScreen from '../../components/LoadingScreen';
-import { Settings, Users, Truck, PenTool as Tool, MapPin, Bell, FileText, Calendar, BarChart2, Database, Activity, ShieldCheck, Shield, Fuel, Building2 } from 'lucide-react';
+import { Settings, Users, Truck, PenTool as Tool, MapPin, Bell, FileText, Calendar, BarChart2, Database, Activity, ShieldCheck, Shield, Fuel, Building2, Hash } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getVehicles } from '../../utils/storage';
 import { getDrivers } from '../../utils/api/drivers';

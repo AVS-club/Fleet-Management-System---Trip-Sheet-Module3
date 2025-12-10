@@ -973,15 +973,87 @@ const ServiceGroup = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Upload Bills/Receipts
                 </label>
+                
+                {/* Display existing bills */}
+                {groupData.bill_url && Array.isArray(groupData.bill_url) && groupData.bill_url.length > 0 && (
+                  <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm font-medium text-blue-900 mb-2 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      {groupData.bill_url.length} Bill{groupData.bill_url.length > 1 ? 's' : ''} Already Uploaded
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {groupData.bill_url.map((url: string, idx: number) => (
+                        <div key={idx} className="relative group bg-white rounded border border-blue-300 overflow-hidden">
+                          {/* Preview */}
+                          {url.toLowerCase().includes('.pdf') ? (
+                            <div className="flex items-center gap-2 p-2">
+                              <FileText className="h-8 w-8 text-blue-600 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-gray-900 truncate">
+                                  Bill {idx + 1}.pdf
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <img 
+                              src={url} 
+                              alt={`Bill ${idx + 1}`}
+                              className="w-full h-20 object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📄%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                          )}
+                          {/* Delete button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newBillUrls = groupData.bill_url.filter((_: string, i: number) => i !== idx);
+                              onChange({ ...groupData, bill_url: newBillUrls });
+                            }}
+                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                            title="Remove this bill"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                          {/* View button */}
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="absolute bottom-1 right-1 p-1 bg-blue-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-600"
+                            title="View full size"
+                          >
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex items-center gap-2">
                   <input
                     type="file"
                     multiple
-                    onChange={(e) => onChange({ ...groupData, bills: Array.from(e.target.files) })}
+                    onChange={(e) => {
+                      const newFiles = Array.from(e.target.files || []);
+                      // ✅ Merge with existing bills instead of replacing
+                      onChange({ ...groupData, bills: newFiles });
+                    }}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   />
                   <Upload className="h-4 w-4 text-gray-400" />
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {groupData.bill_url && groupData.bill_url.length > 0 
+                    ? 'Upload additional bills (will be added to existing ones)' 
+                    : 'Upload new bills/receipts'}
+                </p>
               </div>
 
               {/* Part Replacements */}
@@ -1263,8 +1335,11 @@ export const convertServiceGroupsToDatabase = async (
 
       logger.debug(`[Group ${index}] FINAL CONVERTED - vendor_id="${converted.vendor_id}"`, converted);
 
+      // ✅ FIX: Throw error instead of just warning when vendor_id is empty
       if (!converted.vendor_id) {
-        logger.error(`[Group ${index}] ⚠️ WARNING: vendor_id is EMPTY! Original vendor was:`, group.vendor);
+        const errorMsg = `Service group ${index + 1}: Vendor is required but could not be found. Original vendor name: "${group.vendor || '(empty)'}"`;
+        logger.error(`[Group ${index}] ⚠️ ERROR: ${errorMsg}`);
+        throw new Error(errorMsg);
       }
 
       return converted;

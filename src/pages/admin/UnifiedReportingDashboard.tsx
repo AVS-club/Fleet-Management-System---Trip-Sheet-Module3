@@ -212,11 +212,19 @@ const UnifiedReportingDashboard: React.FC = () => {
 
   const fetchMetrics = useCallback(async () => {
     try {
+      // Get count to bypass 1000 row limit
+      const { count } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .gte('start_time', dateRange.startDate.toISOString())
+        .lte('start_time', dateRange.endDate.toISOString());
+      
       const { data: trips } = await supabase
         .from('trips')
         .select('*')
         .gte('start_time', dateRange.startDate.toISOString())
-        .lte('start_time', dateRange.endDate.toISOString());
+        .lte('start_time', dateRange.endDate.toISOString())
+        .range(0, (count || 10000) - 1);
 
       const totalRevenue = trips?.reduce((sum, trip) => {
         const revenue = (trip.end_km - trip.start_km) * 10;
@@ -262,12 +270,20 @@ const UnifiedReportingDashboard: React.FC = () => {
 
   const fetchTripTrends = useCallback(async () => {
     try {
+      // Get count for 6-month trend
+      const { count } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .gte('start_time', subMonths(dateRange.endDate, 6).toISOString())
+        .lte('start_time', dateRange.endDate.toISOString());
+      
       const { data: trips } = await supabase
         .from('trips')
         .select('start_time, end_km, start_km')
         .gte('start_time', subMonths(dateRange.endDate, 6).toISOString())
         .lte('start_time', dateRange.endDate.toISOString())
-        .order('start_time');
+        .order('start_time')
+        .range(0, (count || 10000) - 1);
 
       const grouped = trips?.reduce((acc: any, trip) => {
         const date = format(new Date(trip.start_time), 'MMM dd');
@@ -332,12 +348,21 @@ const UnifiedReportingDashboard: React.FC = () => {
 
       const performanceData = await Promise.all(
         drivers?.map(async (driver) => {
+          // Get count for this driver
+          const { count: driverTripCount } = await supabase
+            .from('trips')
+            .select('*', { count: 'exact', head: true })
+            .eq('driver_id', driver.id)
+            .gte('start_time', dateRange.startDate.toISOString())
+            .lte('start_time', dateRange.endDate.toISOString());
+          
           const { data: trips } = await supabase
             .from('trips')
             .select('*')
             .eq('driver_id', driver.id)
             .gte('start_time', dateRange.startDate.toISOString())
-            .lte('start_time', dateRange.endDate.toISOString());
+            .lte('start_time', dateRange.endDate.toISOString())
+            .range(0, (driverTripCount || 10000) - 1);
 
           const efficiency = trips?.length ? 
             trips.reduce((sum, trip) => {
@@ -364,11 +389,19 @@ const UnifiedReportingDashboard: React.FC = () => {
 
   const fetchExpenseBreakdown = useCallback(async () => {
     try {
+      // Get count for expense breakdown
+      const { count } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .gte('start_time', dateRange.startDate.toISOString())
+        .lte('start_time', dateRange.endDate.toISOString());
+      
       const { data: trips } = await supabase
         .from('trips')
         .select('total_fuel_cost, total_road_expenses, driver_expense, breakdown_expense')
         .gte('start_time', dateRange.startDate.toISOString())
-        .lte('start_time', dateRange.endDate.toISOString());
+        .lte('start_time', dateRange.endDate.toISOString())
+        .range(0, (count || 10000) - 1);
 
       const expenses = {
         Fuel: 0,
@@ -456,17 +489,33 @@ const UnifiedReportingDashboard: React.FC = () => {
           const thisWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
           const lastWeekStart = startOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 });
 
+          // Get count for this week
+          const { count: thisWeekCount } = await supabase
+            .from('trips')
+            .select('*', { count: 'exact', head: true })
+            .gte('start_time', thisWeekStart.toISOString())
+            .lte('start_time', new Date().toISOString());
+          
           const { data: thisWeekTrips } = await supabase
             .from('trips')
             .select('*')
             .gte('start_time', thisWeekStart.toISOString())
-            .lte('start_time', new Date().toISOString());
+            .lte('start_time', new Date().toISOString())
+            .range(0, (thisWeekCount || 10000) - 1);
 
+          // Get count for last week
+          const { count: lastWeekCount } = await supabase
+            .from('trips')
+            .select('*', { count: 'exact', head: true })
+            .gte('start_time', lastWeekStart.toISOString())
+            .lte('start_time', endOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 }).toISOString());
+          
           const { data: lastWeekTrips } = await supabase
             .from('trips')
             .select('*')
             .gte('start_time', lastWeekStart.toISOString())
-            .lte('start_time', endOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 }).toISOString());
+            .lte('start_time', endOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 }).toISOString())
+            .range(0, (lastWeekCount || 10000) - 1);
 
           const thisWeekMetrics = calculateMetrics(thisWeekTrips || []);
           const lastWeekMetrics = calculateMetrics(lastWeekTrips || []);
@@ -488,6 +537,13 @@ const UnifiedReportingDashboard: React.FC = () => {
         }
 
         case 'trip-summary': {
+          // Get count for trip summary
+          const { count } = await supabase
+            .from('trips')
+            .select('*', { count: 'exact', head: true })
+            .gte('start_time', start.toISOString())
+            .lte('start_time', end.toISOString());
+          
           const { data: trips } = await supabase
             .from('trips')
             .select(`
@@ -496,7 +552,8 @@ const UnifiedReportingDashboard: React.FC = () => {
               driver:drivers(name)
             `)
             .gte('start_time', start.toISOString())
-            .lte('start_time', end.toISOString());
+            .lte('start_time', end.toISOString())
+            .range(0, (count || 10000) - 1);
           
           fileName = `trip-summary-${format(start, 'yyyy-MM-dd')}.csv`;
           headers = ['Date', 'Vehicle', 'Driver', 'From', 'To', 'Distance', 'Status'];

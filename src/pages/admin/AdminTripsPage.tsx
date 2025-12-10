@@ -16,7 +16,7 @@ import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight, X, RefreshCw, Search, FileText, Download, ChevronUp, Upload, SlidersHorizontal } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight, X, RefreshCw, Search, FileText, Download, ChevronUp, Upload, SlidersHorizontal, Hash, ShieldCheck } from 'lucide-react';
 import UnifiedSearchBar from '../../components/trips/UnifiedSearchBar';
 import { comprehensiveSearchTrips, TripFilters } from '../../utils/tripSearch';
 import * as XLSX from 'xlsx';
@@ -1079,11 +1079,25 @@ const AdminTripsPage: React.FC = () => {
     <Layout>
       {/* Page Header */}
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
-        <div className="flex items-center group">
-          <FileText className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Trip Management</h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center group">
+              <FileText className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Trip Management</h1>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">View and manage all trip records</p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => navigate('/admin/trip-serial-validation')}
+              leftIcon={<ShieldCheck className="h-4 w-4" />}
+              variant="outline"
+              size="sm"
+            >
+              Serial Validation
+            </Button>
+          </div>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">View and manage all trip records</p>
       </div>
 
       {/* Filters + Summary */}

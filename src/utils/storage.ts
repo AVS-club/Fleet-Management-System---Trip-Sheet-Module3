@@ -459,10 +459,17 @@ export const getAllVehicleStats = async (
         return {};
       }
 
+      // Get count to bypass 1000 row limit
+      const { count } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId);
+      
       const { data, error } = await supabase
         .from('trips')
         .select('vehicle_id,start_km,end_km,calculated_kmpl')
-        .eq('organization_id', organizationId);
+        .eq('organization_id', organizationId)
+        .range(0, (count || 10000) - 1);
 
       if (error) {
         handleSupabaseError('fetch vehicle trips', error);
@@ -542,6 +549,14 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
       return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
     }
 
+    // Get count for this vehicle
+    const { count } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', organizationId)
+      .eq('vehicle_id', vehicleId)
+      .is('deleted_at', null);
+    
     // Get trips for this vehicle with cost data
     const { data: trips, error } = await supabase
       .from('trips')
@@ -560,7 +575,8 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
       `)
       .eq('organization_id', organizationId)
       .eq('vehicle_id', vehicleId)
-      .is('deleted_at', null); // Exclude soft-deleted trips
+      .is('deleted_at', null)
+      .range(0, (count || 10000) - 1); // Bypass 1000 row limit
 
     if (error) {
       handleSupabaseError('fetch vehicle trips', error);

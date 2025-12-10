@@ -20,8 +20,23 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
   
   // Calculate stats for all vehicles with memoization for performance
   const vehiclesWithStats = useMemo(() => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
     return activeVehicles.map((vehicle) => {
       const vehicleTrips = Array.isArray(trips) ? trips.filter(trip => trip.vehicle_id === vehicle.id) : [];
+      
+      // Filter trips for current month
+      const tripsThisMonth = vehicleTrips.filter((trip) => {
+        const tripDate = new Date(trip.trip_start_date);
+        return (
+          tripDate.getMonth() === currentMonth &&
+          tripDate.getFullYear() === currentYear
+        );
+      });
+
+      // All-time stats
       const totalTrips = vehicleTrips.length;
       const totalDistance = vehicleTrips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
       const tripsWithKmpl = vehicleTrips.filter(trip => trip.calculated_kmpl !== undefined && trip.calculated_kmpl > 0);
@@ -29,6 +44,11 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
         ? tripsWithKmpl.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithKmpl.length
         : undefined;
       
+      // Monthly stats
+      const tripsCountThisMonth = tripsThisMonth.length;
+      const distanceThisMonth = tripsThisMonth.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
+      const loadThisMonth = tripsThisMonth.reduce((sum, trip) => sum + (trip.gross_weight || 0), 0);
+
       // Calculate efficiency score (0-100)
       const efficiencyScore = averageKmpl 
         ? Math.min(100, Math.round((averageKmpl / 6) * 100)) // 6 km/L = 100% (excellent)
@@ -42,19 +62,28 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
           averageKmpl,
           efficiencyScore,
           hasData: totalTrips > 0,
+          // Monthly metrics
+          tripsThisMonth: tripsCountThisMonth,
+          distanceThisMonth,
+          loadThisMonth: loadThisMonth / 1000, // Convert kg to tons
+          hasMonthlyData: tripsCountThisMonth > 0,
         }
       };
     });
   }, [activeVehicles, trips]);
 
-  // Sort vehicles by activity and efficiency
+  // Sort vehicles by monthly activity and efficiency
   const sortedVehicles = useMemo(() => {
     return [...vehiclesWithStats].sort((a, b) => {
-      // Primary sort: by number of trips (most active first)
-      if (b.stats.totalTrips !== a.stats.totalTrips) {
-        return b.stats.totalTrips - a.stats.totalTrips;
+      // Primary sort: by number of trips this month (most active first)
+      if (b.stats.tripsThisMonth !== a.stats.tripsThisMonth) {
+        return b.stats.tripsThisMonth - a.stats.tripsThisMonth;
       }
-      // Secondary sort: by efficiency
+      // Secondary sort: by distance this month
+      if (b.stats.distanceThisMonth !== a.stats.distanceThisMonth) {
+        return b.stats.distanceThisMonth - a.stats.distanceThisMonth;
+      }
+      // Tertiary sort: by efficiency
       return b.stats.efficiencyScore - a.stats.efficiencyScore;
     });
   }, [vehiclesWithStats]);
@@ -156,7 +185,7 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
                 Vehicle Performance
               </h3>
               <p className="text-xs font-sans text-gray-600 dark:text-gray-400">
-                {sortedVehicles.filter(v => v.stats.hasData).length} of {sortedVehicles.length} active
+                {sortedVehicles.filter(v => v.stats.hasMonthlyData).length} of {sortedVehicles.length} active this month
               </p>
             </div>
           </div>
@@ -188,19 +217,19 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
                   hover:shadow-card-hover
                   bg-white dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50
                   hover:border-primary-300 dark:hover:border-primary-600
-                  ${index === 0 && hasData ? 'ring-2 ring-primary-500/20 dark:ring-primary-400/20' : ''}
+                  ${index === 0 && vehicle.stats.hasMonthlyData ? 'ring-2 ring-primary-500/20 dark:ring-primary-400/20' : ''}
                 `}
                 onClick={(e) => handleClick(e, vehicle)}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={(e) => handleTouchEnd(e, vehicle)}
               >
-                {/* Top performer badge */}
-                {index === 0 && hasData && (
+                {/* Top performer badge - based on monthly activity */}
+                {index === 0 && vehicle.stats.hasMonthlyData && (
                   <div className="absolute -top-2 -right-2 z-10">
                     <div className="bg-gradient-to-r from-primary-500 to-secondary-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg flex items-center space-x-1">
                       <Zap className="h-3 w-3" />
-                      <span>Top</span>
+                      <span>Top MTD</span>
                     </div>
                   </div>
                 )}
@@ -212,8 +241,8 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
                       <h4 className="font-display font-semibold text-gray-900 dark:text-gray-100 text-base">
                         {vehicle.registration_number}
                       </h4>
-                      {!hasData && (
-                        <AlertCircle className="h-4 w-4 text-gray-400" title="No trip data" />
+                      {!vehicle.stats.hasMonthlyData && (
+                        <AlertCircle className="h-4 w-4 text-gray-400" title="No trips this month" />
                       )}
                     </div>
                     <p className="text-sm font-sans text-gray-600 dark:text-gray-400">
@@ -234,7 +263,7 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
                     `}>
                       {vehicle.status}
                     </div>
-                    {hasData && vehicle.stats.averageKmpl && (
+                    {vehicle.stats.hasData && vehicle.stats.averageKmpl && (
                       <div className={`px-2.5 py-1 rounded-full text-xs font-medium ${efficiencyBadge.color}`}>
                         {efficiencyBadge.label}
                       </div>
@@ -242,64 +271,64 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
                   </div>
                 </div>
 
-                {/* Stats grid */}
+                {/* Stats grid - Monthly Metrics */}
                 <div className="grid grid-cols-3 gap-3">
-                  {/* Total Trips */}
+                  {/* Trips This Month */}
                   <div className="flex flex-col space-y-1 p-2.5 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-lg border border-blue-200/50 dark:border-blue-700/30">
                     <div className="flex items-center space-x-1.5 mb-1">
                       <Activity className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                       <span className="text-[10px] font-sans font-medium text-blue-700 dark:text-blue-300 uppercase tracking-wide">
-                        Trips
+                        Trips MTD
                       </span>
                     </div>
                     <span className="font-display font-bold text-lg text-blue-900 dark:text-blue-100">
-                      {hasData ? vehicle.stats.totalTrips : '—'}
+                      {vehicle.stats.hasMonthlyData ? vehicle.stats.tripsThisMonth : '0'}
                     </span>
                   </div>
                   
-                  {/* Total Distance */}
+                  {/* Distance This Month */}
                   <div className="flex flex-col space-y-1 p-2.5 bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/10 rounded-lg border border-purple-200/50 dark:border-purple-700/30">
                     <div className="flex items-center space-x-1.5 mb-1">
                       <TrendingUp className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                       <span className="text-[10px] font-sans font-medium text-purple-700 dark:text-purple-300 uppercase tracking-wide">
-                        Distance
+                        Dist MTD
                       </span>
                     </div>
                     <div className="flex items-baseline space-x-1">
                       <span className="font-display font-bold text-lg text-purple-900 dark:text-purple-100">
-                        {hasData ? NumberFormatter.large(vehicle.stats.totalDistance) : '—'}
+                        {vehicle.stats.hasMonthlyData ? NumberFormatter.large(vehicle.stats.distanceThisMonth) : '0'}
                       </span>
-                      {hasData && (
+                      {vehicle.stats.hasMonthlyData && (
                         <span className="text-[10px] font-sans text-purple-600 dark:text-purple-400">km</span>
                       )}
                     </div>
                   </div>
                   
-                  {/* Average Mileage */}
-                  <div className="flex flex-col space-y-1 p-2.5 bg-gradient-to-br from-primary-50 to-primary-100/50 dark:from-primary-900/20 dark:to-primary-800/10 rounded-lg border border-primary-200/50 dark:border-primary-700/30">
+                  {/* Load This Month */}
+                  <div className="flex flex-col space-y-1 p-2.5 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 rounded-lg border border-green-200/50 dark:border-green-700/30">
                     <div className="flex items-center space-x-1.5 mb-1">
-                      <Fuel className="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" />
-                      <span className="text-[10px] font-sans font-medium text-primary-700 dark:text-primary-300 uppercase tracking-wide">
-                        Mileage
+                      <Fuel className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                      <span className="text-[10px] font-sans font-medium text-green-700 dark:text-green-300 uppercase tracking-wide">
+                        Load MTD
                       </span>
                     </div>
                     <div className="flex items-baseline space-x-1">
-                      <span className={`font-display font-bold text-lg ${hasData && vehicle.stats.averageKmpl ? getEfficiencyColor(vehicle.stats.efficiencyScore) : 'text-gray-400 dark:text-gray-500'}`}>
-                        {hasData && vehicle.stats.averageKmpl ? NumberFormatter.display(vehicle.stats.averageKmpl, 2) : '—'}
+                      <span className="font-display font-bold text-lg text-green-900 dark:text-green-100">
+                        {vehicle.stats.hasMonthlyData ? NumberFormatter.display(vehicle.stats.loadThisMonth, 1) : '0'}
                       </span>
-                      {hasData && vehicle.stats.averageKmpl && (
-                        <span className="text-[10px] font-sans text-primary-600 dark:text-primary-400">km/L</span>
+                      {vehicle.stats.hasMonthlyData && (
+                        <span className="text-[10px] font-sans text-green-600 dark:text-green-400">tons</span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Efficiency indicator bar */}
-                {hasData && vehicle.stats.averageKmpl && (
+                {/* Efficiency indicator bar - shown when vehicle has any historical data */}
+                {vehicle.stats.hasData && vehicle.stats.averageKmpl && (
                   <div className="mt-3 pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[10px] font-sans font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                        Efficiency Score
+                        Avg Efficiency
                       </span>
                       <span className={`text-xs font-display font-bold ${getEfficiencyColor(vehicle.stats.efficiencyScore)}`}>
                         {vehicle.stats.efficiencyScore}%
@@ -321,10 +350,10 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips = [
                 )}
 
                 {/* No data indicator */}
-                {!hasData && (
+                {!vehicle.stats.hasMonthlyData && (
                   <div className="mt-3 pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
                     <p className="text-xs font-sans text-gray-500 dark:text-gray-400 text-center">
-                      No trip data available
+                      No trips this month
                     </p>
                   </div>
                 )}

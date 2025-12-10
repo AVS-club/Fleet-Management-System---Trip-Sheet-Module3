@@ -19,11 +19,19 @@ export async function fixAllExistingMileage(): Promise<{
   try {
     logger.debug('Starting mileage fix for all existing trips...');
     
-    // Get all trips from the database
+    // First get count to bypass Supabase's default 1000 row limit
+    const { count } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true });
+    
+    logger.debug(`Total trips to process: ${count}`);
+    
+    // Get all trips from the database with range to bypass 1000 row limit
     const { data: allTrips, error: fetchError } = await supabase
       .from('trips')
       .select('*')
-      .order('trip_start_date', { ascending: true });
+      .order('trip_start_date', { ascending: true })
+      .range(0, (count || 10000) - 1);
 
     if (fetchError) {
       throw new Error(`Failed to fetch trips: ${fetchError.message}`);
@@ -151,12 +159,19 @@ export async function fixMileageForSpecificVehicle(vehicleId: string): Promise<{
   try {
     logger.debug(`Starting mileage fix for vehicle ${vehicleId}...`);
     
-    // Get all trips for this vehicle
+    // Get count of trips for this vehicle
+    const { count: vehicleTripCount } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true })
+      .eq('vehicle_id', vehicleId);
+    
+    // Get all trips for this vehicle with range
     const { data: vehicleTrips, error: fetchError } = await supabase
       .from('trips')
       .select('*')
       .eq('vehicle_id', vehicleId)
-      .order('trip_start_date', { ascending: true });
+      .order('trip_start_date', { ascending: true })
+      .range(0, (vehicleTripCount || 10000) - 1);
 
     if (fetchError) {
       throw new Error(`Failed to fetch trips for vehicle: ${fetchError.message}`);
@@ -166,11 +181,17 @@ export async function fixMileageForSpecificVehicle(vehicleId: string): Promise<{
       return { success: true, message: 'No trips found for this vehicle', updatedTrips: 0 };
     }
 
-    // Get all trips to pass to the recalculation function
+    // Get count of all trips
+    const { count: totalCount } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true });
+    
+    // Get all trips to pass to the recalculation function with range
     const { data: allTrips } = await supabase
       .from('trips')
       .select('*')
-      .order('trip_start_date', { ascending: true });
+      .order('trip_start_date', { ascending: true })
+      .range(0, (totalCount || 10000) - 1);
 
     // Recalculate mileage for this vehicle's trips
     const fixedTrips = recalculateAllMileageForVehicle(vehicleId, allTrips || []);

@@ -147,6 +147,7 @@ export const usePermissions = (): {
         canAccessAlerts: userRole !== 'data_entry',
         canViewDriverInsights: userRole !== 'data_entry',
         canViewVehicleOverview: userRole !== 'data_entry',
+        canViewRevenue: userRole !== 'data_entry',
       };
 
       setPermissions(newPermissions);
@@ -181,6 +182,7 @@ export const usePermissions = (): {
         canAccessAlerts: false,
         canViewDriverInsights: false,
         canViewVehicleOverview: false,
+        canViewRevenue: false,
       });
     } finally {
       setLoading(false);

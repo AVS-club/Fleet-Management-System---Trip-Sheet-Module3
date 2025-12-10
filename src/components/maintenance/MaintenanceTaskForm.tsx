@@ -635,6 +635,17 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       return "Please add at least one service group";
     }
 
+    // Validate that each service group has a vendor selected
+    for (let i = 0; i < data.service_groups.length; i++) {
+      const group = data.service_groups[i];
+      if (!group.vendor || group.vendor.trim() === '') {
+        return `Service group ${i + 1}: Please select a vendor/shop`;
+      }
+      if (!Array.isArray(group.tasks) || group.tasks.length === 0) {
+        return `Service group ${i + 1}: Please add at least one task`;
+      }
+    }
+
     logger.debug('Service groups found:', data.service_groups.length);
 
     // Validate each service group

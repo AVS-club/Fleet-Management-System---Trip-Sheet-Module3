@@ -16,6 +16,7 @@ interface TripListViewProps {
   onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
   onEditTrip?: (trip: Trip) => void;
   highlightTripId?: string | null;
+  canViewRevenue?: boolean;
 }
 
 // Component to handle destination loading for individual trips
@@ -141,7 +142,8 @@ const TripListView: React.FC<TripListViewProps> = ({
   onSelectTrip,
   onPnlClick,
   onEditTrip,
-  highlightTripId
+  highlightTripId,
+  canViewRevenue = true
 }) => {
   const [expandedTrip, setExpandedTrip] = useState<string | null>(null);
   
@@ -359,7 +361,7 @@ const TripListView: React.FC<TripListViewProps> = ({
                         </button>
                       )}
                       
-                      {onPnlClick && (
+                      {canViewRevenue && onPnlClick && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

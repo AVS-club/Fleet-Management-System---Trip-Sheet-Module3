@@ -20,9 +20,10 @@ interface TripCardProps {
   onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
   onEditClick?: (trip: Trip) => void;
   searchTerm?: string;
+  canViewRevenue?: boolean;
 }
 
-const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick, onPnlClick, onEditClick, searchTerm }) => {
+const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick, onPnlClick, onEditClick, searchTerm, canViewRevenue = true }) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [warehouseData, setWarehouseData] = useState<any>(null);
@@ -202,17 +203,19 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
         </div>
         
         <div className="flex items-center gap-2">
-          {/* P&L Button */}
-          <button 
-            className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors flex items-center justify-center"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onPnlClick) onPnlClick(e, trip);
-            }}
-            title="Profit & Loss"
-          >
-            <IndianRupee className="h-4 w-4" />
-          </button>
+          {/* P&L Button - Hidden for data entry users */}
+          {canViewRevenue && onPnlClick && (
+            <button 
+              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors flex items-center justify-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPnlClick(e, trip);
+              }}
+              title="Profit & Loss"
+            >
+              <IndianRupee className="h-4 w-4" />
+            </button>
+          )}
           
           {/* Camera Button */}
           <button 

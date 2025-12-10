@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -129,12 +129,20 @@ const CompleteFixedReportingDashboard: React.FC = () => {
 
   const fetchMetrics = useCallback(async () => {
     try {
-      // Get trips for the selected period
+      // Get count to bypass 1000 row limit
+      const { count } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', dateRange.startDate.toISOString())
+        .lte('created_at', dateRange.endDate.toISOString());
+      
+      // Get trips for the selected period with range
       const { data: trips, error: tripsError } = await supabase
         .from('trips')
         .select('*')
         .gte('created_at', dateRange.startDate.toISOString())
-        .lte('created_at', dateRange.endDate.toISOString());
+        .lte('created_at', dateRange.endDate.toISOString())
+        .range(0, (count || 10000) - 1);
 
       if (tripsError) {
         logger.error('Error fetching trips:', tripsError);
@@ -192,12 +200,20 @@ const CompleteFixedReportingDashboard: React.FC = () => {
 
   const fetchTripTrends = useCallback(async () => {
     try {
+      // Get count for 6-month range
+      const { count } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', subMonths(dateRange.endDate, 6).toISOString())
+        .lte('created_at', dateRange.endDate.toISOString());
+      
       const { data: trips, error } = await supabase
         .from('trips')
         .select('created_at, start_km, end_km')
         .gte('created_at', subMonths(dateRange.endDate, 6).toISOString())
         .lte('created_at', dateRange.endDate.toISOString())
-        .order('created_at');
+        .order('created_at')
+        .range(0, (count || 10000) - 1);
 
       if (error) {
         logger.error('Error fetching trip trends:', error);
@@ -279,12 +295,21 @@ const CompleteFixedReportingDashboard: React.FC = () => {
 
       const performanceData = await Promise.all(
         (drivers || []).map(async (driver) => {
+          // Get count for this driver
+          const { count: driverTripCount } = await supabase
+            .from('trips')
+            .select('*', { count: 'exact', head: true })
+            .eq('driver_id', driver.id)
+            .gte('created_at', dateRange.startDate.toISOString())
+            .lte('created_at', dateRange.endDate.toISOString());
+          
           const { data: trips } = await supabase
             .from('trips')
             .select('start_km, end_km, total_fuel_cost')
             .eq('driver_id', driver.id)
             .gte('created_at', dateRange.startDate.toISOString())
-            .lte('created_at', dateRange.endDate.toISOString());
+            .lte('created_at', dateRange.endDate.toISOString())
+            .range(0, (driverTripCount || 10000) - 1);
 
           const totalDistance = trips?.reduce((sum, trip) => 
             sum + ((trip.end_km || 0) - (trip.start_km || 0)), 0) || 0;
@@ -308,11 +333,19 @@ const CompleteFixedReportingDashboard: React.FC = () => {
 
   const fetchExpenseBreakdown = useCallback(async () => {
     try {
+      // Get count for expense breakdown
+      const { count } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', dateRange.startDate.toISOString())
+        .lte('created_at', dateRange.endDate.toISOString());
+      
       const { data: trips, error } = await supabase
         .from('trips')
         .select('total_fuel_cost, total_road_expenses, driver_expense, breakdown_expense')
         .gte('created_at', dateRange.startDate.toISOString())
-        .lte('created_at', dateRange.endDate.toISOString());
+        .lte('created_at', dateRange.endDate.toISOString())
+        .range(0, (count || 10000) - 1);
 
       if (error) {
         logger.error('Error fetching expenses:', error);
@@ -495,6 +528,13 @@ const CompleteFixedReportingDashboard: React.FC = () => {
     let cursor = startY;
 
     try {
+      // Get count first
+      const { count } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', dateRange.startDate.toISOString())
+        .lte('created_at', dateRange.endDate.toISOString());
+      
       const { data: trips } = await supabase
         .from('trips')
         .select(
@@ -506,7 +546,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         )
         .gte('created_at', dateRange.startDate.toISOString())
         .lte('created_at', dateRange.endDate.toISOString())
-        .limit(50);
+        .range(0, Math.min((count || 50) - 1, 49));  // Limit to 50 for PDF, but ensure we get correct count
 
       if (trips && trips.length > 0) {
         const totalDistance = trips.reduce((sum, trip) => sum + ((trip.end_km || 0) - (trip.start_km || 0)), 0);
@@ -585,17 +625,33 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         previousPeriodEnd = endOfMonth(subMonths(new Date(), 1));
       }
 
+      // Get count for current period
+      const { count: currentCount } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', currentPeriodStart.toISOString())
+        .lte('created_at', currentPeriodEnd.toISOString());
+      
       const { data: currentTrips } = await supabase
         .from('trips')
         .select('*')
         .gte('created_at', currentPeriodStart.toISOString())
-        .lte('created_at', currentPeriodEnd.toISOString());
+        .lte('created_at', currentPeriodEnd.toISOString())
+        .range(0, (currentCount || 10000) - 1);
 
+      // Get count for previous period
+      const { count: previousCount } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', previousPeriodStart.toISOString())
+        .lte('created_at', previousPeriodEnd.toISOString());
+      
       const { data: previousTrips } = await supabase
         .from('trips')
         .select('*')
         .gte('created_at', previousPeriodStart.toISOString())
-        .lte('created_at', previousPeriodEnd.toISOString());
+        .lte('created_at', previousPeriodEnd.toISOString())
+        .range(0, (previousCount || 10000) - 1);
 
       const calculateMetrics = (trips: any[]) => ({
         trips: trips?.length || 0,
@@ -659,11 +715,19 @@ const CompleteFixedReportingDashboard: React.FC = () => {
     let cursor = startY;
 
     try {
+      // Get count for fuel analysis
+      const { count } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', dateRange.startDate.toISOString())
+        .lte('created_at', dateRange.endDate.toISOString());
+      
       const { data: trips } = await supabase
         .from('trips')
         .select('total_fuel_cost, start_km, end_km')
         .gte('created_at', dateRange.startDate.toISOString())
-        .lte('created_at', dateRange.endDate.toISOString());
+        .lte('created_at', dateRange.endDate.toISOString())
+        .range(0, (count || 10000) - 1);
 
       if (trips && trips.length > 0) {
         const totalFuel = trips.reduce((sum, trip) => sum + (trip.total_fuel_cost || 0), 0);
@@ -701,11 +765,19 @@ const CompleteFixedReportingDashboard: React.FC = () => {
     let cursor = startY;
 
     try {
+      // Get count for expense report
+      const { count } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', dateRange.startDate.toISOString())
+        .lte('created_at', dateRange.endDate.toISOString());
+      
       const { data: trips } = await supabase
         .from('trips')
         .select('total_fuel_cost, total_road_expenses, driver_expense, breakdown_expense, unloading_expense, miscellaneous_expense')
         .gte('created_at', dateRange.startDate.toISOString())
-        .lte('created_at', dateRange.endDate.toISOString());
+        .lte('created_at', dateRange.endDate.toISOString())
+        .range(0, (count || 10000) - 1);
 
       if (trips && trips.length > 0) {
         const expenseBuckets: Record<string, number> = {

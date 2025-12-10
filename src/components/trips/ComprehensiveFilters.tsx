@@ -53,6 +53,7 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
   // Count active filters
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
     if (key === 'sortBy') return false;
+    if (key === 'minWeight' || key === 'maxWeight') return value !== undefined && value > 0;
     if (Array.isArray(value)) return value.length > 0;
     return value && value !== 'all';
   }).length;
@@ -86,7 +87,9 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
       endDate: '',
       materials: [],
       routeDeviation: false,
-      sortBy: 'date-desc'
+      sortBy: 'date-desc',
+      minWeight: undefined,
+      maxWeight: undefined
     });
   };
 
@@ -102,6 +105,26 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
   return (
     <div className={`bg-gray-50 border-b border-gray-200 ${className}`}>
       <div className="px-4 py-2">
+        {/* Statistics Bar - Shown First */}
+        {statistics && (
+          <div className="mb-3 flex items-center gap-4 text-xs text-gray-600">
+            <span>
+              <strong>{statistics.totalTrips}</strong> trips
+            </span>
+            <span>
+              <strong>{statistics.totalDistance.toFixed(0)}</strong> km total
+            </span>
+            <span>
+              <strong>₹{statistics.totalExpenses.toFixed(0)}</strong> expenses
+            </span>
+            {statistics.avgMileage > 0 && (
+              <span>
+                <strong>{statistics.avgMileage.toFixed(1)}</strong> km/L avg
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Top Control Bar */}
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
           {/* Left: Time Filters and Sorting */}
@@ -328,6 +351,26 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
               )}
             </div>
 
+            {/* Weight Range Filter - Second Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 pt-3 border-t border-gray-200">
+              <Input
+                label="Min Weight (kg)"
+                type="number"
+                min={0}
+                value={filters.minWeight || ''}
+                onChange={(e) => updateFilter('minWeight', e.target.value ? Number(e.target.value) : undefined)}
+                placeholder="e.g., 500"
+              />
+              <Input
+                label="Max Weight (kg)"
+                type="number"
+                min={0}
+                value={filters.maxWeight || ''}
+                onChange={(e) => updateFilter('maxWeight', e.target.value ? Number(e.target.value) : undefined)}
+                placeholder="e.g., 5000"
+              />
+            </div>
+
             {/* Clear Filters Button */}
             {activeFilterCount > 0 && (
               <div className="mt-3 flex justify-end">
@@ -339,26 +382,6 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
                   Clear All Filters
                 </button>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Statistics Bar */}
-        {statistics && (
-          <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
-            <span>
-              <strong>{statistics.totalTrips}</strong> trips
-            </span>
-            <span>
-              <strong>{statistics.totalDistance.toFixed(0)}</strong> km total
-            </span>
-            <span>
-              <strong>₹{statistics.totalExpenses.toFixed(0)}</strong> expenses
-            </span>
-            {statistics.avgMileage > 0 && (
-              <span>
-                <strong>{statistics.avgMileage.toFixed(1)}</strong> km/L avg
-              </span>
             )}
           </div>
         )}

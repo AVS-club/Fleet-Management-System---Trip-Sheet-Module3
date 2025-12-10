@@ -212,7 +212,10 @@ export const processServiceGroupFiles = async (
       });
 
       const billUrls = await uploadMaintenanceBills(group.bills, taskId, groupIndex);
-      processedGroup.bill_url = billUrls;
+      
+      // ✅ FIX: Merge new bill URLs with existing ones instead of replacing
+      const existingBillUrls = Array.isArray(group.bill_url) ? group.bill_url : [];
+      processedGroup.bill_url = [...existingBillUrls, ...billUrls];
       delete processedGroup.bills;
 
       onFileProgress?.({

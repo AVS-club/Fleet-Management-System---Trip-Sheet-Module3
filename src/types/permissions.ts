@@ -10,6 +10,7 @@ export interface Permissions {
   canAccessAlerts: boolean;
   canViewDriverInsights: boolean;
   canViewVehicleOverview: boolean;
+  canViewRevenue: boolean;
 }
 
 export interface OrganizationUser {

@@ -7,6 +7,33 @@ import { createLogger } from '../logger';
 
 const logger = createLogger('trips');
 
+// Shri Durga Enterprises organization ID
+const SHRI_DURGA_ORG_ID = 'ab6c2178-32f9-4a03-b5ab-d535db827a58';
+
+// Warehouse-specific freight rates for Shri Durga Enterprises
+const getFreightRateForWarehouse = async (warehouseId: string): Promise<number | null> => {
+  try {
+    const { data: warehouse, error } = await supabase
+      .from('warehouses')
+      .select('name')
+      .eq('id', warehouseId)
+      .single();
+
+    if (error || !warehouse) return null;
+
+    const warehouseName = warehouse.name.toLowerCase();
+    
+    if (warehouseName.includes('raipur')) return 2.15;
+    if (warehouseName.includes('sambarkur') || warehouseName.includes('sambalpur')) return 2.21;
+    if (warehouseName.includes('bilaspur')) return 2.75;
+    
+    return null;
+  } catch (error) {
+    logger.error('Error getting freight rate for warehouse:', error);
+    return null;
+  }
+};
+
 export const getTrips = async (): Promise<Trip[]> => {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -32,29 +59,76 @@ export const getTrips = async (): Promise<Trip[]> => {
     }
 
     // First get the total count
-    const { count } = await supabase
+    const { count, error: countError } = await supabase
       .from('trips')
       .select('*', { count: 'exact', head: true })
       .eq('organization_id', organizationId);
     
-    logger.info(`Total trips in database: ${count}`);
+    if (countError) {
+      logger.error('Error getting trip count:', countError);
+    }
     
-    // Then fetch all trips with explicit range to bypass default 1000 limit
-    const { data, error } = await supabase
-      .from('trips')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .order('trip_start_date', { ascending: false })
-      .range(0, (count || 10000) - 1);
+    const totalCount = count || 0;
+    logger.info(`Total trips in database: ${totalCount}`);
     
-    logger.info(`Fetched ${data?.length || 0} trips from database`);
-
-    if (error) {
-      handleSupabaseError('fetch trips', error);
+    // If count is 0, return early
+    if (totalCount === 0) {
       return [];
     }
+    
+    // Fetch ALL trips using pagination to bypass 1000 row limit
+    // Supabase PostgREST has a max_rows default of 1000
+    // We need to fetch in batches if there are more than 1000 trips
+    const BATCH_SIZE = 1000;
+    let allTrips: Trip[] = [];
+    
+    if (totalCount <= BATCH_SIZE) {
+      // If total is less than batch size, fetch in one go
+      const { data, error } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .order('trip_start_date', { ascending: false })
+        .range(0, totalCount - 1);
+      
+      if (error) {
+        handleSupabaseError('fetch trips', error);
+        return [];
+      }
+      
+      allTrips = data || [];
+    } else {
+      // Fetch in batches for large datasets
+      const batches = Math.ceil(totalCount / BATCH_SIZE);
+      logger.info(`Fetching ${totalCount} trips in ${batches} batches...`);
+      
+      for (let i = 0; i < batches; i++) {
+        const start = i * BATCH_SIZE;
+        const end = Math.min(start + BATCH_SIZE - 1, totalCount - 1);
+        
+        const { data, error } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('organization_id', organizationId)
+          .order('trip_start_date', { ascending: false })
+          .range(start, end);
+        
+        if (error) {
+          logger.error(`Error fetching batch ${i + 1}:`, error);
+          continue;
+        }
+        
+        if (data) {
+          allTrips = allTrips.concat(data);
+        }
+        
+        logger.info(`Batch ${i + 1}/${batches}: fetched ${data?.length || 0} trips (total so far: ${allTrips.length})`);
+      }
+    }
+    
+    logger.info(`Fetched ${allTrips.length} trips from database (expected: ${totalCount})`);
 
-    return data || [];
+    return allTrips;
   } catch (error) {
     if (isNetworkError(error)) {
       if (config.isDev) logger.warn('Network error fetching user for trips, returning empty array');
@@ -112,6 +186,26 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
     }
     if (sanitizedTripData.warehouse_id === '') {
       sanitizedTripData.warehouse_id = null;
+    }
+
+    // Auto-populate freight_rate for Shri Durga Enterprises based on warehouse
+    if (organizationId === SHRI_DURGA_ORG_ID && sanitizedTripData.warehouse_id) {
+      const freightRate = await getFreightRateForWarehouse(sanitizedTripData.warehouse_id);
+      if (freightRate && sanitizedTripData.gross_weight) {
+        sanitizedTripData.freight_rate = freightRate;
+        sanitizedTripData.billing_type = 'per_ton';
+        
+        // Calculate and round income_amount
+        const calculatedIncome = sanitizedTripData.gross_weight * freightRate;
+        sanitizedTripData.income_amount = Math.round(calculatedIncome * 100) / 100;
+        
+        logger.info('Auto-populated freight rate for Shri Durga Enterprises', {
+          warehouseId: sanitizedTripData.warehouse_id,
+          freightRate,
+          grossWeight: sanitizedTripData.gross_weight,
+          income: sanitizedTripData.income_amount
+        });
+      }
     }
 
     const payload = withOwner({
@@ -246,6 +340,47 @@ export const updateTrip = async (id: string, updates: Partial<Trip>): Promise<Tr
     
     // Remove station field as it's no longer in the database
     delete updateData.station;
+    
+    // Get organization ID from existing trip if not provided
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+
+    const organizationId = await getUserActiveOrganization(userId);
+    if (!organizationId) {
+      throw new Error('No organization selected. Please select an organization.');
+    }
+
+    // Auto-populate freight_rate for Shri Durga Enterprises if warehouse is being updated
+    if (organizationId === SHRI_DURGA_ORG_ID && updateData.warehouse_id) {
+      const freightRate = await getFreightRateForWarehouse(updateData.warehouse_id);
+      
+      // Get existing trip data if needed
+      const { data: existingTrip } = await supabase
+        .from('trips')
+        .select('gross_weight')
+        .eq('id', id)
+        .single();
+      
+      const grossWeight = updateData.gross_weight ?? existingTrip?.gross_weight;
+      
+      if (freightRate && grossWeight) {
+        updateData.freight_rate = freightRate;
+        updateData.billing_type = 'per_ton';
+        
+        // Calculate and round income_amount
+        const calculatedIncome = grossWeight * freightRate;
+        updateData.income_amount = Math.round(calculatedIncome * 100) / 100;
+        
+        logger.info('Auto-populated freight rate for Shri Durga Enterprises on update', {
+          warehouseId: updateData.warehouse_id,
+          freightRate,
+          grossWeight,
+          income: updateData.income_amount
+        });
+      }
+    }
     
     const { data, error } = await supabase
       .from('trips')
