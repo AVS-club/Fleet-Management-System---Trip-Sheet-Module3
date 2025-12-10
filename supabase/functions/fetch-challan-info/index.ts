@@ -83,24 +83,25 @@ serve(async (req) => {
     }
 
     // Call the Challan Information API
-    // Challan API uses form-urlencoded format (different from RC API which uses JSON)
-    const formData = new URLSearchParams();
-    formData.append('vehicleId', cleanVehicleId);
-    formData.append('chassis', cleanChassis);
-    formData.append('engine_no', cleanEngineNo);
+    // Challan API v2 uses JSON format (like RC API)
+    const requestBody = {
+      vehicleId: cleanVehicleId,
+      chassis: cleanChassis,
+      engine_no: cleanEngineNo
+    };
 
     console.log('Making API call with cleaned data:', { 
       original: { vehicleId, chassis, engine_no },
-      cleaned: { cleanVehicleId, cleanChassis, cleanEngineNo }
+      cleaned: requestBody
     });
     
     // ========================================
     // HMAC Signature Authentication
     // ========================================
-    // For Challan API: Sign the form-urlencoded body string (NOT JSON)
-    const formBodyString = formData.toString();
-    const base64Payload = btoa(formBodyString);
-    console.log('🔐 Base64 Payload generated from form data');
+    // Step 1: Convert JSON to Base64
+    const jsonString = JSON.stringify(requestBody);
+    const base64Payload = btoa(jsonString);
+    console.log('🔐 Base64 Payload generated from JSON');
     
     // Step 2: Generate HMAC-SHA256 signature
     const encoder = new TextEncoder();
@@ -127,21 +128,19 @@ serve(async (req) => {
     const signatureArray = Array.from(new Uint8Array(signatureBuffer));
     const hmacSignature = signatureArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    console.log('✅ HMAC Signature generated from form body');
-    console.log('  - Headers: x-signature, x-id, content-type');
-    console.log('  - Body format: application/x-www-form-urlencoded');
+    console.log('✅ HMAC Signature generated');
+    console.log('  - Headers: x-signature, x-id, Content-Type');
+    console.log('  - Body format: JSON');
     
-    // Send as form-urlencoded (Challan API requirement)
+    // Send as JSON (same as RC/DL APIs)
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'content-type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
         'x-signature': hmacSignature,
-        'x-id': apiXid,
-        'X-Request-Id': crypto.randomUUID(),
-        'X-Environment': 'production'
+        'x-id': apiXid
       },
-      body: formBodyString
+      body: JSON.stringify(requestBody)
     });
 
     console.log('API Response Status:', response.status);

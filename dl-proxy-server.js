@@ -131,23 +131,53 @@ app.post('/api/fetch-dl-details', async (req, res) => {
     if (data.code === 200 && data.response) {
       // Success - return the data
       console.log('✅ Successfully fetched DL details');
+      console.log('📋 API Response fields:', Object.keys(data.response));
+      console.log('🖼️ Has image:', !!data.response.image);
+      console.log('📍 Has address:', !!data.response.permanent_address);
       
       // Map the response to match our driver form fields
+      // Handle nested validity objects
+      const nonTransportValidity = data.response.non_transport_validity || {};
+      const transportValidity = data.response.transport_validity || {};
+      
+      // Parse RTO name and state from rto_code (format: "RTO,BILASPUR (CHHATTISGARH)")
+      const rtoCode = data.response.rto_code || '';
+      let rtoName = '';
+      let stateName = data.response.state || '';
+      
+      if (rtoCode) {
+        // Extract RTO name (between comma and opening parenthesis)
+        const rtoMatch = rtoCode.match(/,\s*([^(]+)/);
+        if (rtoMatch) {
+          rtoName = rtoMatch[1].trim();
+        }
+        
+        // Extract state (inside parentheses)
+        const stateMatch = rtoCode.match(/\(([^)]+)\)/);
+        if (stateMatch && !stateName) {
+          stateName = stateMatch[1].trim();
+        }
+      }
+      
       const mappedData = {
         full_name: data.response.holder_name || '',
         father_name: data.response.father_or_husband_name || '',
         gender: data.response.gender || '',
         date_of_birth: data.response.dob || '',
-        permanent_address: data.response.permanent_address || '',
+        // Try present_address first (more commonly filled), fallback to permanent_address
+        permanent_address: data.response.present_address || data.response.permanent_address || '',
         temporary_address: data.response.temporary_address || '',
         license_number: data.response.license_number || dl_no,
-        issue_date: data.response.issue_date || '',
-        valid_from: data.response.valid_from || '',
-        valid_upto: data.response.valid_upto || '',
+        // Extract dates from nested validity objects
+        issue_date: data.response.issue_date || nonTransportValidity.from || transportValidity.from || '',
+        valid_from: data.response.valid_from || nonTransportValidity.from || transportValidity.from || '',
+        valid_upto: data.response.valid_upto || nonTransportValidity.to || transportValidity.to || '',
         vehicle_class: data.response.vehicle_class || [],
         blood_group: data.response.blood_group || '',
-        state: data.response.state || '',
-        rto_code: data.response.rto_code || ''
+        state: stateName,
+        rto_code: rtoCode,
+        rto: rtoName,  // Parsed RTO name
+        image: data.response.image || data.response.photo || ''  // Driver photo from API
       };
       
       res.json({
